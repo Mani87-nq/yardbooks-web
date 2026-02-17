@@ -1,0 +1,371 @@
+'use client';
+
+import { use, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import {
+  ArrowLeftIcon,
+  TruckIcon,
+  ClockIcon,
+  CurrencyDollarIcon,
+  CheckCircleIcon,
+  XMarkIcon,
+  PrinterIcon,
+} from '@heroicons/react/24/outline';
+import { useAppStore } from '@/store/appStore';
+import {
+  PARKING_STATUS_LABELS,
+  VEHICLE_TYPE_LABELS,
+  calculateParkingDuration,
+  calculateParkingAmount,
+} from '@/types/parkingSlip';
+import type { ParkingSlipStatus } from '@/types/parkingSlip';
+import { printContent, generateStatCards, formatPrintCurrency } from '@/lib/print';
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function ParkingSlipDetailPage({ params }: PageProps) {
+  const { id } = use(params);
+  const router = useRouter();
+  const parkingSlips = useAppStore((state) => state.parkingSlips) || [];
+  const updateParkingSlip = useAppStore((state) => state.updateParkingSlip);
+  const activeCompany = useAppStore((state) => state.activeCompany);
+
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('cash');
+
+  const slip = parkingSlips.find((s) => s.id === id);
+
+  if (!slip) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <TruckIcon className="w-16 h-16 text-gray-300 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Slip Not Found</h2>
+        <p className="text-gray-500 mb-4">The parking slip you're looking for doesn't exist.</p>
+        <Link
+          href="/parking-slip"
+          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+        >
+          Back to Parking Slips
+        </Link>
+      </div>
+    );
+  }
+
+  const duration = calculateParkingDuration(slip.entryTime, slip.exitTime);
+  const amount = slip.totalAmount || calculateParkingAmount(duration, slip.hourlyRate);
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ${mins} min${mins !== 1 ? 's' : ''}`;
+    }
+    return `${mins} minute${mins !== 1 ? 's' : ''}`;
+  };
+
+  const getStatusColor = (status: ParkingSlipStatus) => {
+    const colors: Record<ParkingSlipStatus, string> = {
+      active: 'bg-green-100 text-green-700',
+      completed: 'bg-blue-100 text-blue-700',
+      cancelled: 'bg-red-100 text-red-700',
+      expired: 'bg-orange-100 text-orange-700',
+    };
+    return colors[status];
+  };
+
+  const handleCheckout = () => {
+    if (updateParkingSlip) {
+      updateParkingSlip(slip.id, {
+        status: 'completed',
+        exitTime: new Date(),
+        totalAmount: amount,
+        isPaid: true,
+        paymentMethod,
+        updatedAt: new Date(),
+      });
+      router.push('/parking-slip');
+    }
+  };
+
+  const handleCancel = () => {
+    if (updateParkingSlip && confirm('Are you sure you want to cancel this parking slip?')) {
+      updateParkingSlip(slip.id, {
+        status: 'cancelled',
+        updatedAt: new Date(),
+      });
+      router.push('/parking-slip');
+    }
+  };
+
+  const handlePrint = () => {
+    const content = `
+      ${generateStatCards([
+        { label: 'Duration', value: formatDuration(duration) },
+        { label: 'Amount Due', value: formatPrintCurrency(amount), color: '#059669' },
+        { label: 'Hourly Rate', value: formatPrintCurrency(slip.hourlyRate) + '/hr' },
+      ])}
+      <h3 style="margin: 20px 0 10px; font-weight: 600;">Vehicle Details</h3>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">License Plate</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${slip.vehiclePlate}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Vehicle Type</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${slip.vehicleType ? VEHICLE_TYPE_LABELS[slip.vehicleType] : '-'}</td></tr>
+        ${slip.vehicleColor ? `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Color</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${slip.vehicleColor}</td></tr>` : ''}
+      </table>
+      <h3 style="margin: 20px 0 10px; font-weight: 600;">Time Information</h3>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Entry Time</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${format(new Date(slip.entryTime), 'dd MMM yyyy, HH:mm')}</td></tr>
+        ${slip.exitTime ? `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Exit Time</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${format(new Date(slip.exitTime), 'dd MMM yyyy, HH:mm')}</td></tr>` : ''}
+        ${slip.lotName ? `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Lot</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${slip.lotName}</td></tr>` : ''}
+        ${slip.spotNumber ? `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Spot</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${slip.spotNumber}</td></tr>` : ''}
+      </table>
+      ${slip.driverName || slip.driverPhone ? `
+        <h3 style="margin: 20px 0 10px; font-weight: 600;">Driver Details</h3>
+        <table style="width:100%;border-collapse:collapse;">
+          ${slip.driverName ? `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Name</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${slip.driverName}</td></tr>` : ''}
+          ${slip.driverPhone ? `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Phone</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:500;">${slip.driverPhone}</td></tr>` : ''}
+        </table>
+      ` : ''}
+    `;
+
+    printContent({
+      title: `Parking Slip ${slip.slipNumber}`,
+      subtitle: `${slip.vehiclePlate} | ${PARKING_STATUS_LABELS[slip.status]}`,
+      companyName: activeCompany?.businessName,
+      content,
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/parking-slip"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">{slip.slipNumber}</h1>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(slip.status)}`}>
+                {PARKING_STATUS_LABELS[slip.status]}
+              </span>
+            </div>
+            <p className="text-xl font-bold text-emerald-600 mt-1">{slip.vehiclePlate}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={handlePrint}
+          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          title="Print parking slip"
+        >
+          <PrinterIcon className="w-5 h-5 text-gray-600" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Info */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Time & Cost Summary */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center">
+                <ClockIcon className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Duration</p>
+                <p className="text-xl font-bold text-gray-900">{formatDuration(duration)}</p>
+              </div>
+              <div className="text-center border-x border-gray-200">
+                <CurrencyDollarIcon className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Amount Due</p>
+                <p className="text-xl font-bold text-gray-900">${amount.toLocaleString()}</p>
+              </div>
+              <div className="text-center">
+                <TruckIcon className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Rate</p>
+                <p className="text-xl font-bold text-gray-900">${slip.hourlyRate}/hr</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Vehicle Details */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">Vehicle Details</h2>
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-sm text-gray-500">License Plate</dt>
+                <dd className="font-medium text-gray-900">{slip.vehiclePlate}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Vehicle Type</dt>
+                <dd className="font-medium text-gray-900">
+                  {slip.vehicleType ? VEHICLE_TYPE_LABELS[slip.vehicleType] : '-'}
+                </dd>
+              </div>
+              {slip.vehicleColor && (
+                <div>
+                  <dt className="text-sm text-gray-500">Color</dt>
+                  <dd className="font-medium text-gray-900">{slip.vehicleColor}</dd>
+                </div>
+              )}
+              {slip.vehicleDescription && (
+                <div>
+                  <dt className="text-sm text-gray-500">Description</dt>
+                  <dd className="font-medium text-gray-900">{slip.vehicleDescription}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
+          {/* Driver Details */}
+          {(slip.driverName || slip.driverPhone) && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">Driver Details</h2>
+              <dl className="grid grid-cols-2 gap-4">
+                {slip.driverName && (
+                  <div>
+                    <dt className="text-sm text-gray-500">Name</dt>
+                    <dd className="font-medium text-gray-900">{slip.driverName}</dd>
+                  </div>
+                )}
+                {slip.driverPhone && (
+                  <div>
+                    <dt className="text-sm text-gray-500">Phone</dt>
+                    <dd className="font-medium text-gray-900">{slip.driverPhone}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          )}
+
+          {/* Notes */}
+          {slip.notes && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-2">Notes</h2>
+              <p className="text-gray-700">{slip.notes}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Time Info */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">Time Information</h2>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm text-gray-500">Entry Time</dt>
+                <dd className="font-medium text-gray-900">
+                  {format(new Date(slip.entryTime), 'dd MMM yyyy, HH:mm')}
+                </dd>
+              </div>
+              {slip.exitTime && (
+                <div>
+                  <dt className="text-sm text-gray-500">Exit Time</dt>
+                  <dd className="font-medium text-gray-900">
+                    {format(new Date(slip.exitTime), 'dd MMM yyyy, HH:mm')}
+                  </dd>
+                </div>
+              )}
+              {slip.lotName && (
+                <div>
+                  <dt className="text-sm text-gray-500">Lot</dt>
+                  <dd className="font-medium text-gray-900">{slip.lotName}</dd>
+                </div>
+              )}
+              {slip.spotNumber && (
+                <div>
+                  <dt className="text-sm text-gray-500">Spot</dt>
+                  <dd className="font-medium text-gray-900">{slip.spotNumber}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
+          {/* Payment / Checkout */}
+          {slip.status === 'active' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">Checkout</h2>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['cash', 'card', 'mobile'] as const).map((method) => (
+                    <button
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                        paymentMethod === method
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {method.charAt(0).toUpperCase() + method.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4 mb-4">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Due</span>
+                  <span className="text-emerald-600">${amount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCheckout}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+              >
+                <CheckCircleIcon className="w-5 h-5" />
+                Complete Checkout
+              </button>
+            </div>
+          )}
+
+          {/* Status Actions */}
+          {slip.status === 'active' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">Actions</h2>
+              <button
+                onClick={handleCancel}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+              >
+                <XMarkIcon className="w-4 h-4" />
+                Cancel Slip
+              </button>
+            </div>
+          )}
+
+          {/* Payment Info (if completed) */}
+          {slip.status === 'completed' && slip.isPaid && (
+            <div className="bg-green-50 rounded-xl border border-green-200 p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                <h2 className="font-semibold text-green-800">Payment Complete</h2>
+              </div>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-green-700">Amount Paid</dt>
+                  <dd className="font-medium text-green-800">${(slip.totalAmount || 0).toLocaleString()}</dd>
+                </div>
+                {slip.paymentMethod && (
+                  <div className="flex justify-between">
+                    <dt className="text-green-700">Method</dt>
+                    <dd className="font-medium text-green-800 capitalize">{slip.paymentMethod}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/recurring-invoices",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/payment-reminders",
+      "schedule": "0 9 * * 1-5"
+    },
+    {
+      "path": "/api/cron/tax-deadline-reminders",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/data-cleanup",
+      "schedule": "0 2 * * 0"
+    }
+  ]
+}

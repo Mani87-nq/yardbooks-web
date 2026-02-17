@@ -1,0 +1,275 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeftIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { useAppStore } from '@/store/appStore';
+import type { ParkingSlip } from '@/types/parkingSlip';
+
+const VEHICLE_TYPES = [
+  { value: 'car', label: 'Car' },
+  { value: 'motorcycle', label: 'Motorcycle' },
+  { value: 'truck', label: 'Truck' },
+  { value: 'bus', label: 'Bus' },
+  { value: 'other', label: 'Other' },
+];
+
+export default function NewParkingSlipPage() {
+  const router = useRouter();
+  const addParkingSlip = useAppStore((state) => state.addParkingSlip);
+  const parkingSlips = useAppStore((state) => state.parkingSlips) || [];
+  const activeCompanyId = useAppStore((state) => state.activeCompany?.id);
+
+  const [formData, setFormData] = useState({
+    vehiclePlate: '',
+    vehicleType: 'car',
+    vehicleColor: '',
+    vehicleDescription: '',
+    driverName: '',
+    driverPhone: '',
+    lotName: '',
+    spotNumber: '',
+    hourlyRate: 200, // Default rate in JMD
+    notes: '',
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const generateSlipNumber = () => {
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const count = parkingSlips.filter(s =>
+      new Date(s.entryTime).toDateString() === date.toDateString()
+    ).length + 1;
+    return `PS-${dateStr}-${count.toString().padStart(3, '0')}`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.vehiclePlate) {
+      alert('Please enter the vehicle plate number');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const newSlip: ParkingSlip = {
+      id: `slip-${Date.now()}`,
+      companyId: activeCompanyId || '',
+      slipNumber: generateSlipNumber(),
+      vehiclePlate: formData.vehiclePlate.toUpperCase(),
+      vehicleType: formData.vehicleType as ParkingSlip['vehicleType'],
+      vehicleColor: formData.vehicleColor || undefined,
+      vehicleDescription: formData.vehicleDescription || undefined,
+      driverName: formData.driverName || undefined,
+      driverPhone: formData.driverPhone || undefined,
+      lotName: formData.lotName || undefined,
+      spotNumber: formData.spotNumber || undefined,
+      status: 'active',
+      entryTime: new Date(),
+      hourlyRate: formData.hourlyRate,
+      isPaid: false,
+      notes: formData.notes || undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    addParkingSlip?.(newSlip);
+    router.push('/parking-slip');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link
+          href="/parking-slip"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">New Parking Entry</h1>
+          <p className="text-gray-500">Record a vehicle entering the lot</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Vehicle Info */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <TruckIcon className="w-6 h-6 text-emerald-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Vehicle Information</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                License Plate <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.vehiclePlate}
+                onChange={(e) => setFormData({ ...formData, vehiclePlate: e.target.value.toUpperCase() })}
+                placeholder="e.g., ABC 1234"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Vehicle Type
+              </label>
+              <select
+                value={formData.vehicleType}
+                onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                {VEHICLE_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Vehicle Color
+              </label>
+              <input
+                type="text"
+                value={formData.vehicleColor}
+                onChange={(e) => setFormData({ ...formData, vehicleColor: e.target.value })}
+                placeholder="e.g., Black"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Vehicle Description
+              </label>
+              <input
+                type="text"
+                value={formData.vehicleDescription}
+                onChange={(e) => setFormData({ ...formData, vehicleDescription: e.target.value })}
+                placeholder="e.g., Toyota Corolla"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Driver Info */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Driver Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Driver Name
+              </label>
+              <input
+                type="text"
+                value={formData.driverName}
+                onChange={(e) => setFormData({ ...formData, driverName: e.target.value })}
+                placeholder="Driver's name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Driver Phone
+              </label>
+              <input
+                type="tel"
+                value={formData.driverPhone}
+                onChange={(e) => setFormData({ ...formData, driverPhone: e.target.value })}
+                placeholder="Phone number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Parking Details */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Parking Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Lot Name
+              </label>
+              <input
+                type="text"
+                value={formData.lotName}
+                onChange={(e) => setFormData({ ...formData, lotName: e.target.value })}
+                placeholder="Parking lot name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Spot Number
+              </label>
+              <input
+                type="text"
+                value={formData.spotNumber}
+                onChange={(e) => setFormData({ ...formData, spotNumber: e.target.value })}
+                placeholder="e.g., A-15"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Hourly Rate (JMD)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="50"
+                value={formData.hourlyRate}
+                onChange={(e) => setFormData({ ...formData, hourlyRate: parseInt(e.target.value) || 0 })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              placeholder="Additional notes..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3">
+          <Link
+            href="/parking-slip"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          >
+            {isSubmitting ? 'Creating...' : 'Start Parking'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
