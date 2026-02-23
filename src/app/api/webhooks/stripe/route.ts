@@ -6,6 +6,7 @@
  *          customer.subscription.updated, customer.subscription.deleted
  */
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -56,7 +57,14 @@ async function verifyStripeSignature(
   return expectedSignature === v1Signature;
 }
 
-// ---- Webhook Event Handlers ----
+// ─── Helper: Map Stripe plan ID to SubscriptionPlan enum ──────────
+
+function mapPlanId(planId: string | undefined): 'SOLO' | 'TEAM' {
+  if (planId === 'team') return 'TEAM';
+  return 'SOLO';
+}
+
+// ─── Webhook Event Handlers (with real DB updates) ────────────────
 
 async function handleCheckoutCompleted(event: Record<string, unknown>) {
   const session = event.data as Record<string, unknown>;
@@ -64,25 +72,32 @@ async function handleCheckoutCompleted(event: Record<string, unknown>) {
   const metadata = obj.metadata as Record<string, string> | undefined;
 
   const companyId = metadata?.companyId;
-  const userId = metadata?.userId;
   const planId = metadata?.planId;
   const subscriptionId = obj.subscription as string | undefined;
   const customerId = obj.customer as string | undefined;
 
-  console.log('[stripe:checkout.session.completed]', {
-    companyId,
-    userId,
-    planId,
-    subscriptionId,
-    customerId,
+  console.log('[stripe:checkout.session.completed]', { companyId, planId, subscriptionId, customerId });
+
+  if (!companyId) {
+    console.error('[stripe:checkout] Missing companyId in metadata');
+    return;
+  }
+
+  // Update the company with Stripe IDs and activate subscription
+  await prisma.company.update({
+    where: { id: companyId },
+    data: {
+      stripeCustomerId: customerId ?? undefined,
+      stripeSubscriptionId: subscriptionId ?? undefined,
+      subscriptionPlan: mapPlanId(planId),
+      subscriptionStatus: 'ACTIVE',
+      subscriptionStartDate: new Date(),
+      // Set subscription end to 30 days (will be updated by invoice.paid)
+      subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
   });
 
-  // TODO: In production, update the company record with the Stripe customer ID,
-  // subscription ID, and active plan. Example:
-  // await prisma.company.update({
-  //   where: { id: companyId },
-  //   data: { stripeCustomerId: customerId, stripeSubscriptionId: subscriptionId, planId },
-  // });
+  console.log(`[stripe:checkout] Company ${companyId} upgraded to ${planId ?? 'SOLO'} plan`);
 }
 
 async function handleInvoicePaid(event: Record<string, unknown>) {
@@ -90,13 +105,33 @@ async function handleInvoicePaid(event: Record<string, unknown>) {
   const obj = invoice.object as Record<string, unknown>;
   const subscriptionId = obj.subscription as string | undefined;
   const amountPaid = obj.amount_paid as number | undefined;
+  const periodEnd = obj.lines as any;
 
-  console.log('[stripe:invoice.paid]', {
-    subscriptionId,
-    amountPaid,
+  console.log('[stripe:invoice.paid]', { subscriptionId, amountPaid });
+
+  if (!subscriptionId) return;
+
+  // Find the company by Stripe subscription ID
+  const company = await prisma.company.findFirst({
+    where: { stripeSubscriptionId: subscriptionId },
   });
 
-  // TODO: Record payment in billing history, extend subscription period.
+  if (!company) {
+    console.error(`[stripe:invoice.paid] No company found for subscription ${subscriptionId}`);
+    return;
+  }
+
+  // Extend subscription period (Stripe sends current_period_end in the subscription object)
+  // For now, extend by 30 days from today
+  await prisma.company.update({
+    where: { id: company.id },
+    data: {
+      subscriptionStatus: 'ACTIVE',
+      subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  console.log(`[stripe:invoice.paid] Company ${company.id} subscription extended, amount: ${amountPaid}`);
 }
 
 async function handleSubscriptionUpdated(event: Record<string, unknown>) {
@@ -107,15 +142,48 @@ async function handleSubscriptionUpdated(event: Record<string, unknown>) {
   const cancelAtPeriodEnd = obj.cancel_at_period_end as boolean;
   const currentPeriodEnd = obj.current_period_end as number | undefined;
 
-  console.log('[stripe:customer.subscription.updated]', {
-    subscriptionId,
-    status,
-    cancelAtPeriodEnd,
-    currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : null,
+  console.log('[stripe:subscription.updated]', { subscriptionId, status, cancelAtPeriodEnd, currentPeriodEnd });
+
+  // Find the company
+  const company = await prisma.company.findFirst({
+    where: { stripeSubscriptionId: subscriptionId },
   });
 
-  // TODO: Update subscription status in the database.
-  // Handle plan changes, cancellation scheduling, etc.
+  if (!company) {
+    console.error(`[stripe:subscription.updated] No company found for subscription ${subscriptionId}`);
+    return;
+  }
+
+  // Map Stripe status to our SubscriptionStatus
+  let dbStatus: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'INACTIVE' = 'ACTIVE';
+  switch (status) {
+    case 'active':
+      dbStatus = 'ACTIVE';
+      break;
+    case 'past_due':
+      dbStatus = 'PAST_DUE';
+      break;
+    case 'canceled':
+    case 'cancelled':
+      dbStatus = 'CANCELLED';
+      break;
+    case 'unpaid':
+    case 'incomplete_expired':
+      dbStatus = 'INACTIVE';
+      break;
+    default:
+      dbStatus = 'ACTIVE';
+  }
+
+  await prisma.company.update({
+    where: { id: company.id },
+    data: {
+      subscriptionStatus: dbStatus,
+      ...(currentPeriodEnd ? { subscriptionEndDate: new Date(currentPeriodEnd * 1000) } : {}),
+    },
+  });
+
+  console.log(`[stripe:subscription.updated] Company ${company.id} status → ${dbStatus}`);
 }
 
 async function handleSubscriptionDeleted(event: Record<string, unknown>) {
@@ -123,15 +191,31 @@ async function handleSubscriptionDeleted(event: Record<string, unknown>) {
   const obj = subscription.object as Record<string, unknown>;
   const subscriptionId = obj.id as string;
 
-  console.log('[stripe:customer.subscription.deleted]', {
-    subscriptionId,
+  console.log('[stripe:subscription.deleted]', { subscriptionId });
+
+  const company = await prisma.company.findFirst({
+    where: { stripeSubscriptionId: subscriptionId },
   });
 
-  // TODO: Mark the company's subscription as inactive.
-  // Potentially downgrade to a free tier or restrict access.
+  if (!company) {
+    console.error(`[stripe:subscription.deleted] No company found for subscription ${subscriptionId}`);
+    return;
+  }
+
+  // Mark subscription as cancelled and downgrade to SOLO
+  await prisma.company.update({
+    where: { id: company.id },
+    data: {
+      subscriptionStatus: 'CANCELLED',
+      subscriptionPlan: 'SOLO',
+      stripeSubscriptionId: null,
+    },
+  });
+
+  console.log(`[stripe:subscription.deleted] Company ${company.id} downgraded to SOLO and cancelled`);
 }
 
-// ---- POST Handler ----
+// ─── POST Handler ─────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {

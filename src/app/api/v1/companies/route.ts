@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requireAuth } from '@/lib/auth/middleware';
-import { badRequest, internalError } from '@/lib/api-error';
+import { badRequest, forbidden, internalError } from '@/lib/api-error';
+import { seedDefaultAccounts } from '@/lib/accounting/engine';
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,11 +58,31 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
+    // Enforce company limit: Solo plan allows only 1 company
+    const existingMemberships = await prisma.companyMember.findMany({
+      where: { userId: user!.sub, role: 'OWNER' },
+      include: { company: { select: { subscriptionPlan: true } } },
+    });
+
+    // Check if user owns any Solo-plan companies (Solo = max 1 company)
+    const ownedCompanyCount = existingMemberships.length;
+    if (ownedCompanyCount >= 1) {
+      // Check if any of their companies is on the Team plan (unlimited companies)
+      const hasTeamPlan = existingMemberships.some(
+        (m) => m.company.subscriptionPlan === 'TEAM'
+      );
+      if (!hasTeamPlan) {
+        return forbidden(
+          'Solo plan allows only 1 company. Upgrade to Team plan for unlimited companies.'
+        );
+      }
+    }
+
     // 14-day free trial: new companies start on SOLO plan with TRIALING status
     const now = new Date();
     const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const company = await tx.company.create({
         data: {
           ...parsed.data,
@@ -74,6 +95,10 @@ export async function POST(request: NextRequest) {
       await tx.companyMember.create({
         data: { userId: user!.sub, companyId: company.id, role: 'OWNER' },
       });
+
+      // Seed the default Jamaica chart of accounts for the new company
+      await seedDefaultAccounts(company.id, tx);
+
       return company;
     });
 

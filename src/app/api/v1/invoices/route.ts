@@ -7,6 +7,7 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
+import { postInvoiceCreated } from '@/lib/accounting/engine';
 
 export async function GET(request: NextRequest) {
   try {
@@ -103,21 +104,43 @@ export async function POST(request: NextRequest) {
     // Generate invoice number if not provided
     const invoiceNumber = invoiceData.invoiceNumber ?? await generateInvoiceNumber(companyId!);
 
-    const invoice = await prisma.invoice.create({
-      data: {
-        ...invoiceData,
-        invoiceNumber,
-        companyId: companyId!,
-        balance: invoiceData.total,
-        createdBy: user!.sub,
-        items: {
-          create: items.map((item) => ({
-            ...item,
-            productId: item.productId || null,
-          })),
+    // Use a transaction so invoice + journal entry are atomic
+    const invoice = await prisma.$transaction(async (tx: any) => {
+      const inv = await tx.invoice.create({
+        data: {
+          ...invoiceData,
+          invoiceNumber,
+          companyId: companyId!,
+          balance: invoiceData.total,
+          createdBy: user!.sub,
+          items: {
+            create: items.map((item: any) => ({
+              ...item,
+              productId: item.productId || null,
+            })),
+          },
         },
-      },
-      include: { items: true, customer: { select: { id: true, name: true } } },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+
+      // Auto-post to General Ledger (non-DRAFT invoices)
+      if (inv.status !== 'DRAFT') {
+        await postInvoiceCreated({
+          companyId: companyId!,
+          userId: user!.sub,
+          invoiceId: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          customerName: inv.customer?.name ?? 'Customer',
+          date: inv.issueDate,
+          subtotal: Number(inv.subtotal),
+          gctAmount: Number(inv.gctAmount),
+          discount: Number(inv.discount),
+          total: Number(inv.total),
+          tx,
+        });
+      }
+
+      return inv;
     });
 
     return NextResponse.json(invoice, { status: 201 });
