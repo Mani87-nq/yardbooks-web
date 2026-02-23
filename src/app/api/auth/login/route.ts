@@ -153,6 +153,14 @@ export async function POST(request: NextRequest) {
 
     // Set refresh token as httpOnly cookie
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
+    
+    // Set access token cookie for middleware
+    response.cookies.set('accessToken', accessToken, {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+    });
 
     return response;
   } catch (error) {

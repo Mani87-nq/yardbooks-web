@@ -147,8 +147,11 @@ export default function SignupPage() {
         businessType: formData.businessType,
       });
 
-      // Store access token
+      // Store access token in memory and cookie
       setAccessToken(data.accessToken);
+      
+      // Store in cookie for middleware to check
+      document.cookie = `accessToken=${data.accessToken}; path=/; max-age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
 
       // Set user in store
       setUser({

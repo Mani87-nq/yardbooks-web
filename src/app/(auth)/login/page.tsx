@@ -51,8 +51,11 @@ export default function LoginPage() {
     try {
       const data = await api.post<LoginResponse>('/api/auth/login', { email, password });
 
-      // Store access token
+      // Store access token in memory and cookie
       setAccessToken(data.accessToken);
+      
+      // Store in cookie for middleware to check
+      document.cookie = `accessToken=${data.accessToken}; path=/; max-age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
 
       // Map API role to app role
       const apiRole = data.companies[0]?.role?.toLowerCase() ?? 'admin';

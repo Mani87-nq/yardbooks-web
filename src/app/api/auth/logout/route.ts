@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Clear the refresh token cookie
+    // Clear the refresh token and access token cookies
     const response = NextResponse.json({ message: 'Logged out successfully' });
     response.cookies.set(REFRESH_TOKEN_COOKIE, '', {
       httpOnly: true,
@@ -34,14 +34,26 @@ export async function POST(request: NextRequest) {
       path: '/api/auth',
       maxAge: 0,
     });
+    
+    // Clear access token cookie
+    response.cookies.set('accessToken', '', {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    });
 
     return response;
   } catch {
-    // Even if something fails, clear the cookie
+    // Even if something fails, clear the cookies
     const response = NextResponse.json({ message: 'Logged out' });
     response.cookies.set(REFRESH_TOKEN_COOKIE, '', {
       httpOnly: true,
       path: '/api/auth',
+      maxAge: 0,
+    });
+    response.cookies.set('accessToken', '', {
+      path: '/',
       maxAge: 0,
     });
     return response;
