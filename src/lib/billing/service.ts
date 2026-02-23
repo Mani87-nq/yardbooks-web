@@ -7,7 +7,8 @@ export interface SubscriptionPlan {
   id: string;
   name: string;
   price: number; // Monthly price in JMD
-  priceUsd: number; // USD equivalent
+  priceUsd: number; // Monthly USD
+  priceUsdAnnual: number; // Annual USD (2 months free)
   maxUsers: number;
   maxCompanies: number;
   features: string[];
@@ -17,38 +18,42 @@ export const PLANS: SubscriptionPlan[] = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 499,
-    priceUsd: 3.25,
+    price: 2599, // ~$16.99 USD in JMD
+    priceUsd: 16.99,
+    priceUsdAnnual: 169.99, // 2 months free
     maxUsers: 1,
     maxCompanies: 1,
-    features: ['Invoicing', 'Expenses', 'Basic Reports', 'POS', 'GCT Filing'],
+    features: ['Invoicing', 'Expenses', 'Basic Reports', 'POS', 'GCT Filing', 'Email Support'],
   },
   {
     id: 'business',
     name: 'Business',
-    price: 999,
-    priceUsd: 6.50,
+    price: 5399, // ~$34.99 USD in JMD
+    priceUsd: 34.99,
+    priceUsdAnnual: 349.99, // 2 months free
     maxUsers: 3,
     maxCompanies: 1,
-    features: ['All Starter features', 'Bank Reconciliation', 'Payroll', 'Recurring Invoices', 'Credit Notes', 'Advanced Reports'],
+    features: ['All Starter features', 'Bank Reconciliation', 'Payroll', 'Recurring Invoices', 'Credit Notes', 'Advanced Reports', 'Priority Support'],
   },
   {
     id: 'pro',
     name: 'Pro',
-    price: 1999,
-    priceUsd: 13.00,
+    price: 10799, // ~$69.99 USD in JMD
+    priceUsd: 69.99,
+    priceUsdAnnual: 699.99, // 2 months free
     maxUsers: 10,
     maxCompanies: 3,
-    features: ['All Business features', 'Multi-Currency', 'API Access', 'Priority Support', 'Custom Reports', 'Audit Trail'],
+    features: ['All Business features', 'Multi-Currency', 'API Access', 'Custom Reports', 'Audit Trail', 'Phone Support'],
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 0, // Custom pricing
-    priceUsd: 0,
+    price: 23099, // ~$149.99 USD in JMD
+    priceUsd: 149.99,
+    priceUsdAnnual: 1499.99, // 2 months free
     maxUsers: -1, // Unlimited
     maxCompanies: -1,
-    features: ['All Pro features', 'Unlimited Users', 'Unlimited Companies', 'Dedicated Support', 'Custom Integrations', 'SLA'],
+    features: ['All Pro features', 'Unlimited Users', 'Unlimited Companies', 'Dedicated Account Manager', 'Custom Integrations', 'SLA', 'On-site Training'],
   },
 ];
 
