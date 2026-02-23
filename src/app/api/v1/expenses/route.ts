@@ -7,6 +7,7 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
+import { postExpenseCreated } from '@/lib/accounting/engine';
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,13 +84,33 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
-    const expense = await prisma.expense.create({
-      data: {
-        ...parsed.data,
-        vendorId: parsed.data.vendorId || null,
+    // Use a transaction so expense + journal entry are atomic
+    const expense = await prisma.$transaction(async (tx: any) => {
+      const exp = await tx.expense.create({
+        data: {
+          ...parsed.data,
+          vendorId: parsed.data.vendorId || null,
+          companyId: companyId!,
+          createdBy: user!.sub,
+        },
+      });
+
+      // Auto-post to General Ledger
+      await postExpenseCreated({
         companyId: companyId!,
-        createdBy: user!.sub,
-      },
+        userId: user!.sub,
+        expenseId: exp.id,
+        category: exp.category,
+        description: exp.description,
+        date: exp.date,
+        amount: Number(exp.amount),
+        gctAmount: Number(exp.gctAmount),
+        gctClaimable: exp.gctClaimable,
+        paymentMethod: exp.paymentMethod,
+        tx,
+      });
+
+      return exp;
     });
 
     return NextResponse.json(expense, { status: 201 });
