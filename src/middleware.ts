@@ -1,15 +1,80 @@
 /**
  * Next.js Middleware — runs on every request.
- * Adds security headers to all responses.
- * Auth enforcement is handled at the API route level (not here).
+ * Handles authentication checks and security headers.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAccessToken } from '@/lib/auth/jwt';
 
-export function middleware(request: NextRequest) {
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/logout',
+  '/api/auth/refresh',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/verify-email',
+];
+
+// Routes that should redirect to dashboard if already authenticated
+const AUTH_ROUTES = ['/login', '/signup'];
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // ============================================
+  // AUTHENTICATION CHECK
+  // ============================================
+
+  // Check if route is public
+  const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+  const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
+
+  // Get access token from Authorization header or cookie
+  let accessToken: string | null = null;
+  const authHeader = request.headers.get('Authorization');
+  
+  if (authHeader?.startsWith('Bearer ')) {
+    accessToken = authHeader.slice(7);
+  } else {
+    // Try to get from cookie (for client-side requests)
+    accessToken = request.cookies.get('accessToken')?.value ?? null;
+  }
+
+  // Verify token
+  let isAuthenticated = false;
+  if (accessToken) {
+    try {
+      await verifyAccessToken(accessToken);
+      isAuthenticated = true;
+    } catch {
+      // Token invalid or expired
+      isAuthenticated = false;
+    }
+  }
+
+  // Redirect unauthenticated users from protected routes
+  if (!isPublicRoute && !isAuthenticated) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('from', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (isAuthRoute && isAuthenticated) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Continue with request and add security headers
   const response = NextResponse.next();
 
   // ============================================
-  // SECURITY HEADERS (Phase 1, Task 1.4)
+  // SECURITY HEADERS
   // ============================================
 
   // Prevent clickjacking
