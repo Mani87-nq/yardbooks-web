@@ -7,6 +7,8 @@ export default defineConfig({
     seed: 'npx tsx prisma/seed.ts',
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? 'postgresql://dolphy@localhost:5432/yardbooks?schema=public',
+    // Use DIRECT_URL for migrations if available (bypasses connection pooler)
+    // Fall back to DATABASE_URL for regular operations
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? 'postgresql://localhost:5432/yardbooks',
   },
 });
