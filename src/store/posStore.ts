@@ -1,4 +1,4 @@
-// YardBook Web - Point of Sale Store
+// Yaad Books Web - Point of Sale Store
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';

@@ -1,4 +1,4 @@
-// YardBook Web - Point of Sale Type Definitions
+// Yaad Books Web - Point of Sale Type Definitions
 // Jamaica-first POS system with JAM-DEX, GCT compliance
 
 // ============================================
