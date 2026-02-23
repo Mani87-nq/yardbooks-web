@@ -17,8 +17,10 @@ import {
   TrashIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
+  CameraIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
+import { getAccessToken } from '@/lib/api-client';
 
 interface ExpenseAPI {
   id: string;
@@ -71,6 +73,10 @@ export default function ExpensesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseAPI | null>(null);
   const [saveError, setSaveError] = useState('');
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanFile, setScanFile] = useState<File | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
 
   // API hooks
   const { data: expensesResponse, isLoading, error: fetchError, refetch } = useExpenses({
@@ -199,6 +205,56 @@ export default function ExpensesPage() {
     }
   };
 
+  const handleScanReceipt = async () => {
+    if (!scanFile) return;
+    setScanning(true);
+    setScanError('');
+    try {
+      const formData = new FormData();
+      formData.append('image', scanFile);
+      const token = getAccessToken();
+      const res = await fetch('/api/v1/expenses/scan-receipt', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.error || `Scan failed (${res.status})`);
+      }
+      const { data } = await res.json();
+      const extracted = data.extracted;
+      let parsedDate = new Date().toISOString().split('T')[0];
+      if (extracted.date) {
+        const d = new Date(extracted.date);
+        if (!isNaN(d.getTime())) {
+          parsedDate = d.toISOString().split('T')[0];
+        }
+      }
+      setFormData({
+        description: extracted.vendor || '',
+        amount: String(extracted.total || ''),
+        category: EXPENSE_CATEGORIES[0],
+        date: parsedDate,
+        vendorId: '',
+        paymentMethod: extracted.paymentMethod || 'cash',
+        reference: '',
+        notes: `Scanned from receipt (confidence: ${extracted.confidence})`,
+        isRecurring: false,
+        recurringFrequency: 'monthly',
+      });
+      setShowScanModal(false);
+      setScanFile(null);
+      setEditingExpense(null);
+      setShowModal(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to scan receipt';
+      setScanError(message);
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
   const thisMonthExpenses = allExpenses.filter(e => {
     const expDate = new Date(e.date);
@@ -221,11 +277,19 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
           <p className="text-gray-500">Track and manage business expenses</p>
         </div>
-        <PermissionGate permission="expenses:create">
-          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
-            Add Expense
-          </Button>
-        </PermissionGate>
+        <div className="flex gap-2">
+          <PermissionGate permission="expenses:create">
+            <Button variant="outline" onClick={() => setShowScanModal(true)}>
+              <CameraIcon className="w-4 h-4 mr-2" />
+              Scan Receipt
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="expenses:create">
+            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+              Add Expense
+            </Button>
+          </PermissionGate>
+        </div>
       </div>
 
       {/* Error State */}
@@ -519,6 +583,57 @@ export default function ExpensesPage() {
             disabled={createExpense.isPending || updateExpense.isPending}
           >
             {(createExpense.isPending || updateExpense.isPending) ? 'Saving...' : editingExpense ? 'Update' : 'Create'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Scan Receipt Modal */}
+      <Modal
+        isOpen={showScanModal}
+        onClose={() => { setShowScanModal(false); setScanFile(null); setScanError(''); }}
+        title="Scan Receipt"
+      >
+        <ModalBody>
+          <div className="space-y-4">
+            {scanError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                {scanError}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Upload Receipt Image
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => {
+                  setScanFile(e.target.files?.[0] || null);
+                  setScanError('');
+                }}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <p className="font-medium mb-1">What will be extracted:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-blue-700">
+                <li>Vendor / store name</li>
+                <li>Total amount</li>
+                <li>Date of purchase</li>
+                <li>Payment method</li>
+              </ul>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => { setShowScanModal(false); setScanFile(null); setScanError(''); }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleScanReceipt}
+            disabled={!scanFile || scanning}
+          >
+            {scanning ? 'Scanning...' : 'Scan'}
           </Button>
         </ModalFooter>
       </Modal>

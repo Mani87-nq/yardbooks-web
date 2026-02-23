@@ -10,6 +10,8 @@ import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, notFound, internalError } from '@/lib/api-error';
 import { buildPayslipData, generatePayslipHtml } from '@/lib/payslip-generator';
+import { sendEmail } from '@/lib/email/service';
+import { payslipEmail } from '@/lib/email/templates';
 
 type RouteContext = { params: Promise<{ runId: string }> };
 
@@ -92,23 +94,103 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
 
-    // Validate payroll run
+    // 1. Validate payroll run exists and belongs to this company
     const payrollRun = await prisma.payrollRun.findFirst({
       where: { id: runId, companyId: companyId! },
+      include: {
+        entries: {
+          include: {
+            employee: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+          },
+        },
+        company: {
+          select: { businessName: true, tradingName: true, currency: true },
+        },
+      },
     });
     if (!payrollRun) return notFound('Payroll run not found');
 
-    // TODO: Implement email delivery of payslips to employees.
-    // This should:
-    //   1. Build payslip data for each employee in the run
-    //   2. Generate HTML for each payslip
-    //   3. Convert to PDF (using a library like puppeteer or @react-pdf/renderer)
-    //   4. Send email with PDF attachment via the email service
-    //   5. Log the delivery status for each employee
+    // 2. Require run status APPROVED or PAID
+    if (payrollRun.status !== 'APPROVED' && payrollRun.status !== 'PAID') {
+      return badRequest(
+        `Payslips can only be emailed for APPROVED or PAID runs. Current status: ${payrollRun.status}`,
+      );
+    }
+
+    // 3. Email payslips to each employee
+    const companyName =
+      payrollRun.company.tradingName || payrollRun.company.businessName;
+    const currency = payrollRun.company.currency || 'JMD';
+
+    let sent = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const entry of payrollRun.entries) {
+      const { employee } = entry;
+
+      // Skip if no email address
+      if (!employee.email) {
+        continue;
+      }
+
+      try {
+        // Build payslip data and generate HTML
+        const payslipData = await buildPayslipData(runId, employee.id, companyId!);
+        if (!payslipData) {
+          failed++;
+          errors.push(`${employee.firstName} ${employee.lastName}: failed to build payslip data`);
+          continue;
+        }
+
+        const payslipHtml = generatePayslipHtml(payslipData);
+
+        // Build email using the payslip template
+        const email = payslipEmail({
+          employeeName: `${employee.firstName} ${employee.lastName}`,
+          payPeriod: payslipData.payPeriod,
+          netPay: payslipData.netPay,
+          currency,
+          companyName,
+        });
+
+        // Send email with the payslip HTML as an attachment
+        const result = await sendEmail({
+          to: employee.email,
+          subject: email.subject,
+          html: email.html,
+          text: email.text,
+          attachments: [
+            {
+              filename: `Payslip-${employee.firstName}-${employee.lastName}.html`,
+              content: payslipHtml,
+              contentType: 'text/html',
+            },
+          ],
+        });
+
+        if (result.success) {
+          sent++;
+        } else {
+          failed++;
+          errors.push(`${employee.firstName} ${employee.lastName}: ${result.error}`);
+        }
+      } catch (err) {
+        failed++;
+        errors.push(
+          `${employee.firstName} ${employee.lastName}: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        );
+      }
+    }
 
     return NextResponse.json({
-      message: 'Payslip email delivery is not yet implemented',
+      message: `Payslip emails sent: ${sent} succeeded, ${failed} failed`,
       payrollRunId: runId,
+      sent,
+      failed,
+      ...(errors.length > 0 ? { errors } : {}),
     });
   } catch (error) {
     return internalError(

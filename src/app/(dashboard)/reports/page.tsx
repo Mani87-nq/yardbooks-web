@@ -6,6 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '
 import { useAppStore } from '@/store/appStore';
 import { usePosStore } from '@/store/posStore';
 import { formatJMD, formatDate } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import {
   ChartBarIcon,
   DocumentTextIcon,
@@ -190,27 +192,19 @@ export default function ReportsPage() {
     return { totalItems, totalValue, lowStock: lowStock.length, outOfStock: outOfStock.length };
   };
 
-  // P&L Report Data
-  const profitLossData = () => {
-    const sales = salesData();
-    const exp = expenseData();
-    const pos = posData();
+  // P&L Report Data — from real GL journal entries
+  const { data: plApiData, isLoading: plLoading } = useQuery({
+    queryKey: ['report-profit-loss', dateRange.start, dateRange.end],
+    queryFn: () => api.get<any>(`/api/v1/reports/profit-loss?startDate=${dateRange.start}&endDate=${dateRange.end}`),
+    enabled: selectedReport === 'profit_loss',
+  });
 
-    const totalIncome = sales.totalRevenue + pos.totalSales;
-    const totalExpenses = exp.totalExpenses;
-    const netProfit = totalIncome - totalExpenses;
-
-    return { totalIncome, totalExpenses, netProfit };
-  };
-
-  // Balance Sheet Data
-  const balanceSheetData = () => {
-    const assets = glAccounts.filter(a => a.type === 'asset').reduce((sum, a) => sum + (a.balance || 0), 0);
-    const liabilities = glAccounts.filter(a => a.type === 'liability').reduce((sum, a) => sum + (a.balance || 0), 0);
-    const equity = glAccounts.filter(a => a.type === 'equity').reduce((sum, a) => sum + (a.balance || 0), 0);
-
-    return { assets, liabilities, equity };
-  };
+  // Balance Sheet Data — from real GL journal entries
+  const { data: bsApiData, isLoading: bsLoading } = useQuery({
+    queryKey: ['report-balance-sheet', dateRange.end],
+    queryFn: () => api.get<any>(`/api/v1/reports/balance-sheet?asOfDate=${dateRange.end}`),
+    enabled: selectedReport === 'balance_sheet',
+  });
 
   // Print handler
   const handlePrint = () => {
@@ -303,42 +297,64 @@ export default function ReportsPage() {
         break;
       }
       case 'profit_loss': {
-        const data = profitLossData();
-        content = '<h3 style="margin-bottom:20px;font-weight:600;">Income Statement</h3>' + generateTable(
-          [
-            { key: 'label', label: 'Description' },
-            { key: 'amount', label: 'Amount', align: 'right' },
-          ],
-          [
-            { label: 'Total Income', amount: data.totalIncome },
-            { label: 'Total Expenses', amount: -data.totalExpenses },
-          ],
-          {
-            formatters: {
-              amount: (v: number) => `<span style="color:${v >= 0 ? '#059669' : '#dc2626'}">${formatPrintCurrency(Math.abs(v))}${v < 0 ? ' (expense)' : ''}</span>`
-            },
-            summaryRow: { label: 'Net Profit', amount: data.netProfit },
+        const sections = plApiData?.sections;
+        if (sections) {
+          const rows: any[] = [];
+          if (sections.revenue?.accounts) {
+            rows.push({ label: 'REVENUE', amount: null });
+            sections.revenue.accounts.forEach((a: any) => rows.push({ label: `  ${a.accountNumber} — ${a.name}`, amount: a.balance }));
+            rows.push({ label: 'Total Revenue', amount: sections.revenue.total });
           }
-        );
+          if (sections.operatingExpenses?.accounts) {
+            rows.push({ label: 'OPERATING EXPENSES', amount: null });
+            sections.operatingExpenses.accounts.forEach((a: any) => rows.push({ label: `  ${a.accountNumber} — ${a.name}`, amount: a.balance }));
+            rows.push({ label: 'Total Operating Expenses', amount: sections.operatingExpenses.total });
+          }
+          rows.push({ label: 'NET INCOME', amount: sections.netIncome?.total || 0 });
+
+          content = '<h3 style="margin-bottom:20px;font-weight:600;">Income Statement (Profit & Loss)</h3>' + generateTable(
+            [
+              { key: 'label', label: 'Description' },
+              { key: 'amount', label: 'Amount', align: 'right' },
+            ],
+            rows.filter((r: any) => r.amount !== null),
+            {
+              formatters: {
+                amount: (v: number) => `<span style="color:${v >= 0 ? '#059669' : '#dc2626'}">${formatPrintCurrency(Math.abs(v))}</span>`
+              },
+            }
+          );
+        }
         break;
       }
       case 'balance_sheet': {
-        const data = balanceSheetData();
-        content = generateTable(
-          [
-            { key: 'label', label: 'Category' },
-            { key: 'amount', label: 'Amount', align: 'right' },
-          ],
-          [
-            { label: 'Total Assets', amount: data.assets },
-            { label: 'Total Liabilities', amount: data.liabilities },
-            { label: 'Total Equity', amount: data.equity },
-          ],
-          {
-            formatters: { amount: formatPrintCurrency },
-            summaryRow: { label: 'Net Assets', amount: data.assets - data.liabilities },
+        const bsSections = bsApiData?.sections;
+        if (bsSections) {
+          const rows: any[] = [];
+          if (bsSections.assets?.current?.accounts) {
+            rows.push({ label: 'CURRENT ASSETS', amount: null });
+            bsSections.assets.current.accounts.forEach((a: any) => rows.push({ label: `  ${a.accountNumber} — ${a.name}`, amount: a.balance }));
           }
-        );
+          rows.push({ label: 'Total Assets', amount: bsSections.assets?.totalAssets || 0 });
+          if (bsSections.liabilities?.current?.accounts) {
+            rows.push({ label: 'CURRENT LIABILITIES', amount: null });
+            bsSections.liabilities.current.accounts.forEach((a: any) => rows.push({ label: `  ${a.accountNumber} — ${a.name}`, amount: a.balance }));
+          }
+          rows.push({ label: 'Total Liabilities', amount: bsSections.liabilities?.totalLiabilities || 0 });
+          rows.push({ label: 'Total Equity', amount: bsSections.equity?.totalEquity || 0 });
+
+          content = '<h3 style="margin-bottom:20px;font-weight:600;">Balance Sheet</h3>' + generateTable(
+            [
+              { key: 'label', label: 'Category' },
+              { key: 'amount', label: 'Amount', align: 'right' },
+            ],
+            rows.filter((r: any) => r.amount !== null),
+            {
+              formatters: { amount: formatPrintCurrency },
+              summaryRow: { label: 'Total Liabilities & Equity', amount: bsSections.totalLiabilitiesAndEquity || 0 },
+            }
+          );
+        }
         break;
       }
     }
@@ -623,27 +639,101 @@ export default function ReportsPage() {
       }
 
       case 'profit_loss': {
-        const data = profitLossData();
+        if (plLoading) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+              <span className="text-gray-500">Loading Profit & Loss report...</span>
+            </div>
+          );
+        }
+
+        const sections = plApiData?.sections;
+        if (!sections) {
+          return (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No financial data available for this period. Create invoices and expenses to see your P&L report.
+              </CardContent>
+            </Card>
+          );
+        }
+
+        const renderAccountRows = (accounts: any[]) =>
+          accounts?.map((a: any) => (
+            <div key={a.accountNumber} className="flex justify-between py-1.5 pl-6">
+              <span className="text-sm text-gray-600">{a.accountNumber} — {a.name}</span>
+              <span className="text-sm font-medium">{formatJMD(a.balance)}</span>
+            </div>
+          ));
+
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Income Statement</CardTitle>
+                <CardTitle>Income Statement (Profit & Loss)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Total Income</span>
-                    <span className="font-bold text-emerald-600">{formatJMD(data.totalIncome)}</span>
+                <div className="space-y-1">
+                  {/* Revenue */}
+                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-2">Revenue</h3>
+                  {renderAccountRows(sections.revenue?.accounts)}
+                  <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-emerald-600">
+                    <span>Total Revenue</span>
+                    <span>{formatJMD(sections.revenue?.total || 0)}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Total Expenses</span>
-                    <span className="font-bold text-red-600">({formatJMD(data.totalExpenses)})</span>
+
+                  {/* COGS */}
+                  {sections.costOfGoodsSold?.accounts?.length > 0 && (
+                    <>
+                      <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Cost of Goods Sold</h3>
+                      {renderAccountRows(sections.costOfGoodsSold?.accounts)}
+                      <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-red-600">
+                        <span>Total COGS</span>
+                        <span>{formatJMD(sections.costOfGoodsSold?.total || 0)}</span>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Gross Profit */}
+                  <div className="flex justify-between py-3 bg-emerald-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Gross Profit</span>
+                    <span className="text-emerald-700">{formatJMD(sections.grossProfit?.total || 0)}</span>
                   </div>
-                  <div className="flex justify-between py-4 bg-gray-50 -mx-4 px-4 rounded-lg">
-                    <span className="font-bold text-lg">Net Profit</span>
-                    <span className={`font-bold text-xl ${data.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {formatJMD(data.netProfit)}
+
+                  {/* Operating Expenses */}
+                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Operating Expenses</h3>
+                  {renderAccountRows(sections.operatingExpenses?.accounts)}
+                  <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-red-600">
+                    <span>Total Operating Expenses</span>
+                    <span>{formatJMD(sections.operatingExpenses?.total || 0)}</span>
+                  </div>
+
+                  {/* Operating Income */}
+                  <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Operating Income</span>
+                    <span className={sections.operatingIncome?.total >= 0 ? 'text-blue-700' : 'text-red-600'}>
+                      {formatJMD(sections.operatingIncome?.total || 0)}
+                    </span>
+                  </div>
+
+                  {/* Other Expenses */}
+                  {sections.otherExpenses?.accounts?.length > 0 && (
+                    <>
+                      <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Other Expenses</h3>
+                      {renderAccountRows(sections.otherExpenses?.accounts)}
+                      <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-orange-600">
+                        <span>Total Other Expenses</span>
+                        <span>{formatJMD(sections.otherExpenses?.total || 0)}</span>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Net Income */}
+                  <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
+                    <span>Net Income</span>
+                    <span className={sections.netIncome?.total >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                      {formatJMD(sections.netIncome?.total || 0)}
                     </span>
                   </div>
                 </div>
@@ -654,32 +744,136 @@ export default function ReportsPage() {
       }
 
       case 'balance_sheet': {
-        const data = balanceSheetData();
+        if (bsLoading) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+              <span className="text-gray-500">Loading Balance Sheet...</span>
+            </div>
+          );
+        }
+
+        const bsSections = bsApiData?.sections;
+        if (!bsSections) {
+          return (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No financial data available. Create transactions to see your Balance Sheet.
+              </CardContent>
+            </Card>
+          );
+        }
+
+        const renderBsAccounts = (accounts: any[]) =>
+          accounts?.map((a: any) => (
+            <div key={a.accountNumber} className="flex justify-between py-1.5 pl-6">
+              <span className="text-sm text-gray-600">{a.accountNumber} — {a.name}</span>
+              <span className="text-sm font-medium">{formatJMD(a.balance)}</span>
+            </div>
+          ));
+
+        const balanceCheck = bsApiData?.balanceCheck;
+
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Balance Check Indicator */}
+            {balanceCheck && (
+              <div className={`p-3 rounded-lg text-sm font-medium ${
+                balanceCheck.isBalanced
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {balanceCheck.isBalanced
+                  ? '✓ Balance Sheet is balanced — Assets equal Liabilities + Equity'
+                  : `✗ Balance Sheet is out of balance — Difference: ${formatJMD(Math.abs(balanceCheck.totalAssets - balanceCheck.totalLiabilitiesAndEquity))}`
+                }
+              </div>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Balance Sheet</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Total Assets</span>
-                    <span className="font-bold text-blue-600">{formatJMD(data.assets)}</span>
+                <div className="space-y-1">
+                  {/* Assets */}
+                  <h3 className="font-semibold text-blue-700 text-sm uppercase tracking-wide pt-2">Assets</h3>
+
+                  {bsSections.assets?.current?.accounts?.length > 0 && (
+                    <>
+                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Current Assets</h4>
+                      {renderBsAccounts(bsSections.assets.current.accounts)}
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                        <span>Total Current Assets</span>
+                        <span>{formatJMD(bsSections.assets.current.total || 0)}</span>
+                      </div>
+                    </>
+                  )}
+
+                  {bsSections.assets?.nonCurrent?.accounts?.length > 0 && (
+                    <>
+                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Non-Current Assets</h4>
+                      {renderBsAccounts(bsSections.assets.nonCurrent.accounts)}
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                        <span>Total Non-Current Assets</span>
+                        <span>{formatJMD(bsSections.assets.nonCurrent.total || 0)}</span>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Total Assets</span>
+                    <span className="text-blue-700">{formatJMD(bsSections.assets?.totalAssets || 0)}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Total Liabilities</span>
-                    <span className="font-bold text-red-600">{formatJMD(data.liabilities)}</span>
+
+                  {/* Liabilities */}
+                  <h3 className="font-semibold text-red-700 text-sm uppercase tracking-wide pt-4">Liabilities</h3>
+
+                  {bsSections.liabilities?.current?.accounts?.length > 0 && (
+                    <>
+                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Current Liabilities</h4>
+                      {renderBsAccounts(bsSections.liabilities.current.accounts)}
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                        <span>Total Current Liabilities</span>
+                        <span>{formatJMD(bsSections.liabilities.current.total || 0)}</span>
+                      </div>
+                    </>
+                  )}
+
+                  {bsSections.liabilities?.nonCurrent?.accounts?.length > 0 && (
+                    <>
+                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Non-Current Liabilities</h4>
+                      {renderBsAccounts(bsSections.liabilities.nonCurrent.accounts)}
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                        <span>Total Non-Current Liabilities</span>
+                        <span>{formatJMD(bsSections.liabilities.nonCurrent.total || 0)}</span>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-between py-3 bg-red-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Total Liabilities</span>
+                    <span className="text-red-700">{formatJMD(bsSections.liabilities?.totalLiabilities || 0)}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Total Equity</span>
-                    <span className="font-bold text-purple-600">{formatJMD(data.equity)}</span>
+
+                  {/* Equity */}
+                  <h3 className="font-semibold text-purple-700 text-sm uppercase tracking-wide pt-4">Equity</h3>
+                  {renderBsAccounts(bsSections.equity?.accounts)}
+                  {bsSections.equity?.retainedEarnings !== undefined && bsSections.equity.retainedEarnings !== 0 && (
+                    <div className="flex justify-between py-1.5 pl-6">
+                      <span className="text-sm text-gray-600 italic">Retained Earnings (Current Period)</span>
+                      <span className="text-sm font-medium">{formatJMD(bsSections.equity.retainedEarnings)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-3 bg-purple-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Total Equity</span>
+                    <span className="text-purple-700">{formatJMD(bsSections.equity?.totalEquity || 0)}</span>
                   </div>
-                  <div className="flex justify-between py-4 bg-gray-50 -mx-4 px-4 rounded-lg">
-                    <span className="font-bold text-lg">Net Assets</span>
-                    <span className="font-bold text-xl text-emerald-600">
-                      {formatJMD(data.assets - data.liabilities)}
-                    </span>
+
+                  {/* Total L&E */}
+                  <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
+                    <span>Total Liabilities & Equity</span>
+                    <span className="text-gray-900">{formatJMD(bsSections.totalLiabilitiesAndEquity || 0)}</span>
                   </div>
                 </div>
               </CardContent>
