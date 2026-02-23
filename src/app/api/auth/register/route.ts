@@ -83,11 +83,19 @@ export async function POST(request: NextRequest) {
       let membership = null;
 
       if (companyName) {
+        // 14-day free trial: new companies start on BUSINESS plan with TRIALING status
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
         company = await tx.company.create({
           data: {
             businessName: companyName,
             businessType: businessType ?? 'SOLE_PROPRIETOR',
             currency: 'JMD',
+            subscriptionPlan: 'BUSINESS',
+            subscriptionStatus: 'TRIALING',
+            subscriptionStartDate: now,
+            subscriptionEndDate: trialEnd,
           },
         });
 

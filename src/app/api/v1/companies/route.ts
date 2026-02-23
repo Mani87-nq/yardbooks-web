@@ -57,8 +57,20 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
+    // 14-day free trial: new companies start on BUSINESS plan with TRIALING status
+    const now = new Date();
+    const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
     const result = await prisma.$transaction(async (tx) => {
-      const company = await tx.company.create({ data: parsed.data });
+      const company = await tx.company.create({
+        data: {
+          ...parsed.data,
+          subscriptionPlan: 'BUSINESS',
+          subscriptionStatus: 'TRIALING',
+          subscriptionStartDate: now,
+          subscriptionEndDate: trialEnd,
+        },
+      });
       await tx.companyMember.create({
         data: { userId: user!.sub, companyId: company.id, role: 'OWNER' },
       });

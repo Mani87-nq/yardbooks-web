@@ -1,10 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/appStore';
+import {
+  hasFeatureAccess,
+  getUpgradeBadge,
+  getTrialStatus,
+  ROUTE_TO_FEATURE,
+} from '@/lib/plan-gate';
 import {
   HomeIcon,
   ShoppingCartIcon,
@@ -30,6 +36,7 @@ import {
   CalculatorIcon,
   ArrowTrendingUpIcon,
   ShieldCheckIcon,
+  LockClosedIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -109,7 +116,51 @@ const navigation: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { sidebarOpen, toggleSidebar, setSidebarOpen, activeCompany } = useAppStore();
+
+  // Determine current plan (accounting for trial expiry)
+  const currentPlan = useMemo(() => {
+    if (!activeCompany) return 'STARTER';
+
+    // If trialing, check if trial is still valid
+    if (activeCompany.subscriptionStatus === 'TRIALING') {
+      const trial = getTrialStatus(activeCompany);
+      if (trial.expired) return 'STARTER';
+      return activeCompany.subscriptionPlan ?? 'STARTER';
+    }
+
+    // Active / past_due subscriptions keep their plan
+    if (
+      activeCompany.subscriptionStatus === 'ACTIVE' ||
+      activeCompany.subscriptionStatus === 'PAST_DUE'
+    ) {
+      return activeCompany.subscriptionPlan ?? 'STARTER';
+    }
+
+    // Cancelled / inactive fall back to STARTER
+    return 'STARTER';
+  }, [activeCompany]);
+
+  // Trial banner info
+  const trialInfo = useMemo(() => {
+    if (!activeCompany) return null;
+    const trial = getTrialStatus(activeCompany);
+    if (!trial.inTrial) return null;
+    return trial;
+  }, [activeCompany]);
+
+  const handleLockedClick = useCallback(
+    (e: React.MouseEvent, item: NavItem) => {
+      e.preventDefault();
+      const feature = ROUTE_TO_FEATURE[item.href];
+      const badge = feature ? getUpgradeBadge(feature) : null;
+      const planName = badge ?? 'a higher';
+      // Navigate to billing page with upgrade context
+      router.push(`/settings/billing?upgrade=${planName.toLowerCase()}&feature=${feature ?? ''}`);
+    },
+    [router],
+  );
 
   return (
     <>
@@ -170,6 +221,36 @@ export function Sidebar() {
           </div>
         )}
 
+        {/* Trial Banner */}
+        {sidebarOpen && trialInfo && !trialInfo.expired && (
+          <div className="border-b border-gray-800 bg-amber-900/30 px-4 py-2">
+            <div className="text-xs text-amber-300 font-medium">
+              Free Trial: {trialInfo.daysRemaining} day{trialInfo.daysRemaining !== 1 ? 's' : ''} left
+            </div>
+            <Link
+              href="/settings/billing"
+              className="text-xs text-amber-400 hover:text-amber-300 underline"
+            >
+              Upgrade now
+            </Link>
+          </div>
+        )}
+
+        {/* Trial Expired Banner */}
+        {sidebarOpen && trialInfo && trialInfo.expired && (
+          <div className="border-b border-gray-800 bg-red-900/30 px-4 py-2">
+            <div className="text-xs text-red-300 font-medium">
+              Trial expired
+            </div>
+            <Link
+              href="/settings/billing"
+              className="text-xs text-red-400 hover:text-red-300 underline"
+            >
+              Subscribe to unlock features
+            </Link>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4">
           {navigation.map((group) => (
@@ -182,6 +263,42 @@ export function Sidebar() {
               <ul className="space-y-1 px-2">
                 {group.items.map((item) => {
                   const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+                  const feature = ROUTE_TO_FEATURE[item.href];
+                  const isLocked = feature ? !hasFeatureAccess(currentPlan, feature) : false;
+                  const upgradeBadge = feature ? getUpgradeBadge(feature) : null;
+
+                  if (isLocked) {
+                    return (
+                      <li key={item.name}>
+                        <a
+                          href={item.href}
+                          onClick={(e) => handleLockedClick(e, item)}
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer',
+                            'text-gray-600 hover:bg-gray-800/50',
+                            !sidebarOpen && 'justify-center'
+                          )}
+                          title={!sidebarOpen ? `${item.name} (${upgradeBadge} plan)` : undefined}
+                        >
+                          <item.icon className="h-5 w-5 flex-shrink-0 opacity-40" />
+                          {sidebarOpen && (
+                            <>
+                              <span className="flex-1 opacity-40">{item.name}</span>
+                              <span className="flex items-center gap-1">
+                                <LockClosedIcon className="h-3.5 w-3.5 text-gray-500" />
+                                {upgradeBadge && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-700 text-gray-400 rounded">
+                                    {upgradeBadge}
+                                  </span>
+                                )}
+                              </span>
+                            </>
+                          )}
+                        </a>
+                      </li>
+                    );
+                  }
+
                   return (
                     <li key={item.name}>
                       <Link
@@ -219,7 +336,7 @@ export function Sidebar() {
         {sidebarOpen && (
           <div className="border-t border-gray-800 p-4">
             <div className="text-xs text-gray-500 text-center">
-              Made with love in Jamaica 🇯🇲
+              Made with love in Jamaica
             </div>
           </div>
         )}

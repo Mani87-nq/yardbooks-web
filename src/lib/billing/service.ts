@@ -119,13 +119,64 @@ export async function createCheckoutSession(params: {
   return { url: session.url };
 }
 
-export async function getSubscriptionStatus(companyId: string): Promise<{
-  active: boolean;
-  planId?: string;
-  periodEnd?: Date;
-  cancelAtPeriodEnd?: boolean;
-} | null> {
-  // For now, return null (no subscription).
-  // In production, this would query Stripe's customer/subscription API.
-  return null;
+export interface SubscriptionStatusResult {
+  plan: string;
+  status: string;
+  isActive: boolean;
+  trialDaysRemaining: number;
+  currentPeriodEnd: Date | null;
+}
+
+/**
+ * Query the Company model's subscription fields from Prisma and return
+ * a normalized subscription status. Handles trial expiry detection.
+ */
+export async function getSubscriptionStatus(companyId: string): Promise<SubscriptionStatusResult | null> {
+  // Lazy import to avoid circular deps at module-load time
+  const { default: prisma } = await import('@/lib/db');
+  const { getTrialStatus } = await import('@/lib/plan-gate');
+
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: {
+      subscriptionPlan: true,
+      subscriptionStatus: true,
+      subscriptionStartDate: true,
+      subscriptionEndDate: true,
+    },
+  });
+
+  if (!company) return null;
+
+  const trial = getTrialStatus(company);
+
+  // Determine effective plan considering trial expiry
+  let effectivePlan = company.subscriptionPlan ?? 'STARTER';
+  let effectiveStatus = company.subscriptionStatus ?? 'INACTIVE';
+
+  if (effectiveStatus === 'TRIALING' && trial.expired) {
+    // Auto-downgrade in the database
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        subscriptionPlan: 'STARTER',
+        subscriptionStatus: 'INACTIVE',
+      },
+    });
+    effectivePlan = 'STARTER';
+    effectiveStatus = 'INACTIVE';
+  }
+
+  const isActive =
+    effectiveStatus === 'ACTIVE' ||
+    effectiveStatus === 'PAST_DUE' ||
+    (effectiveStatus === 'TRIALING' && !trial.expired);
+
+  return {
+    plan: effectivePlan,
+    status: effectiveStatus,
+    isActive,
+    trialDaysRemaining: trial.daysRemaining,
+    currentPeriodEnd: company.subscriptionEndDate ? new Date(company.subscriptionEndDate) : null,
+  };
 }

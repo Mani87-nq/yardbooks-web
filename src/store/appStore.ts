@@ -1,6 +1,5 @@
 // YaadBooks Web - Main App Store
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   User,
   Company,
@@ -19,7 +18,6 @@ import type { BankAccount, BankTransaction } from '@/types/banking';
 import type { CustomerPurchaseOrder } from '@/types/customerPO';
 import type { ParkingSlip } from '@/types/parkingSlip';
 import type { Notification } from '@/types/notifications';
-import { loadDemoData as loadDemoDataFn } from './demoData';
 
 // ============================================
 // APP STORE
@@ -59,6 +57,9 @@ interface AppState {
   isLoading: boolean;
   error: string | null;
   sidebarOpen: boolean;
+
+  // Hydration flag — set to true once useDataHydration finishes loading API data
+  hydrated: boolean;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -176,10 +177,6 @@ interface AppState {
 
   // Reset
   reset: () => void;
-
-  // Demo data
-  loadDemoData: () => void;
-  clearDemoData: () => void;
 }
 
 const defaultSettings: AppSettings = {
@@ -203,226 +200,6 @@ const defaultSettings: AppSettings = {
   },
 };
 
-// Sample products for demo
-const sampleProducts: Product[] = [
-  {
-    id: 'prod-001',
-    companyId: 'company-001',
-    sku: 'RICE-5KG',
-    name: 'Rice (5kg Bag)',
-    description: 'Premium long grain rice',
-    category: 'Groceries',
-    unitPrice: 1250,
-    costPrice: 950,
-    quantity: 45,
-    reorderLevel: 10,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-002',
-    companyId: 'company-001',
-    sku: 'SUGAR-2KG',
-    name: 'Sugar (2kg)',
-    description: 'Refined white sugar',
-    category: 'Groceries',
-    unitPrice: 450,
-    costPrice: 320,
-    quantity: 60,
-    reorderLevel: 15,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-003',
-    companyId: 'company-001',
-    sku: 'FLOUR-2KG',
-    name: 'Flour (2kg)',
-    description: 'All-purpose flour',
-    category: 'Groceries',
-    unitPrice: 380,
-    costPrice: 280,
-    quantity: 35,
-    reorderLevel: 10,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-004',
-    companyId: 'company-001',
-    sku: 'CHICKEN-1KG',
-    name: 'Chicken (per kg)',
-    description: 'Fresh whole chicken',
-    category: 'Meat',
-    unitPrice: 650,
-    costPrice: 480,
-    quantity: 25,
-    reorderLevel: 5,
-    unit: 'kg',
-    taxable: false,
-    gctRate: 'zero_rated',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-005',
-    companyId: 'company-001',
-    sku: 'TING-355ML',
-    name: 'Ting (355ml)',
-    description: 'Jamaican grapefruit soda',
-    category: 'Beverages',
-    unitPrice: 180,
-    costPrice: 120,
-    quantity: 100,
-    reorderLevel: 24,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-006',
-    companyId: 'company-001',
-    sku: 'DWATER-1.5L',
-    name: 'Drinking Water (1.5L)',
-    description: 'Purified drinking water',
-    category: 'Beverages',
-    unitPrice: 150,
-    costPrice: 80,
-    quantity: 150,
-    reorderLevel: 30,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-007',
-    companyId: 'company-001',
-    sku: 'BREAD-SLC',
-    name: 'Sliced Bread',
-    description: 'Fresh sliced bread loaf',
-    category: 'Bakery',
-    unitPrice: 350,
-    costPrice: 250,
-    quantity: 20,
-    reorderLevel: 5,
-    unit: 'each',
-    taxable: false,
-    gctRate: 'zero_rated',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-008',
-    companyId: 'company-001',
-    sku: 'EGGS-DZ',
-    name: 'Eggs (Dozen)',
-    description: 'Farm fresh eggs',
-    category: 'Dairy',
-    unitPrice: 550,
-    costPrice: 420,
-    quantity: 40,
-    reorderLevel: 10,
-    unit: 'dozen',
-    taxable: false,
-    gctRate: 'zero_rated',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-009',
-    companyId: 'company-001',
-    sku: 'MILK-1L',
-    name: 'Fresh Milk (1L)',
-    description: 'Pasteurized whole milk',
-    category: 'Dairy',
-    unitPrice: 420,
-    costPrice: 320,
-    quantity: 30,
-    reorderLevel: 8,
-    unit: 'litre',
-    taxable: false,
-    gctRate: 'zero_rated',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-010',
-    companyId: 'company-001',
-    sku: 'JERK-500G',
-    name: 'Jerk Seasoning (500g)',
-    description: 'Traditional Jamaican jerk seasoning',
-    category: 'Spices',
-    unitPrice: 680,
-    costPrice: 450,
-    quantity: 25,
-    reorderLevel: 5,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-011',
-    companyId: 'company-001',
-    sku: 'SOAP-3PK',
-    name: 'Bath Soap (3-Pack)',
-    description: 'Antibacterial bath soap',
-    category: 'Personal Care',
-    unitPrice: 320,
-    costPrice: 220,
-    quantity: 50,
-    reorderLevel: 12,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'prod-012',
-    companyId: 'company-001',
-    sku: 'TPAPER-4PK',
-    name: 'Toilet Paper (4-Pack)',
-    description: 'Soft 2-ply toilet paper',
-    category: 'Household',
-    unitPrice: 480,
-    costPrice: 350,
-    quantity: 40,
-    reorderLevel: 10,
-    unit: 'each',
-    taxable: true,
-    gctRate: 'standard',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
 const initialState = {
   user: null,
   isAuthenticated: false,
@@ -431,7 +208,7 @@ const initialState = {
   activeCompany: null,
   settings: defaultSettings,
   customers: [],
-  products: sampleProducts,
+  products: [],
   invoices: [],
   quotations: [],
   expenses: [],
@@ -448,392 +225,300 @@ const initialState = {
   isLoading: false,
   error: null,
   sidebarOpen: true,
+  hydrated: false,
 };
 
 export const useAppStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      ...initialState,
+  (set, get) => ({
+    ...initialState,
 
-      // User actions
-      setUser: (user) => set({ user }),
-      updateUser: (updates) =>
-        set((state) => ({
-          user: state.user ? { ...state.user, ...updates } : null,
-        })),
-      setAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
-      setOnboarded: (isOnboarded) => set({ isOnboarded }),
-      updateSettings: (newSettings) =>
-        set((state) => ({
-          settings: { ...state.settings, ...newSettings },
-        })),
+    // User actions
+    setUser: (user) => set({ user }),
+    updateUser: (updates) =>
+      set((state) => ({
+        user: state.user ? { ...state.user, ...updates } : null,
+      })),
+    setAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
+    setOnboarded: (isOnboarded) => set({ isOnboarded }),
+    updateSettings: (newSettings) =>
+      set((state) => ({
+        settings: { ...state.settings, ...newSettings },
+      })),
 
-      // Company actions
-      setCompanies: (companies) => set({ companies }),
-      addCompany: (company) =>
-        set((state) => ({ companies: [...state.companies, company] })),
-      updateCompany: (id, company) =>
-        set((state) => ({
-          companies: state.companies.map((c) =>
-            c.id === id ? { ...c, ...company } : c
-          ),
-          activeCompany:
-            state.activeCompany?.id === id
-              ? { ...state.activeCompany, ...company }
-              : state.activeCompany,
-        })),
-      deleteCompany: (id) =>
-        set((state) => ({
-          companies: state.companies.filter((c) => c.id !== id),
-          activeCompany:
-            state.activeCompany?.id === id ? null : state.activeCompany,
-        })),
-      setActiveCompany: (activeCompany) => set({ activeCompany }),
-      switchCompany: (companyId) =>
-        set((state) => {
-          const company = state.companies.find((c) => c.id === companyId);
-          return {
-            activeCompany: company || null,
-            user: state.user
-              ? { ...state.user, activeCompanyId: companyId }
-              : null,
-          };
-        }),
-
-      // Customer actions
-      setCustomers: (customers) => set({ customers }),
-      addCustomer: (customer) =>
-        set((state) => ({ customers: [...state.customers, customer] })),
-      updateCustomer: (id, customer) =>
-        set((state) => ({
-          customers: state.customers.map((c) =>
-            c.id === id ? { ...c, ...customer } : c
-          ),
-        })),
-      deleteCustomer: (id) =>
-        set((state) => ({
-          customers: state.customers.filter((c) => c.id !== id),
-        })),
-
-      // Product actions
-      setProducts: (products) => set({ products }),
-      addProduct: (product) =>
-        set((state) => ({ products: [...state.products, product] })),
-      updateProduct: (id, product) =>
-        set((state) => ({
-          products: state.products.map((p) =>
-            p.id === id ? { ...p, ...product } : p
-          ),
-        })),
-      deleteProduct: (id) =>
-        set((state) => ({
-          products: state.products.filter((p) => p.id !== id),
-        })),
-      updateProductQuantity: (id, quantity) =>
-        set((state) => ({
-          products: state.products.map((p) =>
-            p.id === id ? { ...p, quantity } : p
-          ),
-        })),
-
-      // Invoice actions
-      setInvoices: (invoices) => set({ invoices }),
-      addInvoice: (invoice) =>
-        set((state) => ({ invoices: [...state.invoices, invoice] })),
-      updateInvoice: (id, invoice) =>
-        set((state) => ({
-          invoices: state.invoices.map((i) =>
-            i.id === id ? { ...i, ...invoice } : i
-          ),
-        })),
-      deleteInvoice: (id) =>
-        set((state) => ({
-          invoices: state.invoices.filter((i) => i.id !== id),
-        })),
-
-      // Quotation actions
-      setQuotations: (quotations) => set({ quotations }),
-      addQuotation: (quotation) =>
-        set((state) => ({ quotations: [...state.quotations, quotation] })),
-      updateQuotation: (id, quotation) =>
-        set((state) => ({
-          quotations: state.quotations.map((q) =>
-            q.id === id ? { ...q, ...quotation } : q
-          ),
-        })),
-      deleteQuotation: (id) =>
-        set((state) => ({
-          quotations: state.quotations.filter((q) => q.id !== id),
-        })),
-
-      // Expense actions
-      setExpenses: (expenses) => set({ expenses }),
-      addExpense: (expense) =>
-        set((state) => ({ expenses: [...state.expenses, expense] })),
-      updateExpense: (id, expense) =>
-        set((state) => ({
-          expenses: state.expenses.map((e) =>
-            e.id === id ? { ...e, ...expense } : e
-          ),
-        })),
-      deleteExpense: (id) =>
-        set((state) => ({
-          expenses: state.expenses.filter((e) => e.id !== id),
-        })),
-
-      // Employee actions
-      setEmployees: (employees) => set({ employees }),
-      addEmployee: (employee) =>
-        set((state) => ({ employees: [...state.employees, employee] })),
-      updateEmployee: (id, employee) =>
-        set((state) => ({
-          employees: state.employees.map((e) =>
-            e.id === id ? { ...e, ...employee } : e
-          ),
-        })),
-      deleteEmployee: (id) =>
-        set((state) => ({
-          employees: state.employees.filter((e) => e.id !== id),
-        })),
-
-      // Payroll actions
-      setPayrollRuns: (payrollRuns) => set({ payrollRuns }),
-      addPayrollRun: (payrollRun) =>
-        set((state) => ({ payrollRuns: [...state.payrollRuns, payrollRun] })),
-      updatePayrollRun: (id, payrollRun) =>
-        set((state) => ({
-          payrollRuns: state.payrollRuns.map((p) =>
-            p.id === id ? { ...p, ...payrollRun } : p
-          ),
-        })),
-
-      // GL Account actions
-      setGLAccounts: (glAccounts) => set({ glAccounts }),
-      addGLAccount: (account) =>
-        set((state) => ({ glAccounts: [...state.glAccounts, account] })),
-      updateGLAccount: (id, account) =>
-        set((state) => ({
-          glAccounts: state.glAccounts.map((a) =>
-            a.id === id ? { ...a, ...account } : a
-          ),
-        })),
-      deleteGLAccount: (id) =>
-        set((state) => ({
-          glAccounts: state.glAccounts.filter((a) => a.id !== id),
-        })),
-
-      // Journal Entry actions
-      setJournalEntries: (journalEntries) => set({ journalEntries }),
-      addJournalEntry: (entry) =>
-        set((state) => ({ journalEntries: [...state.journalEntries, entry] })),
-      updateJournalEntry: (id, entry) =>
-        set((state) => ({
-          journalEntries: state.journalEntries.map((e) =>
-            e.id === id ? { ...e, ...entry } : e
-          ),
-        })),
-      deleteJournalEntry: (id) =>
-        set((state) => ({
-          journalEntries: state.journalEntries.filter((e) => e.id !== id),
-        })),
-
-      // Fixed Asset actions
-      setFixedAssets: (fixedAssets) => set({ fixedAssets }),
-      addFixedAsset: (asset) =>
-        set((state) => ({ fixedAssets: [...state.fixedAssets, asset] })),
-      updateFixedAsset: (id, asset) =>
-        set((state) => ({
-          fixedAssets: state.fixedAssets.map((a) =>
-            a.id === id ? { ...a, ...asset } : a
-          ),
-        })),
-      deleteFixedAsset: (id) =>
-        set((state) => ({
-          fixedAssets: state.fixedAssets.filter((a) => a.id !== id),
-        })),
-
-      // Bank Account actions
-      setBankAccounts: (bankAccounts) => set({ bankAccounts }),
-      addBankAccount: (account) =>
-        set((state) => ({ bankAccounts: [...state.bankAccounts, account] })),
-      updateBankAccount: (id, account) =>
-        set((state) => ({
-          bankAccounts: state.bankAccounts.map((a) =>
-            a.id === id ? { ...a, ...account } : a
-          ),
-        })),
-      deleteBankAccount: (id) =>
-        set((state) => ({
-          bankAccounts: state.bankAccounts.filter((a) => a.id !== id),
-        })),
-
-      // Bank Transaction actions
-      setBankTransactions: (bankTransactions) => set({ bankTransactions }),
-      addBankTransaction: (transaction) =>
-        set((state) => ({ bankTransactions: [...state.bankTransactions, transaction] })),
-      updateBankTransaction: (id, transaction) =>
-        set((state) => ({
-          bankTransactions: state.bankTransactions.map((t) =>
-            t.id === id ? { ...t, ...transaction } : t
-          ),
-        })),
-      deleteBankTransaction: (id) =>
-        set((state) => ({
-          bankTransactions: state.bankTransactions.filter((t) => t.id !== id),
-        })),
-
-      // Customer PO actions
-      setCustomerPOs: (customerPOs) => set({ customerPOs }),
-      addCustomerPO: (po) =>
-        set((state) => ({ customerPOs: [...state.customerPOs, po] })),
-      updateCustomerPO: (id, po) =>
-        set((state) => ({
-          customerPOs: state.customerPOs.map((p) =>
-            p.id === id ? { ...p, ...po } : p
-          ),
-        })),
-      deleteCustomerPO: (id) =>
-        set((state) => ({
-          customerPOs: state.customerPOs.filter((p) => p.id !== id),
-        })),
-
-      // Parking Slip actions
-      setParkingSlips: (parkingSlips) => set({ parkingSlips }),
-      addParkingSlip: (slip) =>
-        set((state) => ({ parkingSlips: [...state.parkingSlips, slip] })),
-      updateParkingSlip: (id, slip) =>
-        set((state) => ({
-          parkingSlips: state.parkingSlips.map((s) =>
-            s.id === id ? { ...s, ...slip } : s
-          ),
-        })),
-      deleteParkingSlip: (id) =>
-        set((state) => ({
-          parkingSlips: state.parkingSlips.filter((s) => s.id !== id),
-        })),
-
-      // Notification actions
-      setNotifications: (notifications) => set({ notifications }),
-      addNotification: (notification) =>
-        set((state) => ({ notifications: [notification, ...state.notifications] })),
-      markNotificationRead: (id) =>
-        set((state) => ({
-          notifications: state.notifications.map((n) =>
-            n.id === id ? { ...n, isRead: true } : n
-          ),
-        })),
-      markAllNotificationsRead: () =>
-        set((state) => ({
-          notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
-        })),
-      deleteNotification: (id) =>
-        set((state) => ({
-          notifications: state.notifications.filter((n) => n.id !== id),
-        })),
-      clearNotifications: () => set({ notifications: [] }),
-
-      // UI actions
-      setLoading: (isLoading) => set({ isLoading }),
-      setError: (error) => set({ error }),
-      clearError: () => set({ error: null }),
-      setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
-      toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-
-      // Reset
-      reset: () => set(initialState),
-
-      // Demo data
-      loadDemoData: () => {
-        const demoData = loadDemoDataFn();
-        set({
-          user: demoData.user,
-          isAuthenticated: true,
-          isOnboarded: true,
-          companies: demoData.companies,
-          activeCompany: demoData.activeCompany,
-          customers: demoData.customers,
-          products: demoData.products,
-          invoices: demoData.invoices,
-          quotations: demoData.quotations,
-          expenses: demoData.expenses,
-          employees: demoData.employees,
-          bankAccounts: demoData.bankAccounts,
-          bankTransactions: demoData.bankTransactions,
-          glAccounts: demoData.glAccounts,
-          journalEntries: demoData.journalEntries,
-        });
-      },
-      clearDemoData: () => set({
-        user: null,
-        isAuthenticated: false,
-        isOnboarded: false,
-        companies: [],
-        activeCompany: null,
-        customers: [],
-        products: [],
-        invoices: [],
-        quotations: [],
-        expenses: [],
-        employees: [],
-        payrollRuns: [],
-        bankAccounts: [],
-        bankTransactions: [],
-        glAccounts: [],
-        journalEntries: [],
-        fixedAssets: [],
-        customerPOs: [],
-        parkingSlips: [],
-        notifications: [],
+    // Company actions
+    setCompanies: (companies) => set({ companies }),
+    addCompany: (company) =>
+      set((state) => ({ companies: [...state.companies, company] })),
+    updateCompany: (id, company) =>
+      set((state) => ({
+        companies: state.companies.map((c) =>
+          c.id === id ? { ...c, ...company } : c
+        ),
+        activeCompany:
+          state.activeCompany?.id === id
+            ? { ...state.activeCompany, ...company }
+            : state.activeCompany,
+      })),
+    deleteCompany: (id) =>
+      set((state) => ({
+        companies: state.companies.filter((c) => c.id !== id),
+        activeCompany:
+          state.activeCompany?.id === id ? null : state.activeCompany,
+      })),
+    setActiveCompany: (activeCompany) => set({ activeCompany }),
+    switchCompany: (companyId) =>
+      set((state) => {
+        const company = state.companies.find((c) => c.id === companyId);
+        return {
+          activeCompany: company || null,
+          user: state.user
+            ? { ...state.user, activeCompanyId: companyId }
+            : null,
+        };
       }),
-    }),
-    {
-      name: 'yaadbooks-web-storage',
-      version: 2, // Increment this when type structures change
-      storage: createJSONStorage(() => localStorage),
-      migrate: (persistedState, version) => {
-        // If version is older than current, reset to initial state
-        // This clears stale data that might have incompatible types
-        if (version < 2) {
-          // Migrating from older store version — resetting state
-          return initialState;
-        }
-        return persistedState as AppState;
-      },
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.error('Error rehydrating store:', error);
-          // Clear corrupted localStorage data
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('yaadbooks-web-storage');
-          }
-        }
-      },
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-        isOnboarded: state.isOnboarded,
-        companies: state.companies,
-        activeCompany: state.activeCompany,
-        settings: state.settings,
-        customers: state.customers,
-        products: state.products,
-        invoices: state.invoices,
-        quotations: state.quotations,
-        expenses: state.expenses,
-        employees: state.employees,
-        payrollRuns: state.payrollRuns,
-        glAccounts: state.glAccounts,
-        journalEntries: state.journalEntries,
-        fixedAssets: state.fixedAssets,
-        bankAccounts: state.bankAccounts,
-        bankTransactions: state.bankTransactions,
-        customerPOs: state.customerPOs,
-        parkingSlips: state.parkingSlips,
-        notifications: state.notifications,
-        sidebarOpen: state.sidebarOpen,
-      }),
-    }
-  )
+
+    // Customer actions
+    setCustomers: (customers) => set({ customers }),
+    addCustomer: (customer) =>
+      set((state) => ({ customers: [...state.customers, customer] })),
+    updateCustomer: (id, customer) =>
+      set((state) => ({
+        customers: state.customers.map((c) =>
+          c.id === id ? { ...c, ...customer } : c
+        ),
+      })),
+    deleteCustomer: (id) =>
+      set((state) => ({
+        customers: state.customers.filter((c) => c.id !== id),
+      })),
+
+    // Product actions
+    setProducts: (products) => set({ products }),
+    addProduct: (product) =>
+      set((state) => ({ products: [...state.products, product] })),
+    updateProduct: (id, product) =>
+      set((state) => ({
+        products: state.products.map((p) =>
+          p.id === id ? { ...p, ...product } : p
+        ),
+      })),
+    deleteProduct: (id) =>
+      set((state) => ({
+        products: state.products.filter((p) => p.id !== id),
+      })),
+    updateProductQuantity: (id, quantity) =>
+      set((state) => ({
+        products: state.products.map((p) =>
+          p.id === id ? { ...p, quantity } : p
+        ),
+      })),
+
+    // Invoice actions
+    setInvoices: (invoices) => set({ invoices }),
+    addInvoice: (invoice) =>
+      set((state) => ({ invoices: [...state.invoices, invoice] })),
+    updateInvoice: (id, invoice) =>
+      set((state) => ({
+        invoices: state.invoices.map((i) =>
+          i.id === id ? { ...i, ...invoice } : i
+        ),
+      })),
+    deleteInvoice: (id) =>
+      set((state) => ({
+        invoices: state.invoices.filter((i) => i.id !== id),
+      })),
+
+    // Quotation actions
+    setQuotations: (quotations) => set({ quotations }),
+    addQuotation: (quotation) =>
+      set((state) => ({ quotations: [...state.quotations, quotation] })),
+    updateQuotation: (id, quotation) =>
+      set((state) => ({
+        quotations: state.quotations.map((q) =>
+          q.id === id ? { ...q, ...quotation } : q
+        ),
+      })),
+    deleteQuotation: (id) =>
+      set((state) => ({
+        quotations: state.quotations.filter((q) => q.id !== id),
+      })),
+
+    // Expense actions
+    setExpenses: (expenses) => set({ expenses }),
+    addExpense: (expense) =>
+      set((state) => ({ expenses: [...state.expenses, expense] })),
+    updateExpense: (id, expense) =>
+      set((state) => ({
+        expenses: state.expenses.map((e) =>
+          e.id === id ? { ...e, ...expense } : e
+        ),
+      })),
+    deleteExpense: (id) =>
+      set((state) => ({
+        expenses: state.expenses.filter((e) => e.id !== id),
+      })),
+
+    // Employee actions
+    setEmployees: (employees) => set({ employees }),
+    addEmployee: (employee) =>
+      set((state) => ({ employees: [...state.employees, employee] })),
+    updateEmployee: (id, employee) =>
+      set((state) => ({
+        employees: state.employees.map((e) =>
+          e.id === id ? { ...e, ...employee } : e
+        ),
+      })),
+    deleteEmployee: (id) =>
+      set((state) => ({
+        employees: state.employees.filter((e) => e.id !== id),
+      })),
+
+    // Payroll actions
+    setPayrollRuns: (payrollRuns) => set({ payrollRuns }),
+    addPayrollRun: (payrollRun) =>
+      set((state) => ({ payrollRuns: [...state.payrollRuns, payrollRun] })),
+    updatePayrollRun: (id, payrollRun) =>
+      set((state) => ({
+        payrollRuns: state.payrollRuns.map((p) =>
+          p.id === id ? { ...p, ...payrollRun } : p
+        ),
+      })),
+
+    // GL Account actions
+    setGLAccounts: (glAccounts) => set({ glAccounts }),
+    addGLAccount: (account) =>
+      set((state) => ({ glAccounts: [...state.glAccounts, account] })),
+    updateGLAccount: (id, account) =>
+      set((state) => ({
+        glAccounts: state.glAccounts.map((a) =>
+          a.id === id ? { ...a, ...account } : a
+        ),
+      })),
+    deleteGLAccount: (id) =>
+      set((state) => ({
+        glAccounts: state.glAccounts.filter((a) => a.id !== id),
+      })),
+
+    // Journal Entry actions
+    setJournalEntries: (journalEntries) => set({ journalEntries }),
+    addJournalEntry: (entry) =>
+      set((state) => ({ journalEntries: [...state.journalEntries, entry] })),
+    updateJournalEntry: (id, entry) =>
+      set((state) => ({
+        journalEntries: state.journalEntries.map((e) =>
+          e.id === id ? { ...e, ...entry } : e
+        ),
+      })),
+    deleteJournalEntry: (id) =>
+      set((state) => ({
+        journalEntries: state.journalEntries.filter((e) => e.id !== id),
+      })),
+
+    // Fixed Asset actions
+    setFixedAssets: (fixedAssets) => set({ fixedAssets }),
+    addFixedAsset: (asset) =>
+      set((state) => ({ fixedAssets: [...state.fixedAssets, asset] })),
+    updateFixedAsset: (id, asset) =>
+      set((state) => ({
+        fixedAssets: state.fixedAssets.map((a) =>
+          a.id === id ? { ...a, ...asset } : a
+        ),
+      })),
+    deleteFixedAsset: (id) =>
+      set((state) => ({
+        fixedAssets: state.fixedAssets.filter((a) => a.id !== id),
+      })),
+
+    // Bank Account actions
+    setBankAccounts: (bankAccounts) => set({ bankAccounts }),
+    addBankAccount: (account) =>
+      set((state) => ({ bankAccounts: [...state.bankAccounts, account] })),
+    updateBankAccount: (id, account) =>
+      set((state) => ({
+        bankAccounts: state.bankAccounts.map((a) =>
+          a.id === id ? { ...a, ...account } : a
+        ),
+      })),
+    deleteBankAccount: (id) =>
+      set((state) => ({
+        bankAccounts: state.bankAccounts.filter((a) => a.id !== id),
+      })),
+
+    // Bank Transaction actions
+    setBankTransactions: (bankTransactions) => set({ bankTransactions }),
+    addBankTransaction: (transaction) =>
+      set((state) => ({ bankTransactions: [...state.bankTransactions, transaction] })),
+    updateBankTransaction: (id, transaction) =>
+      set((state) => ({
+        bankTransactions: state.bankTransactions.map((t) =>
+          t.id === id ? { ...t, ...transaction } : t
+        ),
+      })),
+    deleteBankTransaction: (id) =>
+      set((state) => ({
+        bankTransactions: state.bankTransactions.filter((t) => t.id !== id),
+      })),
+
+    // Customer PO actions
+    setCustomerPOs: (customerPOs) => set({ customerPOs }),
+    addCustomerPO: (po) =>
+      set((state) => ({ customerPOs: [...state.customerPOs, po] })),
+    updateCustomerPO: (id, po) =>
+      set((state) => ({
+        customerPOs: state.customerPOs.map((p) =>
+          p.id === id ? { ...p, ...po } : p
+        ),
+      })),
+    deleteCustomerPO: (id) =>
+      set((state) => ({
+        customerPOs: state.customerPOs.filter((p) => p.id !== id),
+      })),
+
+    // Parking Slip actions
+    setParkingSlips: (parkingSlips) => set({ parkingSlips }),
+    addParkingSlip: (slip) =>
+      set((state) => ({ parkingSlips: [...state.parkingSlips, slip] })),
+    updateParkingSlip: (id, slip) =>
+      set((state) => ({
+        parkingSlips: state.parkingSlips.map((s) =>
+          s.id === id ? { ...s, ...slip } : s
+        ),
+      })),
+    deleteParkingSlip: (id) =>
+      set((state) => ({
+        parkingSlips: state.parkingSlips.filter((s) => s.id !== id),
+      })),
+
+    // Notification actions
+    setNotifications: (notifications) => set({ notifications }),
+    addNotification: (notification) =>
+      set((state) => ({ notifications: [notification, ...state.notifications] })),
+    markNotificationRead: (id) =>
+      set((state) => ({
+        notifications: state.notifications.map((n) =>
+          n.id === id ? { ...n, isRead: true } : n
+        ),
+      })),
+    markAllNotificationsRead: () =>
+      set((state) => ({
+        notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
+      })),
+    deleteNotification: (id) =>
+      set((state) => ({
+        notifications: state.notifications.filter((n) => n.id !== id),
+      })),
+    clearNotifications: () => set({ notifications: [] }),
+
+    // UI actions
+    setLoading: (isLoading) => set({ isLoading }),
+    setError: (error) => set({ error }),
+    clearError: () => set({ error: null }),
+    setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+    toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+
+    // Reset
+    reset: () => set(initialState),
+  })
 );
 
 // ============================================
