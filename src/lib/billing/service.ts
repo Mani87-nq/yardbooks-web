@@ -101,6 +101,7 @@ export async function createCheckoutSession(params: {
       'line_items[0][price_data][unit_amount]': String(Math.round(plan.priceUsd * 100)),
       'line_items[0][price_data][recurring][interval]': 'month',
       'line_items[0][price_data][product_data][name]': `YaadBooks ${plan.name}`,
+      'line_items[0][quantity]': '1',
       'success_url': params.successUrl,
       'cancel_url': params.cancelUrl,
       'metadata[companyId]': params.companyId,
