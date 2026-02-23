@@ -1,12 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Modal, ModalBody, ModalFooter } from '@/components/ui';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Card, CardHeader, CardTitle, CardContent,
+  Button, Input, Badge,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+  Modal, ModalBody, ModalFooter,
+} from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { usePosStore } from '@/store/posStore';
 import {
   BuildingOfficeIcon,
   UserCircleIcon,
+  UsersIcon,
   BellIcon,
   ShieldCheckIcon,
   CreditCardIcon,
@@ -20,12 +26,19 @@ import {
   DocumentTextIcon,
   SwatchIcon,
   PhotoIcon,
+  PlusIcon,
+  XMarkIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
+
+// ============================================
+// CONSTANTS
+// ============================================
 
 const CURRENCIES = [
   { code: 'JMD', name: 'Jamaican Dollar', symbol: '$' },
   { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
+  { code: 'GBP', name: 'British Pound', symbol: '\u00a3' },
 ];
 
 const PARISHES = [
@@ -33,6 +46,590 @@ const PARISHES = [
   'St. Ann', 'Trelawny', 'St. James', 'Hanover', 'Westmoreland',
   'St. Elizabeth', 'Manchester', 'Clarendon', 'St. Catherine',
 ];
+
+const ROLE_OPTIONS = [
+  { value: 'ADMIN', label: 'Admin', description: 'Full access except ownership transfer' },
+  { value: 'ACCOUNTANT', label: 'Accountant', description: 'Financial operations & approvals' },
+  { value: 'STAFF', label: 'Staff', description: 'Create & edit records' },
+  { value: 'READ_ONLY', label: 'Read Only', description: 'View access only' },
+] as const;
+
+const ROLE_HIERARCHY = ['READ_ONLY', 'STAFF', 'ACCOUNTANT', 'ADMIN', 'OWNER'] as const;
+
+type TeamRole = 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'STAFF' | 'READ_ONLY';
+
+// ============================================
+// TEAM MEMBER TYPE
+// ============================================
+
+interface TeamMember {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarUrl: string | null;
+  role: TeamRole;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  joinedAt: string;
+}
+
+interface TeamMeta {
+  totalMembers: number;
+  maxMembers: number;
+  planId: string;
+}
+
+// ============================================
+// HELPERS
+// ============================================
+
+function getRoleBadgeVariant(role: TeamRole): 'success' | 'info' | 'warning' | 'default' | 'danger' {
+  switch (role) {
+    case 'OWNER': return 'success';
+    case 'ADMIN': return 'info';
+    case 'ACCOUNTANT': return 'warning';
+    case 'STAFF': return 'default';
+    case 'READ_ONLY': return 'default';
+    default: return 'default';
+  }
+}
+
+function getRoleLevel(role: TeamRole): number {
+  return ROLE_HIERARCHY.indexOf(role);
+}
+
+function canManageTeam(role: string | undefined): boolean {
+  return role === 'OWNER' || role === 'ADMIN';
+}
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'Never';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-JM', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function formatRelativeDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'Never';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDate(dateStr);
+}
+
+function getInitials(firstName: string, lastName: string): string {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+}
+
+// ============================================
+// TEAM TAB COMPONENT
+// ============================================
+
+function TeamTab() {
+  const { user } = useAppStore();
+  const currentUserRole = (user as { role?: string } | null)?.role as TeamRole | undefined;
+  const isManager = canManageTeam(currentUserRole);
+
+  // State
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [meta, setMeta] = useState<TeamMeta>({ totalMembers: 0, maxMembers: 1, planId: 'starter' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Invite modal state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<TeamRole>('STAFF');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+
+  // Remove confirmation modal state
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
+
+  // Fetch team members
+  const fetchTeam = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('yaadbooks_access_token');
+      const res = await fetch('/api/v1/team', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to load team members');
+      }
+      const json = await res.json();
+      setMembers(json.data);
+      setMeta(json.meta);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load team');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTeam();
+  }, [fetchTeam]);
+
+  // Invite handler
+  const handleInvite = async () => {
+    setInviteLoading(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+    try {
+      const token = localStorage.getItem('yaadbooks_access_token');
+      const res = await fetch('/api/v1/team/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.detail || 'Failed to invite member');
+      }
+      setInviteSuccess(json.message || 'Member added successfully!');
+      setInviteEmail('');
+      setInviteRole('STAFF');
+      fetchTeam();
+      // Close modal after short delay
+      setTimeout(() => {
+        setShowInviteModal(false);
+        setInviteSuccess(null);
+      }, 2000);
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Failed to invite member');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  // Role change handler
+  const handleRoleChange = async (member: TeamMember, newRole: TeamRole) => {
+    setActionLoading(member.id);
+    try {
+      const token = localStorage.getItem('yaadbooks_access_token');
+      const res = await fetch(`/api/v1/team/${member.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.detail || 'Failed to update role');
+      }
+      // Update local state
+      setMembers((prev) =>
+        prev.map((m) => (m.id === member.id ? { ...m, role: newRole } : m))
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update role');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Remove handler
+  const handleRemove = async () => {
+    if (!memberToRemove) return;
+    setActionLoading(memberToRemove.id);
+    try {
+      const token = localStorage.getItem('yaadbooks_access_token');
+      const res = await fetch(`/api/v1/team/${memberToRemove.id}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.detail || 'Failed to remove member');
+      }
+      setMembers((prev) => prev.filter((m) => m.id !== memberToRemove.id));
+      setMeta((prev) => ({ ...prev, totalMembers: prev.totalMembers - 1 }));
+      setShowRemoveModal(false);
+      setMemberToRemove(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to remove member');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Determine which roles the current user can assign
+  const assignableRoles = ROLE_OPTIONS.filter((opt) => {
+    if (!currentUserRole) return false;
+    return getRoleLevel(opt.value as TeamRole) < getRoleLevel(currentUserRole);
+  });
+
+  const atUserLimit = meta.maxMembers !== -1 && meta.totalMembers >= meta.maxMembers;
+
+  const planDisplayName: Record<string, string> = {
+    starter: 'Starter',
+    business: 'Business',
+    pro: 'Pro',
+    enterprise: 'Enterprise',
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Plan usage banner */}
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Team Members</h3>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-2xl font-bold text-gray-900">{meta.totalMembers}</span>
+                <span className="text-gray-500">
+                  of {meta.maxMembers === -1 ? 'Unlimited' : meta.maxMembers} users
+                </span>
+                <Badge variant="outline" size="sm">
+                  {planDisplayName[meta.planId] || meta.planId} Plan
+                </Badge>
+              </div>
+              {/* Progress bar */}
+              {meta.maxMembers !== -1 && (
+                <div className="mt-2 w-64">
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        atUserLimit ? 'bg-red-500' : 'bg-emerald-500'
+                      }`}
+                      style={{
+                        width: `${Math.min((meta.totalMembers / meta.maxMembers) * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {atUserLimit && (
+                <Button variant="outline" size="sm">
+                  Upgrade Plan
+                </Button>
+              )}
+              {isManager && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setInviteError(null);
+                    setInviteSuccess(null);
+                    setInviteEmail('');
+                    setInviteRole('STAFF');
+                    setShowInviteModal(true);
+                  }}
+                  disabled={atUserLimit}
+                >
+                  <PlusIcon className="w-4 h-4 mr-1" />
+                  Invite Member
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* At-limit warning */}
+      {atUserLimit && (
+        <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+          <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium">You have reached your plan limit of {meta.maxMembers} team member(s).</p>
+            <p className="text-sm">Upgrade your plan to add more members to your team.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+          <p className="text-sm">{error}</p>
+          <Button variant="outline" size="sm" className="mt-2" onClick={fetchTeam}>
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* Members table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Members</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin" />
+              <span className="ml-2 text-gray-500">Loading team members...</span>
+            </div>
+          ) : members.length === 0 ? (
+            <div className="text-center py-12">
+              <UsersIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No team members found.</p>
+              {isManager && (
+                <Button
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => setShowInviteModal(true)}
+                >
+                  <PlusIcon className="w-4 h-4 mr-1" />
+                  Invite your first team member
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Last Active</TableHead>
+                    {isManager && <TableHead className="text-right">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {members.map((member) => {
+                    const isCurrentUser = member.userId === (user as { id?: string } | null)?.id;
+                    const isOwner = member.role === 'OWNER';
+                    const canModify =
+                      isManager &&
+                      !isCurrentUser &&
+                      !isOwner &&
+                      getRoleLevel(member.role) < getRoleLevel(currentUserRole!);
+
+                    return (
+                      <TableRow key={member.id}>
+                        {/* Member info */}
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-medium text-emerald-700 flex-shrink-0">
+                              {getInitials(member.firstName, member.lastName)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {member.firstName} {member.lastName}
+                                {isCurrentUser && (
+                                  <span className="text-xs text-gray-400 ml-1">(you)</span>
+                                )}
+                              </p>
+                              <p className="text-sm text-gray-500">{member.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* Role */}
+                        <TableCell>
+                          {canModify ? (
+                            <select
+                              value={member.role}
+                              onChange={(e) => handleRoleChange(member, e.target.value as TeamRole)}
+                              disabled={actionLoading === member.id}
+                              className="text-sm rounded-md border border-gray-300 bg-white px-2 py-1 focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                              {/* Always show the current role */}
+                              <option value={member.role}>{member.role}</option>
+                              {assignableRoles
+                                .filter((r) => r.value !== member.role)
+                                .map((r) => (
+                                  <option key={r.value} value={r.value}>
+                                    {r.label}
+                                  </option>
+                                ))}
+                            </select>
+                          ) : (
+                            <Badge variant={getRoleBadgeVariant(member.role)} size="sm">
+                              {member.role}
+                            </Badge>
+                          )}
+                        </TableCell>
+
+                        {/* Joined */}
+                        <TableCell>
+                          <span className="text-sm text-gray-600">
+                            {formatDate(member.joinedAt)}
+                          </span>
+                        </TableCell>
+
+                        {/* Last active */}
+                        <TableCell>
+                          <span className="text-sm text-gray-500">
+                            {formatRelativeDate(member.lastLoginAt)}
+                          </span>
+                        </TableCell>
+
+                        {/* Actions */}
+                        {isManager && (
+                          <TableCell className="text-right">
+                            {canModify ? (
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => {
+                                  setMemberToRemove(member);
+                                  setShowRemoveModal(true);
+                                }}
+                                disabled={actionLoading === member.id}
+                              >
+                                Remove
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-gray-400">
+                                {isCurrentUser ? 'You' : isOwner ? 'Owner' : ''}
+                              </span>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Invite Modal */}
+      <Modal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        title="Invite Team Member"
+      >
+        <ModalBody>
+          <div className="space-y-4">
+            {inviteError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                {inviteError}
+              </div>
+            )}
+            {inviteSuccess && (
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-2 rounded-lg text-sm">
+                {inviteSuccess}
+              </div>
+            )}
+
+            <Input
+              label="Email Address"
+              type="email"
+              placeholder="colleague@company.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              disabled={inviteLoading}
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as TeamRole)}
+                disabled={inviteLoading}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                {assignableRoles.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              {/* Role description */}
+              {assignableRoles.find((r) => r.value === inviteRole) && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {assignableRoles.find((r) => r.value === inviteRole)?.description}
+                </p>
+              )}
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
+              <p>The user must have an existing YaadBooks account. They will immediately be added to your team and see this company in their account.</p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => setShowInviteModal(false)} disabled={inviteLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleInvite}
+            disabled={inviteLoading || !inviteEmail.trim()}
+          >
+            {inviteLoading ? 'Inviting...' : 'Add to Team'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Remove Confirmation Modal */}
+      <Modal
+        isOpen={showRemoveModal}
+        onClose={() => {
+          setShowRemoveModal(false);
+          setMemberToRemove(null);
+        }}
+        title="Remove Team Member"
+      >
+        <ModalBody>
+          <div className="space-y-4">
+            <div className="bg-red-50 text-red-800 p-4 rounded-lg">
+              <p className="font-medium">Are you sure?</p>
+              <p className="text-sm mt-1">
+                This will remove{' '}
+                <span className="font-medium">
+                  {memberToRemove?.firstName} {memberToRemove?.lastName}
+                </span>{' '}
+                ({memberToRemove?.email}) from your team. They will lose access to this company&apos;s data immediately.
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowRemoveModal(false);
+              setMemberToRemove(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleRemove}
+            disabled={actionLoading === memberToRemove?.id}
+          >
+            {actionLoading === memberToRemove?.id ? 'Removing...' : 'Remove Member'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </div>
+  );
+}
+
+// ============================================
+// MAIN SETTINGS PAGE
+// ============================================
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('company');
@@ -159,6 +756,7 @@ export default function SettingsPage() {
     { id: 'company', name: 'Company', icon: BuildingOfficeIcon },
     { id: 'invoices', name: 'Invoices', icon: DocumentTextIcon },
     { id: 'profile', name: 'Profile', icon: UserCircleIcon },
+    { id: 'team', name: 'Team', icon: UsersIcon },
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
     { id: 'display', name: 'Display', icon: PaintBrushIcon },
     { id: 'billing', name: 'Billing', icon: CreditCardIcon },
@@ -514,6 +1112,8 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           )}
+
+          {activeTab === 'team' && <TeamTab />}
 
           {activeTab === 'notifications' && (
             <Card>

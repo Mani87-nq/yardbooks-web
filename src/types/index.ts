@@ -20,6 +20,9 @@ export interface User {
 // ============================================
 // COMPANY (Multi-Company Support)
 // ============================================
+export type SubscriptionPlanType = 'STARTER' | 'BUSINESS' | 'PRO' | 'ENTERPRISE';
+export type SubscriptionStatusType = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'INACTIVE';
+
 export interface Company {
   id: string;
   ownerId?: string;
@@ -39,6 +42,13 @@ export interface Company {
   fiscalYearEnd?: number;
   logoUri?: string;
   invoiceSettings?: InvoiceSettings;
+  // Subscription & billing
+  subscriptionPlan?: SubscriptionPlanType;
+  subscriptionStatus?: SubscriptionStatusType;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subscriptionStartDate?: Date | string;
+  subscriptionEndDate?: Date | string;
   createdAt: Date;
   updatedAt: Date;
 }

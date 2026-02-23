@@ -42,7 +42,7 @@ interface LoginResponse {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser, setActiveCompany, loadDemoData } = useAppStore();
+  const { setUser, setCompanies, setActiveCompany, setAuthenticated } = useAppStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -81,26 +81,34 @@ export default function LoginPage() {
         email: data.user.email,
         firstName: data.user.firstName,
         lastName: data.user.lastName,
+        activeCompanyId: data.user.activeCompanyId ?? undefined,
         role: appRole as 'admin' | 'user' | 'staff',
         createdAt: new Date(),
       });
 
+      setAuthenticated(true);
+
+      // Store companies from login response (partial data — full hydration
+      // happens in useDataHydration when the dashboard mounts)
+      const loginCompanies = data.companies.map((c) => ({
+        id: c.id,
+        businessName: c.businessName,
+        tradingName: '',
+        trnNumber: '',
+        email: data.user.email,
+        phone: '',
+        address: '',
+        parish: '',
+        industry: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+      setCompanies(loginCompanies);
+
       // Set active company if exists
       if (data.companies.length > 0) {
-        const activeCompany = data.companies.find(c => c.id === data.user.activeCompanyId) ?? data.companies[0];
-        setActiveCompany({
-          id: activeCompany.id,
-          businessName: activeCompany.businessName,
-          tradingName: '',
-          trnNumber: '',
-          email: data.user.email,
-          phone: '',
-          address: '',
-          parish: '',
-          industry: '',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+        const active = data.companies.find(c => c.id === data.user.activeCompanyId) ?? data.companies[0];
+        setActiveCompany(loginCompanies.find(c => c.id === active.id) ?? loginCompanies[0]);
       }
 
       router.push('/dashboard');
@@ -119,13 +127,6 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = async () => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    loadDemoData();
-    router.push('/dashboard');
   };
 
   return (

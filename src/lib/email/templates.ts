@@ -381,6 +381,45 @@ export function welcomeEmail(params: WelcomeEmailParams) {
   return { subject, html: layout(subject, body), text };
 }
 
+// ─── Template: Password Reset ────────────────────────────────────
+
+export interface PasswordResetEmailParams {
+  userName: string;
+  resetUrl: string;
+}
+
+export function passwordResetEmail(params: PasswordResetEmailParams) {
+  const { userName, resetUrl } = params;
+
+  const subject = 'Reset Your YaadBooks Password';
+
+  const body = `
+    <p>Hello ${escapeHtml(userName)},</p>
+    <p>We received a request to reset the password for your YaadBooks account. Click the button below to choose a new password:</p>
+    ${button('Reset Password', resetUrl)}
+    <p>This link will expire in <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email &mdash; your password will not be changed.</p>
+    <p style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;color:${MUTED_COLOR};font-size:13px;">
+      If the button above doesn&rsquo;t work, copy and paste this URL into your browser:<br />
+      <a href="${escapeHtml(resetUrl)}" style="color:${BRAND_COLOR};word-break:break-all;">${escapeHtml(resetUrl)}</a>
+    </p>
+  `;
+
+  const text = [
+    `Hello ${userName},`,
+    '',
+    'We received a request to reset the password for your YaadBooks account.',
+    '',
+    'Reset your password by visiting this link:',
+    resetUrl,
+    '',
+    'This link will expire in 1 hour.',
+    '',
+    'If you did not request a password reset, you can safely ignore this email - your password will not be changed.',
+  ].join('\n');
+
+  return { subject, html: layout(subject, body), text };
+}
+
 // ─── Template: Tax Deadline ──────────────────────────────────────────
 
 export interface TaxDeadlineEmailParams {
