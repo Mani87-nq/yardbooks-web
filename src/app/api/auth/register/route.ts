@@ -32,7 +32,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest('Invalid JSON in request body');
+    }
     const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {

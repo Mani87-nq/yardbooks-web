@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
+import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 import {
@@ -77,6 +78,26 @@ export async function POST(request: NextRequest) {
     }
 
     if (data.action === 'export_user_data') {
+      // Users can only export their own data, or admins can export
+      // data for users who share at least one company with them
+      const requestingUserId = user!.sub;
+      if (data.userId !== requestingUserId) {
+        // Verify the target user shares a company with the requester
+        const targetMemberships = await prisma.companyMember.findMany({
+          where: { userId: data.userId },
+          select: { companyId: true },
+        });
+        const targetCompanyIds = new Set(targetMemberships.map(m => m.companyId));
+        const requesterCompanies: string[] = user!.companies ?? [];
+        const hasCommonCompany = requesterCompanies.some(cid => targetCompanyIds.has(cid));
+        if (!hasCommonCompany) {
+          return NextResponse.json(
+            { error: 'You do not have permission to export this user\'s data' },
+            { status: 403 }
+          );
+        }
+      }
+
       const exportData = await exportUserData(data.userId);
       return NextResponse.json({
         message: 'User data exported successfully',
