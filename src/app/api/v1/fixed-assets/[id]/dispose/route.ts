@@ -9,8 +9,6 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, notFound, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 // ============================================
 // Validation schema
 // ============================================
@@ -39,10 +37,6 @@ export async function POST(
 ) {
   try {
     const { id: assetId } = await params;
-
-    // Plan gate
-    const { error: planError } = await requireFeature(request, 'fixed_assets');
-    if (planError) return planError;
 
     // Auth + permission
     const { user, error: authError } = await requirePermission(request, 'fixed_assets:delete');

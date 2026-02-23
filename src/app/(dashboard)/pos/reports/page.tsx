@@ -1,86 +1,111 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent, Button, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { usePosStore } from '@/store/posStore';
+import {
+  usePosSessions,
+  usePosOrders,
+  useClosePosSession,
+  type ApiPosSession,
+} from '@/hooks/api/usePos';
 import { useAppStore } from '@/store/appStore';
 import { formatJMD } from '@/lib/utils';
 import { printContent, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
-import type { ZReport, PosSession } from '@/types/pos';
 import {
   ArrowLeftIcon,
   DocumentChartBarIcon,
   PrinterIcon,
   ClockIcon,
-  BanknotesIcon,
   ReceiptPercentIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 export default function POSReportsPage() {
-  const [selectedSession, setSelectedSession] = useState<PosSession | null>(null);
   const [showXReportModal, setShowXReportModal] = useState(false);
-  const [xReportData, setXReportData] = useState<XReportData | null>(null);
+  const [xReportSessionId, setXReportSessionId] = useState<string | null>(null);
 
-  const { sessions, zReports, generateZReport, getOrdersBySession } = usePosStore();
+  // Fetch open and closed sessions from API
+  const {
+    data: openSessionsData,
+    isLoading: openLoading,
+    error: openError,
+  } = usePosSessions({ status: 'OPEN', limit: 50 });
+
+  const {
+    data: closedSessionsData,
+    isLoading: closedLoading,
+    error: closedError,
+  } = usePosSessions({ status: 'CLOSED', limit: 50 });
+
+  // Fetch completed orders for the selected session (X-report)
+  const {
+    data: sessionOrdersData,
+    isLoading: ordersLoading,
+  } = usePosOrders(
+    xReportSessionId
+      ? { sessionId: xReportSessionId, limit: 100 }
+      : { limit: 0 }
+  );
+
   const activeCompany = useAppStore((state) => state.activeCompany);
 
-  // Get closed sessions that don't have a Z-report yet
-  const closedSessions = sessions.filter(s => s.status === 'closed');
-  const openSessions = sessions.filter(s => s.status === 'open');
+  const openSessions = openSessionsData?.data ?? [];
+  const closedSessions = closedSessionsData?.data ?? [];
 
-  interface XReportData {
-    session: PosSession;
-    transactionCount: number;
-    grossSales: number;
-    discounts: number;
-    netSales: number;
-    gctCollected: number;
-    cashOnHand: number;
-    paymentBreakdown: { method: string; count: number; total: number }[];
-  }
+  // Compute X-report data from session orders
+  const xReportData = useMemo(() => {
+    if (!xReportSessionId || !sessionOrdersData?.data) return null;
+    const session = openSessions.find((s) => s.id === xReportSessionId);
+    if (!session) return null;
 
-  const generateXReport = (session: PosSession) => {
-    const orders = getOrdersBySession(session.id);
-    const completedOrders = orders.filter(o => o.status === 'completed');
+    const orders = sessionOrdersData.data;
+    const completedOrders = orders.filter((o) => o.status === 'COMPLETED');
 
-    const grossSales = completedOrders.reduce((sum, o) => sum + o.subtotal, 0);
-    const discounts = completedOrders.reduce((sum, o) => sum + o.orderDiscountAmount, 0);
+    const grossSales = completedOrders.reduce((sum, o) => sum + Number(o.subtotal), 0);
+    const discounts = completedOrders.reduce((sum, o) => sum + Number(o.orderDiscountAmount), 0);
     const netSales = grossSales - discounts;
-    const gctCollected = completedOrders.reduce((sum, o) => sum + o.gctAmount, 0);
+    const gctCollected = completedOrders.reduce((sum, o) => sum + Number(o.gctAmount), 0);
 
+    // Payment breakdown from order payments
     const paymentMap = new Map<string, { count: number; total: number }>();
-    completedOrders.forEach(order => {
-      order.payments
-        .filter(p => p.status === 'completed')
-        .forEach(payment => {
-          const existing = paymentMap.get(payment.method) || { count: 0, total: 0 };
-          paymentMap.set(payment.method, {
+    completedOrders.forEach((order) => {
+      (order.payments ?? [])
+        .filter((p) => p.status === 'COMPLETED')
+        .forEach((payment) => {
+          const method = payment.method;
+          const existing = paymentMap.get(method) || { count: 0, total: 0 };
+          paymentMap.set(method, {
             count: existing.count + 1,
-            total: existing.total + payment.amount,
+            total: existing.total + Number(payment.amount),
           });
         });
     });
 
-    const data: XReportData = {
+    const paymentBreakdown = Array.from(paymentMap.entries()).map(([method, data]) => ({
+      method: method.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      count: data.count,
+      total: data.total,
+    }));
+
+    return {
       session,
       transactionCount: completedOrders.length,
       grossSales,
       discounts,
       netSales,
       gctCollected,
-      cashOnHand: session.expectedCash,
-      paymentBreakdown: Array.from(paymentMap.entries()).map(([method, data]) => ({
-        method: method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        count: data.count,
-        total: data.total,
-      })),
+      cashOnHand: Number(session.expectedCash),
+      paymentBreakdown,
     };
+  }, [xReportSessionId, sessionOrdersData, openSessions]);
 
-    setXReportData(data);
+  const handleGenerateXReport = (session: ApiPosSession) => {
+    setXReportSessionId(session.id);
     setShowXReportModal(true);
   };
 
@@ -124,69 +149,58 @@ export default function POSReportsPage() {
     });
   };
 
-  const handlePrintZReport = (report: ZReport) => {
-    const summaryContent = generateStatCards([
-      { label: 'Total Transactions', value: String(report.totalTransactions) },
-      { label: 'Gross Sales', value: formatPrintCurrency(report.grossSales), color: '#059669' },
-      { label: 'Discounts', value: formatPrintCurrency(report.discounts), color: '#dc2626' },
-      { label: 'Net Sales', value: formatPrintCurrency(report.netSales), color: '#16a34a' },
-    ]);
+  const isLoading = openLoading || closedLoading;
+  const hasError = openError || closedError;
 
-    const paymentTable = report.paymentBreakdown.length > 0
-      ? generateTable(
-          [
-            { key: 'methodLabel', label: 'Payment Method' },
-            { key: 'transactionCount', label: 'Count', align: 'right' },
-            { key: 'total', label: 'Total', align: 'right' },
-          ],
-          report.paymentBreakdown,
-          { formatters: { total: formatPrintCurrency } }
-        )
-      : '<p>No payments recorded</p>';
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link href="/pos">
+            <Button variant="ghost" size="sm">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Back to POS
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">POS Reports</h1>
+            <p className="text-gray-500">X-Reports (mid-day) and Z-Reports (end of day)</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-16">
+          <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
-    const cashSection = `
-      <h3 style="margin: 20px 0 10px; font-weight: 600;">Cash Reconciliation</h3>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr><td style="padding:8px;color:#6b7280;">Opening Cash</td><td style="padding:8px;font-weight:500;text-align:right;">${formatPrintCurrency(report.openingCash)}</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Cash Sales</td><td style="padding:8px;font-weight:500;text-align:right;">${formatPrintCurrency(report.cashSales)}</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Cash Refunds</td><td style="padding:8px;font-weight:500;text-align:right;">(${formatPrintCurrency(report.cashRefunds)})</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Cash Payouts</td><td style="padding:8px;font-weight:500;text-align:right;">(${formatPrintCurrency(report.cashPayouts)})</td></tr>
-        <tr style="border-top:1px solid #e5e7eb;"><td style="padding:8px;font-weight:600;">Expected Cash</td><td style="padding:8px;font-weight:700;text-align:right;">${formatPrintCurrency(report.expectedCash)}</td></tr>
-        <tr><td style="padding:8px;font-weight:600;">Actual Cash</td><td style="padding:8px;font-weight:700;text-align:right;">${formatPrintCurrency(report.actualCash)}</td></tr>
-        <tr style="background:${report.variance === 0 ? '#f0fdf4' : '#fef2f2'};"><td style="padding:8px;font-weight:600;">Variance</td><td style="padding:8px;font-weight:700;text-align:right;color:${report.variance === 0 ? '#16a34a' : '#dc2626'};">${report.variance >= 0 ? '+' : ''}${formatPrintCurrency(report.variance)}</td></tr>
-      </table>
-    `;
-
-    const taxSection = `
-      <h3 style="margin: 20px 0 10px; font-weight: 600;">Tax Summary</h3>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr><td style="padding:8px;color:#6b7280;">Taxable Sales</td><td style="padding:8px;font-weight:500;text-align:right;">${formatPrintCurrency(report.taxableAmount)}</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Exempt Sales</td><td style="padding:8px;font-weight:500;text-align:right;">${formatPrintCurrency(report.exemptAmount)}</td></tr>
-        <tr style="border-top:1px solid #e5e7eb;"><td style="padding:8px;font-weight:600;">GCT Collected</td><td style="padding:8px;font-weight:700;text-align:right;">${formatPrintCurrency(report.gctCollected)}</td></tr>
-      </table>
-    `;
-
-    const content = `
-      ${summaryContent}
-      <h3 style="margin: 20px 0 10px; font-weight: 600;">Payment Breakdown</h3>
-      ${paymentTable}
-      ${cashSection}
-      ${taxSection}
-    `;
-
-    printContent({
-      title: 'Z-Report (End of Day)',
-      subtitle: `${report.reportNumber} | ${format(new Date(report.date), 'MMM dd, yyyy')}`,
-      companyName: activeCompany?.businessName,
-      content,
-    });
-  };
-
-  const handleGenerateZReport = (session: PosSession) => {
-    if (!confirm('Generate Z-Report for this session? This is typically done at end of day.')) return;
-    const report = generateZReport(session.id, 'Current User');
-    handlePrintZReport(report);
-  };
+  if (hasError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link href="/pos">
+            <Button variant="ghost" size="sm">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Back to POS
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">POS Reports</h1>
+            <p className="text-gray-500">X-Reports (mid-day) and Z-Reports (end of day)</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent>
+            <div className="text-center py-12">
+              <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
+              <p className="text-gray-700 font-medium mb-2">Failed to load reports data</p>
+              <p className="text-gray-500 text-sm">Please try refreshing the page.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -217,7 +231,7 @@ export default function POSReportsPage() {
             <p className="text-gray-500 text-center py-8">No active sessions</p>
           ) : (
             <div className="space-y-3">
-              {openSessions.map(session => (
+              {openSessions.map((session) => (
                 <div key={session.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div>
                     <p className="font-medium text-gray-900">{session.terminalName}</p>
@@ -225,7 +239,7 @@ export default function POSReportsPage() {
                       Opened: {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} | Cashier: {session.cashierName}
                     </p>
                   </div>
-                  <Button variant="outline" onClick={() => generateXReport(session)}>
+                  <Button variant="outline" onClick={() => handleGenerateXReport(session)}>
                     <DocumentChartBarIcon className="w-4 h-4 mr-2" />
                     Generate X-Report
                   </Button>
@@ -236,12 +250,12 @@ export default function POSReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Closed Sessions (Z-Reports) */}
+      {/* Closed Sessions */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <ReceiptPercentIcon className="w-5 h-5 text-emerald-600" />
-            <CardTitle>Closed Sessions (Z-Report)</CardTitle>
+            <CardTitle>Closed Sessions</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -249,95 +263,34 @@ export default function POSReportsPage() {
             <p className="text-gray-500 text-center py-8">No closed sessions</p>
           ) : (
             <div className="space-y-3">
-              {closedSessions.map(session => {
-                const existingReport = zReports.find(r =>
-                  r.terminalId === session.terminalId &&
-                  new Date(r.periodStart).getTime() === new Date(session.openedAt).getTime()
-                );
-
-                return (
-                  <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                      <p className="font-medium text-gray-900">{session.terminalName}</p>
-                      <p className="text-sm text-gray-500">
-                        {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} - {session.closedAt ? format(new Date(session.closedAt), 'HH:mm') : ''}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Sales: {formatJMD(session.netSales)} | Orders: {session.orderIds.length}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      {existingReport ? (
-                        <Button variant="outline" onClick={() => handlePrintZReport(existingReport)}>
-                          <PrinterIcon className="w-4 h-4 mr-2" />
-                          Print Z-Report
-                        </Button>
-                      ) : (
-                        <Button onClick={() => handleGenerateZReport(session)}>
-                          <DocumentChartBarIcon className="w-4 h-4 mr-2" />
-                          Generate Z-Report
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Z-Report History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Z-Report History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {zReports.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No Z-Reports generated yet</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
-                    <th className="px-4 py-3 font-medium">Report #</th>
-                    <th className="px-4 py-3 font-medium">Date</th>
-                    <th className="px-4 py-3 font-medium">Terminal</th>
-                    <th className="px-4 py-3 font-medium text-right">Transactions</th>
-                    <th className="px-4 py-3 font-medium text-right">Net Sales</th>
-                    <th className="px-4 py-3 font-medium text-right">GCT</th>
-                    <th className="px-4 py-3 font-medium text-right">Variance</th>
-                    <th className="px-4 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {zReports.map(report => (
-                    <tr key={report.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{report.reportNumber}</td>
-                      <td className="px-4 py-3 text-gray-600">{format(new Date(report.date), 'MMM dd, yyyy')}</td>
-                      <td className="px-4 py-3 text-gray-600">{report.terminalName}</td>
-                      <td className="px-4 py-3 text-right">{report.completedTransactions}</td>
-                      <td className="px-4 py-3 text-right font-medium text-emerald-600">{formatJMD(report.netSales)}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatJMD(report.gctCollected)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`inline-flex items-center gap-1 ${report.variance === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {report.variance === 0 ? (
+              {closedSessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div>
+                    <p className="font-medium text-gray-900">{session.terminalName}</p>
+                    <p className="text-sm text-gray-500">
+                      {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} - {session.closedAt ? format(new Date(session.closedAt), 'HH:mm') : ''}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Sales: {formatJMD(Number(session.netSales))} | Orders: {session._count?.orders ?? 0}
+                    </p>
+                    {session.cashVariance !== null && session.cashVariance !== undefined && (
+                      <p className={`text-sm ${Number(session.cashVariance) === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {Number(session.cashVariance) === 0 ? (
+                          <span className="inline-flex items-center gap-1">
                             <CheckCircleIcon className="w-4 h-4" />
-                          ) : (
+                            No variance
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
                             <ExclamationTriangleIcon className="w-4 h-4" />
-                          )}
-                          {report.variance >= 0 ? '+' : ''}{formatJMD(report.variance)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button variant="ghost" size="sm" onClick={() => handlePrintZReport(report)}>
-                          <PrinterIcon className="w-4 h-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                            Variance: {Number(session.cashVariance) >= 0 ? '+' : ''}{formatJMD(Number(session.cashVariance))}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
@@ -346,12 +299,16 @@ export default function POSReportsPage() {
       {/* X-Report Modal */}
       <Modal
         isOpen={showXReportModal}
-        onClose={() => setShowXReportModal(false)}
+        onClose={() => { setShowXReportModal(false); setXReportSessionId(null); }}
         title="X-Report (Mid-Day)"
         size="lg"
       >
         <ModalBody>
-          {xReportData && (
+          {ordersLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
+            </div>
+          ) : xReportData ? (
             <div className="space-y-6">
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-700">
@@ -415,11 +372,13 @@ export default function POSReportsPage() {
                 </div>
               </div>
             </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No data available</p>
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setShowXReportModal(false)}>Close</Button>
-          <Button onClick={handlePrintXReport}>
+          <Button variant="outline" onClick={() => { setShowXReportModal(false); setXReportSessionId(null); }}>Close</Button>
+          <Button onClick={handlePrintXReport} disabled={!xReportData}>
             <PrinterIcon className="w-4 h-4 mr-2" />
             Print Report
           </Button>

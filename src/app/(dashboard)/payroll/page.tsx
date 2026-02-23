@@ -3,10 +3,14 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
-import type { Employee, PayrollRun, PayrollEntry } from '@/types';
+import {
+  useEmployees,
+  useCreateEmployee,
+  useUpdateEmployee,
+  useDeleteEmployee,
+} from '@/hooks/api';
+import { api } from '@/lib/api-client';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -15,9 +19,45 @@ import {
   PlayIcon,
   UserGroupIcon,
   BanknotesIcon,
-  CalendarDaysIcon,
-  DocumentTextIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
+import { PermissionGate } from '@/components/PermissionGate';
+
+interface EmployeeAPI {
+  id: string;
+  employeeNumber: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  position: string;
+  department: string | null;
+  employmentType: string;
+  paymentFrequency: string;
+  baseSalary: number;
+  bankAccountNumber?: string;
+  bankName?: string;
+  trnNumber: string;
+  nisNumber: string;
+  hireDate: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface PayrollRunAPI {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  payDate: string;
+  status: string;
+  entries: { id: string }[];
+  totalGross: number;
+  totalDeductions: number;
+  totalNet: number;
+  totalEmployerContributions: number;
+  createdAt: string;
+}
 
 const EMPLOYMENT_TYPES = [
   { value: 'full_time', label: 'Full Time' },
@@ -32,20 +72,63 @@ const PAY_FREQUENCIES = [
 ];
 
 // Jamaica statutory deductions (2024-2026 rates per TAJ)
-const NIS_RATE = 0.03; // 3% employee, 3% employer
-const NIS_ANNUAL_CEILING = 5000000; // JMD 5M annual ceiling for NIS contributions
-const NHT_RATE = 0.02; // 2% employee, 3% employer
-const EDUCATION_TAX_RATE = 0.0225; // 2.25%
-const PAYE_ANNUAL_THRESHOLD = 1902360; // Annual tax-free threshold (updated 2024)
+const NIS_RATE = 0.03;
+const NIS_ANNUAL_CEILING = 5000000;
+const NHT_RATE = 0.02;
+const EDUCATION_TAX_RATE = 0.0225;
+const PAYE_ANNUAL_THRESHOLD = 1902360;
 
 export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState<'employees' | 'payroll'>('employees');
   const [searchQuery, setSearchQuery] = useState('');
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [showPayrollModal, setShowPayrollModal] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeAPI | null>(null);
+  const [saveError, setSaveError] = useState('');
+  const [payrollRunning, setPayrollRunning] = useState(false);
 
-  const { employees, addEmployee, updateEmployee, deleteEmployee, payrollRuns, addPayrollRun, activeCompany } = useAppStore();
+  // API hooks for employees
+  const { data: employeesResponse, isLoading: employeesLoading, error: employeesFetchError, refetch: refetchEmployees } = useEmployees({ limit: 200 });
+  const createEmployee = useCreateEmployee();
+  const updateEmployee = useUpdateEmployee();
+  const deleteEmployee = useDeleteEmployee();
+
+  const employees: EmployeeAPI[] = (employeesResponse as any)?.data ?? [];
+
+  // Payroll runs — fetch via direct API call
+  const [payrollRuns, setPayrollRuns] = useState<PayrollRunAPI[]>([]);
+  const [payrollLoading, setPayrollLoading] = useState(false);
+
+  // Fetch payroll runs when switching to that tab
+  const fetchPayrollRuns = async () => {
+    try {
+      setPayrollLoading(true);
+      const data = await api.get<{ data: PayrollRunAPI[] } | PayrollRunAPI[]>('/api/v1/payroll');
+      const list = Array.isArray(data) ? data : (data as any).data ?? [];
+      setPayrollRuns(list);
+    } catch {
+      // Payroll runs may not have a list endpoint yet — show empty
+      setPayrollRuns([]);
+    } finally {
+      setPayrollLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: 'employees' | 'payroll') => {
+    setActiveTab(tab);
+    if (tab === 'payroll' && payrollRuns.length === 0) {
+      fetchPayrollRuns();
+    }
+  };
+
+  // Client-side search filter
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch = !searchQuery ||
+      `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.department?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
 
   const [employeeForm, setEmployeeForm] = useState({
     firstName: '',
@@ -54,8 +137,8 @@ export default function PayrollPage() {
     phone: '',
     department: '',
     position: '',
-    employmentType: 'full_time' as Employee['employmentType'],
-    paymentFrequency: 'monthly' as Employee['paymentFrequency'],
+    employmentType: 'full_time',
+    paymentFrequency: 'monthly',
     baseSalary: '',
     bankAccountNumber: '',
     bankName: '',
@@ -71,15 +154,8 @@ export default function PayrollPage() {
     selectedEmployees: [] as string[],
   });
 
-  const filteredEmployees = employees.filter((emp) => {
-    const matchesSearch = !searchQuery ||
-      `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.department?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
-
-  const handleOpenEmployeeModal = (employee?: Employee) => {
+  const handleOpenEmployeeModal = (employee?: EmployeeAPI) => {
+    setSaveError('');
     if (employee) {
       setEditingEmployee(employee);
       setEmployeeForm({
@@ -120,13 +196,14 @@ export default function PayrollPage() {
     setShowEmployeeModal(true);
   };
 
-  const handleSaveEmployee = () => {
+  const handleSaveEmployee = async () => {
+    setSaveError('');
     if (!employeeForm.firstName.trim() || !employeeForm.lastName.trim()) {
-      alert('Please enter employee name');
+      setSaveError('Please enter employee name');
       return;
     }
 
-    const employeeData = {
+    const payload: Record<string, unknown> = {
       firstName: employeeForm.firstName,
       lastName: employeeForm.lastName,
       email: employeeForm.email || undefined,
@@ -140,30 +217,31 @@ export default function PayrollPage() {
       bankName: employeeForm.bankName || undefined,
       trnNumber: employeeForm.trnNumber || '',
       nisNumber: employeeForm.nisNumber || '',
-      hireDate: employeeForm.hireDate ? new Date(employeeForm.hireDate) : new Date(),
-      dateOfBirth: new Date('1990-01-01'),
+      hireDate: employeeForm.hireDate || undefined,
       isActive: true,
-      updatedAt: new Date(),
     };
 
-    if (editingEmployee) {
-      updateEmployee(editingEmployee.id, employeeData);
-    } else {
-      const employeeNumber = `EMP-${Date.now().toString().slice(-6)}`;
-      addEmployee({
-        id: uuidv4(),
-        companyId: activeCompany?.id || '',
-        employeeNumber,
-        ...employeeData,
-        createdAt: new Date(),
-      });
+    try {
+      if (editingEmployee) {
+        await updateEmployee.mutateAsync({ id: editingEmployee.id, data: payload });
+      } else {
+        await createEmployee.mutateAsync(payload);
+      }
+      setShowEmployeeModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save employee';
+      setSaveError(message);
     }
-    setShowEmployeeModal(false);
   };
 
-  const handleDeleteEmployee = (id: string) => {
+  const handleDeleteEmployee = async (id: string) => {
     if (confirm('Are you sure you want to delete this employee?')) {
-      deleteEmployee(id);
+      try {
+        await deleteEmployee.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete employee';
+        alert(message);
+      }
     }
   };
 
@@ -182,13 +260,11 @@ export default function PayrollPage() {
   };
 
   const calculateDeductions = (grossPay: number) => {
-    // NIS: capped at annual ceiling (JMD 5M), so monthly cap = ceiling / 12
     const nisCappedGross = Math.min(grossPay, NIS_ANNUAL_CEILING / 12);
     const nis = nisCappedGross * NIS_RATE;
     const nht = grossPay * NHT_RATE;
     const eduTax = grossPay * EDUCATION_TAX_RATE;
 
-    // Jamaica PAYE income tax (2024-2026 rates per TAJ)
     const annualGross = grossPay * 12;
     let paye = 0;
     if (annualGross > PAYE_ANNUAL_THRESHOLD) {
@@ -203,7 +279,7 @@ export default function PayrollPage() {
     return { nis, nht, eduTax, paye, total: nis + nht + eduTax + paye };
   };
 
-  const handleRunPayroll = () => {
+  const handleRunPayroll = async () => {
     if (!payrollForm.payPeriodStart || !payrollForm.payPeriodEnd || !payrollForm.payDate) {
       alert('Please fill in all pay period fields');
       return;
@@ -213,72 +289,51 @@ export default function PayrollPage() {
       return;
     }
 
-    const runId = uuidv4();
-    const selectedEmps = employees.filter(e => payrollForm.selectedEmployees.includes(e.id));
-    let totalGross = 0;
-    let totalNet = 0;
-    let totalDeductions = 0;
-    let totalEmployerContributions = 0;
+    setPayrollRunning(true);
+    try {
+      // Build payroll entries for the API
+      const selectedEmps = employees.filter(e => payrollForm.selectedEmployees.includes(e.id));
+      const entries = selectedEmps.map(emp => {
+        const gross = emp.baseSalary || 0;
+        const deductions = calculateDeductions(gross);
+        return {
+          employeeId: emp.id,
+          basicSalary: gross,
+          overtime: 0,
+          bonus: 0,
+          commission: 0,
+          allowances: 0,
+          grossPay: gross,
+          paye: deductions.paye,
+          nis: deductions.nis,
+          nht: deductions.nht,
+          educationTax: deductions.eduTax,
+          otherDeductions: 0,
+          totalDeductions: deductions.total,
+          netPay: gross - deductions.total,
+          employerNis: gross * NIS_RATE,
+          employerNht: gross * NHT_RATE,
+          employerEducationTax: gross * EDUCATION_TAX_RATE,
+          heartContribution: gross * 0.03,
+        };
+      });
 
-    const entries: PayrollEntry[] = selectedEmps.map(emp => {
-      const gross = emp.baseSalary || 0;
-      const deductions = calculateDeductions(gross);
-      const employerNis = gross * NIS_RATE;
-      const employerNht = gross * NHT_RATE;
-      const employerEduTax = gross * EDUCATION_TAX_RATE;
-      const heartContribution = gross * 0.03;
-      const empContributions = employerNis + employerNht + employerEduTax + heartContribution;
+      await api.post('/api/v1/payroll', {
+        periodStart: payrollForm.payPeriodStart,
+        periodEnd: payrollForm.payPeriodEnd,
+        payDate: payrollForm.payDate,
+        entries,
+      });
 
-      totalGross += gross;
-      totalDeductions += deductions.total;
-      totalNet += gross - deductions.total;
-      totalEmployerContributions += empContributions;
-
-      return {
-        id: uuidv4(),
-        payrollRunId: runId,
-        employeeId: emp.id,
-        employee: emp,
-        basicSalary: gross,
-        overtime: 0,
-        bonus: 0,
-        commission: 0,
-        allowances: 0,
-        grossPay: gross,
-        paye: deductions.paye,
-        nis: deductions.nis,
-        nht: deductions.nht,
-        educationTax: deductions.eduTax,
-        otherDeductions: 0,
-        totalDeductions: deductions.total,
-        netPay: gross - deductions.total,
-        employerNis,
-        employerNht,
-        employerEducationTax: employerEduTax,
-        heartContribution,
-        totalEmployerContributions: empContributions,
-      };
-    });
-
-    const payrollRun: PayrollRun = {
-      id: runId,
-      companyId: activeCompany?.id || '',
-      periodStart: new Date(payrollForm.payPeriodStart),
-      periodEnd: new Date(payrollForm.payPeriodEnd),
-      payDate: new Date(payrollForm.payDate),
-      status: 'draft',
-      entries,
-      totalGross,
-      totalDeductions,
-      totalNet,
-      totalEmployerContributions,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    addPayrollRun(payrollRun);
-    setShowPayrollModal(false);
-    alert('Payroll run created successfully!');
+      setShowPayrollModal(false);
+      fetchPayrollRuns();
+      alert('Payroll run created successfully!');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to process payroll';
+      alert(message);
+    } finally {
+      setPayrollRunning(false);
+    }
   };
 
   // Stats
@@ -295,13 +350,17 @@ export default function PayrollPage() {
         </div>
         <div className="flex gap-2">
           {activeTab === 'employees' ? (
-            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenEmployeeModal()}>
-              Add Employee
-            </Button>
+            <PermissionGate permission="payroll:create">
+              <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenEmployeeModal()}>
+                Add Employee
+              </Button>
+            </PermissionGate>
           ) : (
-            <Button icon={<PlayIcon className="w-4 h-4" />} onClick={handleOpenPayrollModal}>
-              Run Payroll
-            </Button>
+            <PermissionGate permission="payroll:create">
+              <Button icon={<PlayIcon className="w-4 h-4" />} onClick={handleOpenPayrollModal}>
+                Run Payroll
+              </Button>
+            </PermissionGate>
           )}
         </div>
       </div>
@@ -309,7 +368,7 @@ export default function PayrollPage() {
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200">
         <button
-          onClick={() => setActiveTab('employees')}
+          onClick={() => handleTabChange('employees')}
           className={`px-4 py-2 font-medium text-sm border-b-2 -mb-px transition-colors ${
             activeTab === 'employees'
               ? 'border-emerald-600 text-emerald-600'
@@ -320,7 +379,7 @@ export default function PayrollPage() {
           Employees
         </button>
         <button
-          onClick={() => setActiveTab('payroll')}
+          onClick={() => handleTabChange('payroll')}
           className={`px-4 py-2 font-medium text-sm border-b-2 -mb-px transition-colors ${
             activeTab === 'payroll'
               ? 'border-emerald-600 text-emerald-600'
@@ -332,24 +391,38 @@ export default function PayrollPage() {
         </button>
       </div>
 
+      {/* Error State */}
+      {employeesFetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">Failed to load employees. {employeesFetchError instanceof Error ? employeesFetchError.message : ''}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetchEmployees()}>
+            <ArrowPathIcon className="w-4 h-4 mr-1" />
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Employees</p>
-            <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{employeesLoading ? '-' : employees.length}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Active</p>
-            <p className="text-2xl font-bold text-emerald-600">{activeEmployees.length}</p>
+            <p className="text-2xl font-bold text-emerald-600">{employeesLoading ? '-' : activeEmployees.length}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Monthly Payroll</p>
-            <p className="text-2xl font-bold text-blue-600">{formatJMD(totalMonthlyPayroll)}</p>
+            <p className="text-2xl font-bold text-blue-600">{employeesLoading ? '-' : formatJMD(totalMonthlyPayroll)}</p>
           </div>
         </Card>
         <Card>
@@ -373,7 +446,18 @@ export default function PayrollPage() {
             />
           </div>
 
+          {/* Loading State */}
+          {employeesLoading && (
+            <Card>
+              <div className="p-12 text-center">
+                <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
+                <p className="text-gray-500">Loading employees...</p>
+              </div>
+            </Card>
+          )}
+
           {/* Employee Table */}
+          {!employeesLoading && (
           <Card padding="none">
             <Table>
               <TableHeader>
@@ -425,12 +509,21 @@ export default function PayrollPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenEmployeeModal(employee)}>
-                            <PencilIcon className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteEmployee(employee.id)}>
-                            <TrashIcon className="w-4 h-4 text-red-500" />
-                          </Button>
+                          <PermissionGate permission="payroll:create">
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenEmployeeModal(employee)}>
+                              <PencilIcon className="w-4 h-4" />
+                            </Button>
+                          </PermissionGate>
+                          <PermissionGate permission="payroll:create">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteEmployee(employee.id)}
+                              disabled={deleteEmployee.isPending}
+                            >
+                              <TrashIcon className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </PermissionGate>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -439,63 +532,76 @@ export default function PayrollPage() {
               </TableBody>
             </Table>
           </Card>
+          )}
         </>
       ) : (
         /* Payroll Runs Table */
-        <Card padding="none">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Run #</TableHead>
-                <TableHead>Pay Period</TableHead>
-                <TableHead>Pay Date</TableHead>
-                <TableHead>Employees</TableHead>
-                <TableHead>Gross Pay</TableHead>
-                <TableHead>Net Pay</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payrollRuns.length === 0 ? (
+        <>
+          {payrollLoading && (
+            <Card>
+              <div className="p-12 text-center">
+                <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
+                <p className="text-gray-500">Loading payroll runs...</p>
+              </div>
+            </Card>
+          )}
+          {!payrollLoading && (
+          <Card padding="none">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-gray-500">
-                    <p className="mb-4">No payroll runs yet</p>
-                    <Button onClick={handleOpenPayrollModal}>
-                      <PlayIcon className="w-4 h-4 mr-1" />
-                      Run First Payroll
-                    </Button>
-                  </TableCell>
+                  <TableHead>Run #</TableHead>
+                  <TableHead>Pay Period</TableHead>
+                  <TableHead>Pay Date</TableHead>
+                  <TableHead>Employees</TableHead>
+                  <TableHead>Gross Pay</TableHead>
+                  <TableHead>Net Pay</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ) : (
-                payrollRuns.map((run) => (
-                  <TableRow key={run.id}>
-                    <TableCell className="font-mono text-gray-600">{run.id.slice(0, 8)}</TableCell>
-                    <TableCell className="text-gray-500">
-                      {formatDate(run.periodStart)} - {formatDate(run.periodEnd)}
-                    </TableCell>
-                    <TableCell className="text-gray-500">{formatDate(run.payDate)}</TableCell>
-                    <TableCell>{run.entries.length}</TableCell>
-                    <TableCell className="font-medium">{formatJMD(run.totalGross)}</TableCell>
-                    <TableCell className="font-medium text-emerald-600">
-                      {formatJMD(run.totalNet)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          run.status === 'paid' ? 'success' :
-                          run.status === 'approved' ? 'warning' :
-                          'default'
-                        }
-                      >
-                        {run.status}
-                      </Badge>
+              </TableHeader>
+              <TableBody>
+                {payrollRuns.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                      <p className="mb-4">No payroll runs yet</p>
+                      <Button onClick={handleOpenPayrollModal}>
+                        <PlayIcon className="w-4 h-4 mr-1" />
+                        Run First Payroll
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+                ) : (
+                  payrollRuns.map((run) => (
+                    <TableRow key={run.id}>
+                      <TableCell className="font-mono text-gray-600">{run.id.slice(0, 8)}</TableCell>
+                      <TableCell className="text-gray-500">
+                        {formatDate(run.periodStart)} - {formatDate(run.periodEnd)}
+                      </TableCell>
+                      <TableCell className="text-gray-500">{formatDate(run.payDate)}</TableCell>
+                      <TableCell>{run.entries?.length ?? 0}</TableCell>
+                      <TableCell className="font-medium">{formatJMD(run.totalGross)}</TableCell>
+                      <TableCell className="font-medium text-emerald-600">
+                        {formatJMD(run.totalNet)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            run.status === 'paid' ? 'success' :
+                            run.status === 'approved' ? 'warning' :
+                            'default'
+                          }
+                        >
+                          {run.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+          )}
+        </>
       )}
 
       {/* Employee Modal */}
@@ -507,6 +613,11 @@ export default function PayrollPage() {
       >
         <ModalBody>
           <div className="space-y-4">
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                {saveError}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="First Name *"
@@ -549,7 +660,7 @@ export default function PayrollPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
                 <select
                   value={employeeForm.employmentType}
-                  onChange={(e) => setEmployeeForm({ ...employeeForm, employmentType: e.target.value as Employee['employmentType'] })}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, employmentType: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   {EMPLOYMENT_TYPES.map((t) => (
@@ -561,7 +672,7 @@ export default function PayrollPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Pay Frequency</label>
                 <select
                   value={employeeForm.paymentFrequency}
-                  onChange={(e) => setEmployeeForm({ ...employeeForm, paymentFrequency: e.target.value as Employee['paymentFrequency'] })}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, paymentFrequency: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   {PAY_FREQUENCIES.map((f) => (
@@ -611,7 +722,12 @@ export default function PayrollPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowEmployeeModal(false)}>Cancel</Button>
-          <Button onClick={handleSaveEmployee}>{editingEmployee ? 'Update' : 'Create'}</Button>
+          <Button
+            onClick={handleSaveEmployee}
+            disabled={createEmployee.isPending || updateEmployee.isPending}
+          >
+            {(createEmployee.isPending || updateEmployee.isPending) ? 'Saving...' : editingEmployee ? 'Update' : 'Create'}
+          </Button>
         </ModalFooter>
       </Modal>
 
@@ -710,9 +826,9 @@ export default function PayrollPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowPayrollModal(false)}>Cancel</Button>
-          <Button onClick={handleRunPayroll}>
+          <Button onClick={handleRunPayroll} disabled={payrollRunning}>
             <PlayIcon className="w-4 h-4 mr-1" />
-            Process Payroll
+            {payrollRunning ? 'Processing...' : 'Process Payroll'}
           </Button>
         </ModalFooter>
       </Modal>

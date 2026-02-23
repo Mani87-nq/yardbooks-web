@@ -78,7 +78,7 @@ export async function PUT(
     }
 
     // 7. Cannot promote to OWNER
-    if (newRole === 'OWNER') {
+    if ((newRole as string) === 'OWNER') {
       return forbidden('Cannot assign OWNER role. There can only be one OWNER.');
     }
 

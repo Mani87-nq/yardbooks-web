@@ -86,8 +86,14 @@ export function useDataHydration() {
           throw err;
         }
 
-        // Map API role to app role
-        const primaryRole = meData.companies[0]?.role?.toLowerCase() ?? 'admin';
+        // Get the user's real RBAC role for the active company
+        const activeCompanyMembership = meData.user.activeCompanyId
+          ? meData.companies.find((c) => c.id === meData.user.activeCompanyId)
+          : meData.companies[0];
+        const rbacRole = activeCompanyMembership?.role?.toUpperCase() ?? 'STAFF';
+
+        // Map to simplified app role for backward compat
+        const primaryRole = rbacRole.toLowerCase();
         const appRole: 'admin' | 'user' | 'staff' =
           primaryRole === 'owner' || primaryRole === 'admin'
             ? 'admin'
@@ -106,6 +112,9 @@ export function useDataHydration() {
           activeCompanyId: meData.user.activeCompanyId ?? undefined,
           createdAt: new Date(meData.user.createdAt),
         });
+
+        // Store the real RBAC role for permission checks (usePermissions hook)
+        store.getState().setUserRole(rbacRole);
 
         store.getState().setAuthenticated(true);
 

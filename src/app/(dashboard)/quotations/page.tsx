@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
+import { useCustomers, useProducts } from '@/hooks/api';
 import { formatJMD, formatDate } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
 import type { Quotation, QuotationItem, InvoiceItem } from '@/types';
 import {
   PlusIcon,
@@ -18,6 +18,7 @@ import {
   XMarkIcon,
   PaperAirplaneIcon,
 } from '@heroicons/react/24/outline';
+import { PermissionGate } from '@/components/PermissionGate';
 
 const GCT_RATE = 0.15;
 
@@ -30,7 +31,35 @@ export default function QuotationsPage() {
     { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0 },
   ]);
 
-  const { quotations, addQuotation, updateQuotation, deleteQuotation, customers, products, addInvoice, activeCompany } = useAppStore();
+  // Fetch customers & products from API for dropdowns
+  const { data: customersResponse } = useCustomers({ limit: 200 });
+  const { data: productsResponse } = useProducts({ limit: 200 });
+  const customers = (customersResponse as any)?.data ?? [];
+  const products = (productsResponse as any)?.data ?? [];
+
+  // API-driven state
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const fetchQuotations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<{ data: Quotation[] } | Quotation[]>('/api/v1/quotations');
+      const list = Array.isArray(data) ? data : (data as any).data ?? [];
+      setQuotations(list);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load quotations');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQuotations();
+  }, [fetchQuotations]);
 
   const [formData, setFormData] = useState({
     customerId: '',
@@ -41,24 +70,13 @@ export default function QuotationsPage() {
 
   const filteredQuotations = quotations.filter((quote) => {
     const matchesSearch = !searchQuery ||
-      quote.quotationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      quote.quotationNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       quote.customerName?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
-
-  const generateQuotationNumber = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const count = quotations.filter(q => {
-      const d = new Date(q.createdAt);
-      return d.getFullYear() === year && d.getMonth() === now.getMonth();
-    }).length + 1;
-    return `QT-${year}${month}-${String(count).padStart(4, '0')}`;
-  };
 
   const handleOpenModal = (quote?: Quotation) => {
     if (quote) {
@@ -101,7 +119,7 @@ export default function QuotationsPage() {
   const handleItemChange = (index: number, field: string, value: string | number) => {
     const newItems = [...items];
     if (field === 'productId') {
-      const product = products.find(p => p.id === value);
+      const product = products.find((p: any) => p.id === value);
       newItems[index] = {
         ...newItems[index],
         productId: value as string,
@@ -123,7 +141,7 @@ export default function QuotationsPage() {
   const taxAmount = subtotal * GCT_RATE;
   const total = subtotal + taxAmount;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.customerId) {
       alert('Please select a customer');
       return;
@@ -133,111 +151,94 @@ export default function QuotationsPage() {
       return;
     }
 
-    const customer = customers.find(c => c.id === formData.customerId);
-    const quotationItems: QuotationItem[] = items.map((item, index) => ({
-      id: uuidv4(),
-      productId: item.productId!,
-      productName: item.productName!,
-      quantity: item.quantity || 1,
-      unitPrice: item.unitPrice || 0,
-      discount: item.discount || 0,
-      total: ((item.quantity || 1) * (item.unitPrice || 0)) * (1 - (item.discount || 0) / 100),
-    }));
+    setSaving(true);
+    try {
+      const customer = customers.find((c: any) => c.id === formData.customerId);
+      const quotationItems = items.map((item) => ({
+        productId: item.productId!,
+        productName: item.productName!,
+        quantity: item.quantity || 1,
+        unitPrice: item.unitPrice || 0,
+        discount: item.discount || 0,
+        total: ((item.quantity || 1) * (item.unitPrice || 0)) * (1 - (item.discount || 0) / 100),
+      }));
 
-    const quoteData = {
-      customerId: formData.customerId,
-      customerName: customer?.name || '',
-      validUntil: new Date(formData.validUntil),
-      items: quotationItems,
-      subtotal,
-      taxAmount,
-      total,
-      notes: formData.notes || undefined,
-      terms: formData.terms || undefined,
-      updatedAt: new Date(),
-    };
+      const payload = {
+        customerId: formData.customerId,
+        customerName: customer?.name || '',
+        validUntil: formData.validUntil,
+        items: quotationItems,
+        subtotal,
+        taxAmount,
+        total,
+        notes: formData.notes || undefined,
+        terms: formData.terms || undefined,
+      };
 
-    if (editingQuotation) {
-      updateQuotation(editingQuotation.id, quoteData);
-    } else {
-      addQuotation({
-        id: uuidv4(),
-        companyId: activeCompany?.id || '',
-        quotationNumber: generateQuotationNumber(),
-        ...quoteData,
-        status: 'draft',
-        createdAt: new Date(),
-      });
-    }
-    setShowModal(false);
-  };
+      if (editingQuotation) {
+        await api.put(`/api/v1/quotations/${editingQuotation.id}`, payload);
+      } else {
+        await api.post('/api/v1/quotations', payload);
+      }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this quotation?')) {
-      deleteQuotation(id);
+      setShowModal(false);
+      fetchQuotations();
+    } catch (err: any) {
+      alert(err.message || 'Failed to save quotation');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleSend = (quote: Quotation) => {
-    updateQuotation(quote.id, { status: 'sent', sentAt: new Date() });
-    alert('Quotation marked as sent!');
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this quotation?')) return;
+    try {
+      await api.delete(`/api/v1/quotations/${id}`);
+      fetchQuotations();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete quotation');
+    }
   };
 
-  const handleAccept = (quote: Quotation) => {
-    updateQuotation(quote.id, { status: 'accepted', acceptedAt: new Date() });
-    alert('Quotation marked as accepted!');
+  const handleSend = async (quote: Quotation) => {
+    try {
+      await api.put(`/api/v1/quotations/${quote.id}`, { status: 'sent', sentAt: new Date() });
+      fetchQuotations();
+    } catch (err: any) {
+      alert(err.message || 'Failed to send quotation');
+    }
   };
 
-  const handleReject = (quote: Quotation) => {
-    updateQuotation(quote.id, { status: 'rejected' });
-    alert('Quotation marked as rejected.');
+  const handleAccept = async (quote: Quotation) => {
+    try {
+      await api.put(`/api/v1/quotations/${quote.id}`, { status: 'accepted', acceptedAt: new Date() });
+      fetchQuotations();
+    } catch (err: any) {
+      alert(err.message || 'Failed to accept quotation');
+    }
   };
 
-  const handleConvertToInvoice = (quote: Quotation) => {
+  const handleReject = async (quote: Quotation) => {
+    try {
+      await api.put(`/api/v1/quotations/${quote.id}`, { status: 'rejected' });
+      fetchQuotations();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reject quotation');
+    }
+  };
+
+  const handleConvertToInvoice = async (quote: Quotation) => {
     if (quote.status !== 'accepted') {
       alert('Only accepted quotations can be converted to invoices');
       return;
     }
-
-    const invoiceNumber = `INV-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
-
-    // Map QuotationItems to InvoiceItems
-    const invoiceItems: InvoiceItem[] = quote.items.map(item => ({
-      id: uuidv4(),
-      productId: item.productId,
-      description: item.productName,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      gctRate: 'standard' as const,
-      gctAmount: item.total * 0.15,
-      total: item.total,
-    }));
-
-    addInvoice({
-      id: uuidv4(),
-      companyId: activeCompany?.id || '',
-      invoiceNumber,
-      customerId: quote.customerId,
-      customer: quote.customer,
-      items: invoiceItems,
-      subtotal: quote.subtotal,
-      gctAmount: quote.taxAmount || quote.subtotal * 0.15,
-      discount: 0,
-      discountType: 'fixed',
-      total: quote.total,
-      amountPaid: 0,
-      balance: quote.total,
-      status: 'draft',
-      issueDate: new Date(),
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      notes: quote.notes,
-      terms: quote.terms,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    updateQuotation(quote.id, { convertedToInvoice: true });
-    alert('Invoice created from quotation!');
+    try {
+      await api.post(`/api/v1/quotations/${quote.id}/convert`);
+      fetchQuotations();
+      alert('Invoice created from quotation!');
+    } catch (err: any) {
+      alert(err.message || 'Failed to convert quotation to invoice');
+    }
   };
 
   // Stats
@@ -249,6 +250,26 @@ export default function QuotationsPage() {
     totalValue: quotations.filter(q => q.status === 'accepted').reduce((sum, q) => sum + q.total, 0),
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">Loading quotations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-red-600">{error}</p>
+        <Button onClick={fetchQuotations}>Retry</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -257,9 +278,11 @@ export default function QuotationsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
           <p className="text-gray-500">Create and manage customer quotes</p>
         </div>
-        <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
-          New Quotation
-        </Button>
+        <PermissionGate permission="quotations:create">
+          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+            New Quotation
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Stats */}
@@ -370,32 +393,44 @@ export default function QuotationsPage() {
                     <div className="flex gap-1">
                       {quote.status === 'draft' && (
                         <>
-                          <Button variant="ghost" size="sm" onClick={() => handleSend(quote)} title="Send">
-                            <PaperAirplaneIcon className="w-4 h-4 text-blue-600" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenModal(quote)}>
-                            <PencilIcon className="w-4 h-4" />
-                          </Button>
+                          <PermissionGate permission="quotations:update">
+                            <Button variant="ghost" size="sm" onClick={() => handleSend(quote)} title="Send">
+                              <PaperAirplaneIcon className="w-4 h-4 text-blue-600" />
+                            </Button>
+                          </PermissionGate>
+                          <PermissionGate permission="quotations:update">
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenModal(quote)}>
+                              <PencilIcon className="w-4 h-4" />
+                            </Button>
+                          </PermissionGate>
                         </>
                       )}
                       {quote.status === 'sent' && (
                         <>
-                          <Button variant="ghost" size="sm" onClick={() => handleAccept(quote)} title="Accept">
-                            <CheckIcon className="w-4 h-4 text-emerald-600" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleReject(quote)} title="Reject">
-                            <XMarkIcon className="w-4 h-4 text-red-600" />
-                          </Button>
+                          <PermissionGate permission="quotations:update">
+                            <Button variant="ghost" size="sm" onClick={() => handleAccept(quote)} title="Accept">
+                              <CheckIcon className="w-4 h-4 text-emerald-600" />
+                            </Button>
+                          </PermissionGate>
+                          <PermissionGate permission="quotations:update">
+                            <Button variant="ghost" size="sm" onClick={() => handleReject(quote)} title="Reject">
+                              <XMarkIcon className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </PermissionGate>
                         </>
                       )}
                       {quote.status === 'accepted' && !quote.convertedToInvoice && (
-                        <Button variant="ghost" size="sm" onClick={() => handleConvertToInvoice(quote)} title="Convert to Invoice">
-                          <DocumentDuplicateIcon className="w-4 h-4 text-emerald-600" />
-                        </Button>
+                        <PermissionGate permission="invoices:create">
+                          <Button variant="ghost" size="sm" onClick={() => handleConvertToInvoice(quote)} title="Convert to Invoice">
+                            <DocumentDuplicateIcon className="w-4 h-4 text-emerald-600" />
+                          </Button>
+                        </PermissionGate>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(quote.id)}>
-                        <TrashIcon className="w-4 h-4 text-red-500" />
-                      </Button>
+                      <PermissionGate permission="quotations:delete">
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(quote.id)}>
+                          <TrashIcon className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </PermissionGate>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -423,7 +458,7 @@ export default function QuotationsPage() {
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   <option value="">Select customer</option>
-                  {customers.filter(c => c.type === 'customer' || c.type === 'both').map((c) => (
+                  {customers.filter((c: any) => c.type === 'customer' || c.type === 'both').map((c: any) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -472,7 +507,7 @@ export default function QuotationsPage() {
                               className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
                             >
                               <option value="">Select product</option>
-                              {products.filter(p => p.isActive).map((p) => (
+                              {products.filter((p: any) => p.isActive).map((p: any) => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
                               ))}
                             </select>
@@ -566,7 +601,9 @@ export default function QuotationsPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{editingQuotation ? 'Update' : 'Create'} Quotation</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : editingQuotation ? 'Update' : 'Create'} Quotation
+          </Button>
         </ModalFooter>
       </Modal>
     </div>

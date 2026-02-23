@@ -1,19 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
   DocumentTextIcon,
-  FunnelIcon,
 } from '@heroicons/react/24/outline';
-import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
 import type { CustomerPurchaseOrder, CustomerPOStatus } from '@/types/customerPO';
 import {
   CUSTOMER_PO_STATUS_LABELS,
-  CUSTOMER_PO_STATUS_COLORS,
   calculatePOProgress,
 } from '@/types/customerPO';
 
@@ -27,9 +25,29 @@ const FILTER_OPTIONS: { value: CustomerPOStatus | 'all'; label: string }[] = [
 ];
 
 export default function CustomerPOPage() {
-  const customerPOs = useAppStore((state) => state.customerPOs) || [];
+  const [customerPOs, setCustomerPOs] = useState<CustomerPurchaseOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<CustomerPOStatus | 'all'>('all');
+
+  const fetchPOs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<{ data: CustomerPurchaseOrder[] } | CustomerPurchaseOrder[]>('/api/v1/customer-pos');
+      const list = Array.isArray(data) ? data : (data as any).data ?? [];
+      setCustomerPOs(list);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load purchase orders');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPOs();
+  }, [fetchPOs]);
 
   const filteredPOs = useMemo(() => {
     let result = [...customerPOs];
@@ -70,6 +88,31 @@ export default function CustomerPOPage() {
     };
     return colors[status];
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">Loading purchase orders...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={fetchPOs}
+          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -2,19 +2,40 @@
 
 import React, { useState } from 'react';
 import { Card, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
-import type { Expense } from '@/types';
+import {
+  useExpenses,
+  useCreateExpense,
+  useUpdateExpense,
+  useDeleteExpense,
+  useCustomers,
+} from '@/hooks/api';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
-  DocumentArrowUpIcon,
-  FunnelIcon,
-  CalendarIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
+import { PermissionGate } from '@/components/PermissionGate';
+
+interface ExpenseAPI {
+  id: string;
+  vendorId: string | null;
+  vendor: { id: string; name: string } | null;
+  category: string;
+  description: string;
+  amount: number;
+  gctAmount: number;
+  gctClaimable: boolean;
+  date: string;
+  paymentMethod: string;
+  reference: string | null;
+  notes: string | null;
+  isRecurring?: boolean;
+  createdAt: string;
+}
 
 const EXPENSE_CATEGORIES = [
   'Advertising & Marketing',
@@ -48,11 +69,35 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showModal, setShowModal] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<ExpenseAPI | null>(null);
+  const [saveError, setSaveError] = useState('');
 
-  const { expenses, addExpense, updateExpense, deleteExpense, customers, activeCompany } = useAppStore();
+  // API hooks
+  const { data: expensesResponse, isLoading, error: fetchError, refetch } = useExpenses({
+    category: categoryFilter !== 'all' ? categoryFilter : undefined,
+    limit: 200,
+  });
+  const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
+  const deleteExpense = useDeleteExpense();
 
-  const vendors = customers.filter(c => c.type === 'vendor' || c.type === 'both');
+  // Fetch vendors (customers with type vendor/both) for the dropdown
+  const { data: vendorsResponse } = useCustomers({ type: 'vendor', limit: 200 });
+  const vendors = (vendorsResponse as any)?.data ?? [];
+
+  const allExpenses: ExpenseAPI[] = (expensesResponse as any)?.data ?? [];
+
+  // Client-side filtering for search and date range
+  const expenses = allExpenses.filter((expense) => {
+    const matchesSearch = !searchQuery ||
+      expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      expense.vendor?.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesDate = (!dateRange.start || new Date(expense.date) >= new Date(dateRange.start)) &&
+      (!dateRange.end || new Date(expense.date) <= new Date(dateRange.end));
+
+    return matchesSearch && matchesDate;
+  });
 
   const [formData, setFormData] = useState({
     description: '',
@@ -60,27 +105,15 @@ export default function ExpensesPage() {
     category: '',
     date: new Date().toISOString().split('T')[0],
     vendorId: '',
-    paymentMethod: 'cash' as Expense['paymentMethod'],
+    paymentMethod: 'cash',
     reference: '',
     notes: '',
     isRecurring: false,
     recurringFrequency: 'monthly' as 'weekly' | 'monthly' | 'quarterly' | 'yearly',
   });
 
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesSearch = !searchQuery ||
-      expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expense.vendor?.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
-
-    const matchesDate = (!dateRange.start || new Date(expense.date) >= new Date(dateRange.start)) &&
-      (!dateRange.end || new Date(expense.date) <= new Date(dateRange.end));
-
-    return matchesSearch && matchesCategory && matchesDate;
-  });
-
-  const handleOpenModal = (expense?: Expense) => {
+  const handleOpenModal = (expense?: ExpenseAPI) => {
+    setSaveError('');
     if (expense) {
       setEditingExpense(expense);
       setFormData({
@@ -113,65 +146,67 @@ export default function ExpensesPage() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaveError('');
     if (!formData.description.trim()) {
-      alert('Please enter a description');
+      setSaveError('Please enter a description');
       return;
     }
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      alert('Please enter a valid amount');
+      setSaveError('Please enter a valid amount');
       return;
     }
     if (!formData.category) {
-      alert('Please select a category');
+      setSaveError('Please select a category');
       return;
     }
 
-    const vendor = vendors.find(v => v.id === formData.vendorId);
-    const expenseData = {
+    const payload: Record<string, unknown> = {
       description: formData.description,
       amount: parseFloat(formData.amount),
-      category: formData.category as Expense['category'],
-      date: new Date(formData.date),
+      category: formData.category,
+      date: formData.date,
       vendorId: formData.vendorId || undefined,
-      vendor: vendor,
       paymentMethod: formData.paymentMethod,
       reference: formData.reference || undefined,
       notes: formData.notes || undefined,
       isRecurring: formData.isRecurring,
       gctAmount: 0,
       gctClaimable: false,
-      updatedAt: new Date(),
     };
 
-    if (editingExpense) {
-      updateExpense(editingExpense.id, expenseData);
-    } else {
-      addExpense({
-        id: uuidv4(),
-        companyId: activeCompany?.id || '',
-        ...expenseData,
-        createdAt: new Date(),
-      });
+    try {
+      if (editingExpense) {
+        await updateExpense.mutateAsync({ id: editingExpense.id, data: payload });
+      } else {
+        await createExpense.mutateAsync(payload);
+      }
+      setShowModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save expense';
+      setSaveError(message);
     }
-    setShowModal(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this expense?')) {
-      deleteExpense(id);
+      try {
+        await deleteExpense.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete expense';
+        alert(message);
+      }
     }
   };
 
-  // Calculate stats
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const thisMonthExpenses = expenses.filter(e => {
+  const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const thisMonthExpenses = allExpenses.filter(e => {
     const expDate = new Date(e.date);
     const now = new Date();
     return expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
   }).reduce((sum, e) => sum + e.amount, 0);
 
-  const categoryTotals = expenses.reduce((acc, e) => {
+  const categoryTotals = allExpenses.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount;
     return acc;
   }, {} as Record<string, number>);
@@ -186,37 +221,53 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
           <p className="text-gray-500">Track and manage business expenses</p>
         </div>
-        <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
-          Add Expense
-        </Button>
+        <PermissionGate permission="expenses:create">
+          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+            Add Expense
+          </Button>
+        </PermissionGate>
       </div>
+
+      {/* Error State */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">Failed to load expenses. {fetchError instanceof Error ? fetchError.message : ''}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <ArrowPathIcon className="w-4 h-4 mr-1" />
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Expenses</p>
-            <p className="text-2xl font-bold text-gray-900">{formatJMD(totalExpenses)}</p>
+            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : formatJMD(totalExpenses)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">This Month</p>
-            <p className="text-2xl font-bold text-blue-600">{formatJMD(thisMonthExpenses)}</p>
+            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(thisMonthExpenses)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Top Category</p>
             <p className="text-lg font-bold text-emerald-600 truncate">
-              {topCategory ? topCategory[0] : 'N/A'}
+              {isLoading ? '-' : topCategory ? topCategory[0] : 'N/A'}
             </p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Records</p>
-            <p className="text-2xl font-bold text-gray-900">{expenses.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : allExpenses.length}</p>
           </div>
         </Card>
       </div>
@@ -257,7 +308,18 @@ export default function ExpensesPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <div className="p-12 text-center">
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
+            <p className="text-gray-500">Loading expenses...</p>
+          </div>
+        </Card>
+      )}
+
       {/* Table */}
+      {!isLoading && (
       <Card padding="none">
         <Table>
           <TableHeader>
@@ -272,15 +334,17 @@ export default function ExpensesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredExpenses.length === 0 ? (
+            {expenses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-12 text-gray-500">
                   <p className="mb-4">No expenses found</p>
-                  <Button onClick={() => handleOpenModal()}>Add your first expense</Button>
+                  <PermissionGate permission="expenses:create">
+                    <Button onClick={() => handleOpenModal()}>Add your first expense</Button>
+                  </PermissionGate>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredExpenses.map((expense) => (
+              expenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell className="text-gray-500">{formatDate(expense.date)}</TableCell>
                   <TableCell>
@@ -306,12 +370,21 @@ export default function ExpensesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenModal(expense)}>
-                        <PencilIcon className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(expense.id)}>
-                        <TrashIcon className="w-4 h-4 text-red-500" />
-                      </Button>
+                      <PermissionGate permission="expenses:update">
+                        <Button variant="ghost" size="sm" onClick={() => handleOpenModal(expense)}>
+                          <PencilIcon className="w-4 h-4" />
+                        </Button>
+                      </PermissionGate>
+                      <PermissionGate permission="expenses:delete">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(expense.id)}
+                          disabled={deleteExpense.isPending}
+                        >
+                          <TrashIcon className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </PermissionGate>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -320,6 +393,7 @@ export default function ExpensesPage() {
           </TableBody>
         </Table>
       </Card>
+      )}
 
       {/* Add/Edit Modal */}
       <Modal
@@ -330,6 +404,11 @@ export default function ExpensesPage() {
       >
         <ModalBody>
           <div className="space-y-4">
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                {saveError}
+              </div>
+            )}
             <Input
               label="Description *"
               value={formData.description}
@@ -369,7 +448,7 @@ export default function ExpensesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                 <select
                   value={formData.paymentMethod}
-                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as Expense['paymentMethod'] })}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   {PAYMENT_METHODS.map((pm) => (
@@ -387,7 +466,7 @@ export default function ExpensesPage() {
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   <option value="">Select vendor (optional)</option>
-                  {vendors.map((v) => (
+                  {vendors.map((v: any) => (
                     <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
                 </select>
@@ -435,7 +514,12 @@ export default function ExpensesPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{editingExpense ? 'Update' : 'Create'}</Button>
+          <Button
+            onClick={handleSave}
+            disabled={createExpense.isPending || updateExpense.isPending}
+          >
+            {(createExpense.isPending || updateExpense.isPending) ? 'Saving...' : editingExpense ? 'Update' : 'Create'}
+          </Button>
         </ModalFooter>
       </Modal>
     </div>

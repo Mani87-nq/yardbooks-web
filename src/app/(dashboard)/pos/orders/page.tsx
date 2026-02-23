@@ -1,36 +1,48 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, StatusBadge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui';
-import { usePosStore } from '@/store/posStore';
-import { formatJMD, formatDateTime, searchFilter } from '@/lib/utils';
+import {
+  usePosOrders,
+  apiStatusToFrontend,
+  frontendStatusToApi,
+  type ApiPosOrder,
+} from '@/hooks/api/usePos';
+import { useAppStore } from '@/store/appStore';
+import { formatJMD, formatDateTime } from '@/lib/utils';
+import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
 import {
   ArrowLeftIcon,
   MagnifyingGlassIcon,
   EyeIcon,
-  DocumentDuplicateIcon,
   PrinterIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
-import { useAppStore } from '@/store/appStore';
-import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
-import type { PosOrder } from '@/types/pos';
 
 export default function POSOrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { getRecentOrders } = usePosStore();
-  const orders = getRecentOrders(100);
+  // Fetch orders from API. We request a large batch and filter client-side for search,
+  // since the API supports status filtering but not text search.
+  const apiStatus = statusFilter !== 'all' ? frontendStatusToApi(statusFilter) : undefined;
+  const { data: ordersData, isLoading, error, refetch } = usePosOrders({
+    status: apiStatus,
+    limit: 100,
+  });
+
+  const orders = ordersData?.data ?? [];
   const activeCompany = useAppStore((state) => state.activeCompany);
 
-  const handlePrintOrder = (order: PosOrder) => {
+  const handlePrintOrder = (order: ApiPosOrder) => {
     const content = `
       <table style="width:100%;margin-bottom:20px;border-collapse:collapse;">
         <tr><td style="padding:8px;color:#6b7280;">Order Number</td><td style="padding:8px;font-weight:500;">${order.orderNumber}</td></tr>
         <tr><td style="padding:8px;color:#6b7280;">Date</td><td style="padding:8px;font-weight:500;">${formatDateTime(order.createdAt)}</td></tr>
         <tr><td style="padding:8px;color:#6b7280;">Customer</td><td style="padding:8px;font-weight:500;">${order.customerName}</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Status</td><td style="padding:8px;font-weight:500;text-transform:capitalize;">${order.status.replace('_', ' ')}</td></tr>
+        <tr><td style="padding:8px;color:#6b7280;">Status</td><td style="padding:8px;font-weight:500;text-transform:capitalize;">${apiStatusToFrontend(order.status).replace('_', ' ')}</td></tr>
       </table>
       ${generateTable(
         [
@@ -42,8 +54,8 @@ export default function POSOrdersPage() {
         order.items.map(item => ({
           name: item.name,
           quantity: item.quantity,
-          price: item.unitPrice,
-          total: item.lineSubtotal,
+          price: Number(item.unitPrice),
+          total: Number(item.lineSubtotal),
         })),
         {
           formatters: {
@@ -54,7 +66,7 @@ export default function POSOrdersPage() {
             name: 'Total',
             quantity: order.itemCount,
             price: '',
-            total: order.total,
+            total: Number(order.total),
           },
         }
       )}
@@ -62,21 +74,81 @@ export default function POSOrdersPage() {
 
     printContent({
       title: 'POS Receipt',
-      subtitle: `${order.orderNumber} • ${formatDateTime(order.createdAt)}`,
+      subtitle: `${order.orderNumber} - ${formatDateTime(order.createdAt)}`,
       companyName: activeCompany?.businessName,
       content,
     });
   };
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch = !searchQuery ||
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Client-side search filtering (API handles status filtering)
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery) return orders;
+    return orders.filter((order: ApiPosOrder) => {
+      return (
+        order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.customerName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [orders, searchQuery]);
 
   const statuses = ['all', 'completed', 'pending_payment', 'held', 'voided', 'refunded'];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/pos">
+              <Button variant="ghost" size="sm">
+                <ArrowLeftIcon className="w-4 h-4 mr-2" />
+                Back to POS
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Order History</h1>
+              <p className="text-gray-500">View all POS transactions</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-16">
+          <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/pos">
+              <Button variant="ghost" size="sm">
+                <ArrowLeftIcon className="w-4 h-4 mr-2" />
+                Back to POS
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Order History</h1>
+              <p className="text-gray-500">View all POS transactions</p>
+            </div>
+          </div>
+        </div>
+        <Card>
+          <CardContent>
+            <div className="text-center py-12">
+              <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
+              <p className="text-gray-700 font-medium mb-2">Failed to load orders</p>
+              <p className="text-gray-500 text-sm mb-4">
+                {error instanceof Error ? error.message : 'Please try again.'}
+              </p>
+              <Button onClick={() => refetch()}>Retry</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -145,15 +217,15 @@ export default function POSOrdersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => (
+              filteredOrders.map((order: ApiPosOrder) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">{order.orderNumber}</TableCell>
                   <TableCell className="text-gray-500">{formatDateTime(order.createdAt)}</TableCell>
                   <TableCell>{order.customerName}</TableCell>
                   <TableCell>{order.itemCount} items</TableCell>
-                  <TableCell className="font-medium">{formatJMD(order.total)}</TableCell>
+                  <TableCell className="font-medium">{formatJMD(Number(order.total))}</TableCell>
                   <TableCell>
-                    <StatusBadge status={order.status} />
+                    <StatusBadge status={apiStatusToFrontend(order.status)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

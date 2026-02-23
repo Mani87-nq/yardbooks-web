@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
     const where = {
       companyId: companyId!,
-      ...(status ? { status } : {}),
-      ...(type ? { type } : {}),
+      ...(status ? { status: status as any } : {}),
+      ...(type ? { type: type as any } : {}),
       ...(warehouseId ? { warehouseId } : {}),
     };
 

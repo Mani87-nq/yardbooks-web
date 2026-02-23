@@ -53,6 +53,9 @@ interface AppState {
   parkingSlips: ParkingSlip[];
   notifications: Notification[];
 
+  // RBAC — the user's role in the active company (set during hydration)
+  userRole: string | null;
+
   // UI State
   isLoading: boolean;
   error: string | null;
@@ -64,6 +67,7 @@ interface AppState {
   // Actions
   setUser: (user: User | null) => void;
   updateUser: (updates: Partial<User>) => void;
+  setUserRole: (role: string | null) => void;
   setAuthenticated: (authenticated: boolean) => void;
   setOnboarded: (onboarded: boolean) => void;
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -222,6 +226,7 @@ const initialState = {
   customerPOs: [],
   parkingSlips: [],
   notifications: [],
+  userRole: null,
   isLoading: false,
   error: null,
   sidebarOpen: true,
@@ -238,6 +243,7 @@ export const useAppStore = create<AppState>()(
       set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
+    setUserRole: (userRole) => set({ userRole }),
     setAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
     setOnboarded: (isOnboarded) => set({ isOnboarded }),
     updateSettings: (newSettings) =>

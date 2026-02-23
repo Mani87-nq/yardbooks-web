@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalBody, ModalFooter, Select } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
+import { useCustomers } from '@/hooks/api';
 import { formatJMD, formatDate } from '@/lib/utils';
 import {
   PlusIcon,
@@ -66,69 +67,6 @@ const STATUS_BADGE_MAP: Record<RecurringStatus, { variant: 'success' | 'warning'
 };
 
 // ============================================
-// SAMPLE DATA
-// ============================================
-
-const INITIAL_RECURRING_INVOICES: RecurringInvoice[] = [
-  {
-    id: 'ri-001',
-    customerName: 'Dolphy Enterprises',
-    customerId: 'cust-001',
-    description: 'Monthly website hosting',
-    amount: 15000,
-    frequency: 'monthly',
-    startDate: '2025-01-01',
-    endDate: null,
-    nextInvoiceDate: '2026-03-01',
-    status: 'active',
-    createdAt: '2025-01-01',
-    invoicesGenerated: 14,
-  },
-  {
-    id: 'ri-002',
-    customerName: 'Island Tech Solutions',
-    customerId: 'cust-002',
-    description: 'Quarterly consulting retainer',
-    amount: 125000,
-    frequency: 'quarterly',
-    startDate: '2025-04-01',
-    endDate: null,
-    nextInvoiceDate: '2026-04-01',
-    status: 'active',
-    createdAt: '2025-04-01',
-    invoicesGenerated: 4,
-  },
-  {
-    id: 'ri-003',
-    customerName: 'Yardie Foods',
-    customerId: 'cust-003',
-    description: 'Weekly supplies delivery',
-    amount: 8500,
-    frequency: 'weekly',
-    startDate: '2025-06-01',
-    endDate: null,
-    nextInvoiceDate: '2026-02-24',
-    status: 'active',
-    createdAt: '2025-06-01',
-    invoicesGenerated: 37,
-  },
-  {
-    id: 'ri-004',
-    customerName: 'Kingston Motors',
-    customerId: 'cust-004',
-    description: 'Monthly fleet maintenance',
-    amount: 45000,
-    frequency: 'monthly',
-    startDate: '2025-03-01',
-    endDate: null,
-    nextInvoiceDate: '2026-02-01',
-    status: 'paused',
-    createdAt: '2025-03-01',
-    invoicesGenerated: 10,
-  },
-];
-
-// ============================================
 // HELPERS
 // ============================================
 
@@ -154,42 +92,22 @@ function isWithinDays(dateStr: string, days: number): boolean {
   return diff >= 0 && diff <= days * 24 * 60 * 60 * 1000;
 }
 
-function generateNextDate(startDate: string, frequency: Frequency): string {
-  const date = new Date(startDate);
-  const now = new Date();
-
-  while (date <= now) {
-    switch (frequency) {
-      case 'weekly':
-        date.setDate(date.getDate() + 7);
-        break;
-      case 'biweekly':
-        date.setDate(date.getDate() + 14);
-        break;
-      case 'monthly':
-        date.setMonth(date.getMonth() + 1);
-        break;
-      case 'quarterly':
-        date.setMonth(date.getMonth() + 3);
-        break;
-      case 'yearly':
-        date.setFullYear(date.getFullYear() + 1);
-        break;
-    }
-  }
-
-  return date.toISOString().split('T')[0];
-}
-
 // ============================================
 // COMPONENT
 // ============================================
 
 export default function RecurringInvoicesPage() {
-  const { customers } = useAppStore();
+  // Fetch customers from API for dropdown
+  const { data: customersResponse } = useCustomers({ limit: 200 });
+  const customers = (customersResponse as any)?.data ?? [];
 
-  // State
-  const [recurringInvoices, setRecurringInvoices] = useState<RecurringInvoice[]>(INITIAL_RECURRING_INVOICES);
+  // API-driven state
+  const [recurringInvoices, setRecurringInvoices] = useState<RecurringInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // UI state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -203,6 +121,24 @@ export default function RecurringInvoicesPage() {
   const [formFrequency, setFormFrequency] = useState<Frequency>('monthly');
   const [formStartDate, setFormStartDate] = useState('');
   const [formEndDate, setFormEndDate] = useState('');
+
+  const fetchRecurringInvoices = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<{ data: RecurringInvoice[] } | RecurringInvoice[]>('/api/v1/recurring-invoices');
+      const list = Array.isArray(data) ? data : (data as any).data ?? [];
+      setRecurringInvoices(list);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load recurring invoices');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRecurringInvoices();
+  }, [fetchRecurringInvoices]);
 
   // Computed data
   const filteredInvoices = useMemo(() => {
@@ -233,17 +169,9 @@ export default function RecurringInvoicesPage() {
 
   // Customer options for the form dropdown
   const customerOptions = useMemo(() => {
-    const storeCustomers = customers.map((c) => ({ value: c.name, label: c.name }));
+    const storeCustomers = customers.map((c: any) => ({ value: c.name, label: c.name }));
     if (storeCustomers.length === 0) {
-      return [
-        { value: '', label: 'Select a customer...' },
-        { value: 'Dolphy Enterprises', label: 'Dolphy Enterprises' },
-        { value: 'Island Tech Solutions', label: 'Island Tech Solutions' },
-        { value: 'Yardie Foods', label: 'Yardie Foods' },
-        { value: 'Kingston Motors', label: 'Kingston Motors' },
-        { value: 'Blue Mountain Coffee Co.', label: 'Blue Mountain Coffee Co.' },
-        { value: 'Reggae Rhythms Ltd.', label: 'Reggae Rhythms Ltd.' },
-      ];
+      return [{ value: '', label: 'Select a customer...' }];
     }
     return [{ value: '', label: 'Select a customer...' }, ...storeCustomers];
   }, [customers]);
@@ -275,7 +203,7 @@ export default function RecurringInvoicesPage() {
     setShowCreateModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formCustomerName || !formDescription || !formAmount || !formStartDate) {
       return;
     }
@@ -283,64 +211,78 @@ export default function RecurringInvoicesPage() {
     const amount = parseFloat(formAmount);
     if (isNaN(amount) || amount <= 0) return;
 
-    if (editingInvoice) {
-      // Update existing
-      setRecurringInvoices((prev) =>
-        prev.map((ri) =>
-          ri.id === editingInvoice.id
-            ? {
-                ...ri,
-                customerName: formCustomerName,
-                description: formDescription,
-                amount,
-                frequency: formFrequency,
-                startDate: formStartDate,
-                endDate: formEndDate || null,
-                nextInvoiceDate: generateNextDate(formStartDate, formFrequency),
-              }
-            : ri
-        )
-      );
-    } else {
-      // Create new
-      const newInvoice: RecurringInvoice = {
-        id: `ri-${Date.now()}`,
+    setSaving(true);
+    try {
+      const payload = {
         customerName: formCustomerName,
-        customerId: `cust-${Date.now()}`,
         description: formDescription,
         amount,
         frequency: formFrequency,
         startDate: formStartDate,
         endDate: formEndDate || null,
-        nextInvoiceDate: generateNextDate(formStartDate, formFrequency),
-        status: 'active',
-        createdAt: new Date().toISOString().split('T')[0],
-        invoicesGenerated: 0,
       };
-      setRecurringInvoices((prev) => [newInvoice, ...prev]);
+
+      if (editingInvoice) {
+        await api.put(`/api/v1/recurring-invoices/${editingInvoice.id}`, payload);
+      } else {
+        await api.post('/api/v1/recurring-invoices', payload);
+      }
+
+      setShowCreateModal(false);
+      resetForm();
+      setEditingInvoice(null);
+      fetchRecurringInvoices();
+    } catch (err: any) {
+      alert(err.message || 'Failed to save recurring invoice');
+    } finally {
+      setSaving(false);
     }
-
-    setShowCreateModal(false);
-    resetForm();
-    setEditingInvoice(null);
   };
 
-  const handleToggleStatus = (id: string) => {
-    setRecurringInvoices((prev) =>
-      prev.map((ri) =>
-        ri.id === id
-          ? { ...ri, status: ri.status === 'active' ? 'paused' : 'active' as RecurringStatus }
-          : ri
-      )
-    );
+  const handleToggleStatus = async (id: string) => {
+    const invoice = recurringInvoices.find((ri) => ri.id === id);
+    if (!invoice) return;
+    try {
+      await api.put(`/api/v1/recurring-invoices/${id}`, {
+        status: invoice.status === 'active' ? 'paused' : 'active',
+      });
+      fetchRecurringInvoices();
+    } catch (err: any) {
+      alert(err.message || 'Failed to toggle status');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setRecurringInvoices((prev) => prev.filter((ri) => ri.id !== id));
-    setShowDeleteConfirm(null);
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/api/v1/recurring-invoices/${id}`);
+      setShowDeleteConfirm(null);
+      fetchRecurringInvoices();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete recurring invoice');
+    }
   };
 
   const statuses = ['all', 'active', 'paused', 'expired'];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">Loading recurring invoices...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-red-600">{error}</p>
+        <Button onClick={fetchRecurringInvoices}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -622,9 +564,9 @@ export default function RecurringInvoicesPage() {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!formCustomerName || !formDescription || !formAmount || !formStartDate}
+            disabled={!formCustomerName || !formDescription || !formAmount || !formStartDate || saving}
           >
-            {editingInvoice ? 'Save Changes' : 'Create Recurring Invoice'}
+            {saving ? 'Saving...' : editingInvoice ? 'Save Changes' : 'Create Recurring Invoice'}
           </Button>
         </ModalFooter>
       </Modal>

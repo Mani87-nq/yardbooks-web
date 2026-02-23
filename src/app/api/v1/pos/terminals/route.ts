@@ -7,8 +7,6 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 const POS_PAYMENT_METHODS = [
   'CASH', 'JAM_DEX', 'LYNK_WALLET', 'WIPAY',
   'CARD_VISA', 'CARD_MASTERCARD', 'CARD_OTHER',
@@ -17,9 +15,6 @@ const POS_PAYMENT_METHODS = [
 
 export async function GET(request: NextRequest) {
   try {
-    const { error: planError } = await requireFeature(request, 'pos');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'pos:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
@@ -78,9 +73,6 @@ const createTerminalSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { error: planError } = await requireFeature(request, 'pos');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'pos:create');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);

@@ -15,11 +15,14 @@ export function ServiceWorkerRegistration() {
       if (event.data?.type === 'MUTATION_QUEUED') {
         addNotification?.({
           id: `sw-queued-${event.data.mutation.id}`,
+          companyId: '',
           title: 'Saved offline',
           message: `Your ${event.data.mutation.method} action has been queued and will sync when you reconnect.`,
-          type: 'info',
-          read: false,
-          createdAt: new Date().toISOString(),
+          type: 'system',
+          priority: 'low',
+          isRead: false,
+          isArchived: false,
+          createdAt: new Date(),
         });
       }
 
@@ -29,13 +32,16 @@ export function ServiceWorkerRegistration() {
         if (synced > 0) {
           addNotification?.({
             id: `sw-synced-${Date.now()}`,
+            companyId: '',
             title: 'Changes synced',
             message: `${synced} offline action${synced !== 1 ? 's' : ''} synced successfully.${
               remaining > 0 ? ` ${remaining} still pending.` : ''
             }`,
-            type: 'success',
-            read: false,
-            createdAt: new Date().toISOString(),
+            type: 'system',
+            priority: 'low',
+            isRead: false,
+            isArchived: false,
+            createdAt: new Date(),
           });
         }
       }

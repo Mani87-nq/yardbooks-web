@@ -82,6 +82,9 @@ enum UserRole {
 }
 
 enum SubscriptionPlan {
+  SOLO
+  TEAM
+  // Legacy values kept for migration compatibility
   STARTER
   BUSINESS
   PRO

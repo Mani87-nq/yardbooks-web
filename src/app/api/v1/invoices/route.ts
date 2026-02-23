@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const where = {
       companyId: companyId!,
       deletedAt: null,
-      ...(status ? { status } : {}),
+      ...(status ? { status: status as any } : {}),
       ...(customerId ? { customerId } : {}),
     };
 

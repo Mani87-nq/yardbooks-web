@@ -7,8 +7,6 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 const POS_PAYMENT_METHODS = [
   'CASH', 'JAM_DEX', 'LYNK_WALLET', 'WIPAY',
   'CARD_VISA', 'CARD_MASTERCARD', 'CARD_OTHER',
@@ -17,9 +15,6 @@ const POS_PAYMENT_METHODS = [
 
 export async function GET(request: NextRequest) {
   try {
-    const { error: planError } = await requireFeature(request, 'pos');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'pos:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
@@ -33,7 +28,7 @@ export async function GET(request: NextRequest) {
     if (!settings) {
       const company = await prisma.company.findUnique({
         where: { id: companyId! },
-        select: { name: true },
+        select: { businessName: true },
       });
 
       settings = await prisma.posSettings.create({
@@ -42,7 +37,7 @@ export async function GET(request: NextRequest) {
           orderPrefix: 'POS',
           nextOrderNumber: 1,
           gctRate: 0.15,
-          businessName: company?.name ?? 'My Business',
+          businessName: company?.businessName ?? 'My Business',
           enabledPaymentMethods: ['CASH'],
         },
       });
@@ -88,9 +83,6 @@ const updateSettingsSchema = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
-    const { error: planError } = await requireFeature(request, 'pos');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'pos:settings');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);

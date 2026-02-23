@@ -7,14 +7,8 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 export async function GET(request: NextRequest) {
   try {
-    // Plan gate: recurring invoices require BUSINESS plan
-    const { error: planError } = await requireFeature(request, 'recurring_invoices');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'invoices:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
@@ -61,10 +55,6 @@ const createSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Plan gate: recurring invoices require BUSINESS plan
-    const { error: planError } = await requireFeature(request, 'recurring_invoices');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'invoices:create');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);

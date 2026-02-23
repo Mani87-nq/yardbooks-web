@@ -1,46 +1,179 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Select } from '@/components/ui';
-import { usePosStore } from '@/store/posStore';
+import {
+  usePosSettings,
+  useUpdatePosSettings,
+  usePosTerminals,
+  useCreatePosTerminal,
+  type ApiPosSettings,
+} from '@/hooks/api/usePos';
 import {
   ArrowLeftIcon,
   PlusIcon,
   ComputerDesktopIcon,
   CheckCircleIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 export default function POSSettingsPage() {
-  const { settings, updateSettings, terminals, addTerminal } = usePosStore();
-  const [newTerminalName, setNewTerminalName] = useState('');
+  // ---- API hooks ----
+  const { data: settingsData, isLoading: settingsLoading, error: settingsError, refetch: refetchSettings } = usePosSettings();
+  const updateSettingsMutation = useUpdatePosSettings();
+  const { data: terminalsData, isLoading: terminalsLoading } = usePosTerminals({ limit: 50 });
+  const createTerminalMutation = useCreatePosTerminal();
 
-  const handleAddTerminal = () => {
+  const terminals = terminalsData?.data ?? [];
+
+  // ---- Local form state (initialized from API data) ----
+  const [localSettings, setLocalSettings] = useState<Record<string, any>>({});
+  const [newTerminalName, setNewTerminalName] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Initialize local state from API data once loaded
+  useEffect(() => {
+    if (settingsData) {
+      setLocalSettings({
+        orderPrefix: settingsData.orderPrefix,
+        nextOrderNumber: settingsData.nextOrderNumber,
+        businessName: settingsData.businessName,
+        businessPhone: settingsData.businessPhone ?? '',
+        businessAddress: settingsData.businessAddress ?? '',
+        businessTRN: settingsData.businessTRN ?? '',
+        receiptFooter: settingsData.receiptFooter ?? '',
+        gctRate: Number(settingsData.gctRate),
+        gctRegistrationNumber: settingsData.gctRegistrationNumber ?? '',
+        taxIncludedInPrice: settingsData.taxIncludedInPrice,
+        showLogo: settingsData.showLogo,
+        requireOpenSession: settingsData.requireOpenSession,
+        allowOfflineSales: settingsData.allowOfflineSales,
+        autoDeductInventory: settingsData.autoDeductInventory,
+        autoPostToGL: settingsData.autoPostToGL,
+        defaultToWalkIn: settingsData.defaultToWalkIn,
+        enabledPaymentMethods: settingsData.enabledPaymentMethods ?? ['CASH'],
+      });
+    }
+  }, [settingsData]);
+
+  const updateLocal = useCallback((updates: Record<string, any>) => {
+    setLocalSettings((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  // Save settings to API
+  const handleSaveSettings = async () => {
+    setSaveSuccess(false);
+    try {
+      await updateSettingsMutation.mutateAsync({
+        orderPrefix: localSettings.orderPrefix,
+        nextOrderNumber: localSettings.nextOrderNumber,
+        businessName: localSettings.businessName,
+        businessPhone: localSettings.businessPhone || null,
+        businessAddress: localSettings.businessAddress || null,
+        businessTRN: localSettings.businessTRN || null,
+        receiptFooter: localSettings.receiptFooter || null,
+        gctRate: localSettings.gctRate,
+        gctRegistrationNumber: localSettings.gctRegistrationNumber || null,
+        taxIncludedInPrice: localSettings.taxIncludedInPrice,
+        showLogo: localSettings.showLogo,
+        requireOpenSession: localSettings.requireOpenSession,
+        allowOfflineSales: localSettings.allowOfflineSales,
+        autoDeductInventory: localSettings.autoDeductInventory,
+        autoPostToGL: localSettings.autoPostToGL,
+        defaultToWalkIn: localSettings.defaultToWalkIn,
+        enabledPaymentMethods: localSettings.enabledPaymentMethods,
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    }
+  };
+
+  const handleAddTerminal = async () => {
     if (!newTerminalName.trim()) return;
-    addTerminal({
-      name: newTerminalName,
-      location: 'Main Location',
-      isActive: true,
-      isOnline: true,
-      defaultPaymentMethods: ['cash', 'jam_dex', 'card_visa'],
-      allowNegativeInventory: false,
-      requireCustomer: false,
-      allowDiscounts: true,
-      maxDiscountPercent: 20,
-      barcodeScanner: true,
-    });
-    setNewTerminalName('');
+    try {
+      await createTerminalMutation.mutateAsync({
+        name: newTerminalName,
+        location: 'Main Location',
+        isActive: true,
+        defaultPaymentMethods: ['CASH', 'JAM_DEX', 'CARD_VISA'],
+        allowNegativeInventory: false,
+        requireCustomer: false,
+        allowDiscounts: true,
+        maxDiscountPercent: 20,
+        barcodeScanner: true,
+      });
+      setNewTerminalName('');
+    } catch (err) {
+      console.error('Failed to create terminal:', err);
+    }
   };
 
   const paymentMethods = [
-    { id: 'cash', label: 'Cash' },
-    { id: 'jam_dex', label: 'JAM-DEX (CBDC)' },
-    { id: 'lynk_wallet', label: 'Lynk Wallet' },
-    { id: 'wipay', label: 'WiPay' },
-    { id: 'card_visa', label: 'Visa' },
-    { id: 'card_mastercard', label: 'Mastercard' },
-    { id: 'bank_transfer', label: 'Bank Transfer' },
+    { id: 'CASH', label: 'Cash' },
+    { id: 'JAM_DEX', label: 'JAM-DEX (CBDC)' },
+    { id: 'LYNK_WALLET', label: 'Lynk Wallet' },
+    { id: 'WIPAY', label: 'WiPay' },
+    { id: 'CARD_VISA', label: 'Visa' },
+    { id: 'CARD_MASTERCARD', label: 'Mastercard' },
+    { id: 'BANK_TRANSFER', label: 'Bank Transfer' },
   ];
+
+  if (settingsLoading) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div className="flex items-center gap-4">
+          <Link href="/pos">
+            <Button variant="ghost" size="sm">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Back to POS
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">POS Settings</h1>
+            <p className="text-gray-500">Configure your point of sale system</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-16">
+          <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (settingsError) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div className="flex items-center gap-4">
+          <Link href="/pos">
+            <Button variant="ghost" size="sm">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Back to POS
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">POS Settings</h1>
+            <p className="text-gray-500">Configure your point of sale system</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent>
+            <div className="text-center py-12">
+              <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
+              <p className="text-gray-700 font-medium mb-2">Failed to load settings</p>
+              <p className="text-gray-500 text-sm mb-4">
+                {settingsError instanceof Error ? settingsError.message : 'Please try again.'}
+              </p>
+              <Button onClick={() => refetchSettings()}>Retry</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -67,47 +200,74 @@ export default function POSSettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Order Prefix"
-              value={settings.orderPrefix}
-              onChange={(e) => updateSettings({ orderPrefix: e.target.value })}
+              value={localSettings.orderPrefix ?? ''}
+              onChange={(e) => updateLocal({ orderPrefix: e.target.value })}
             />
             <Input
               label="Next Order Number"
               type="number"
-              value={settings.nextOrderNumber}
-              onChange={(e) => updateSettings({ nextOrderNumber: parseInt(e.target.value) || 1 })}
+              value={localSettings.nextOrderNumber ?? 1}
+              onChange={(e) => updateLocal({ nextOrderNumber: parseInt(e.target.value) || 1 })}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Business Name"
-              value={settings.businessName}
-              onChange={(e) => updateSettings({ businessName: e.target.value })}
+              value={localSettings.businessName ?? ''}
+              onChange={(e) => updateLocal({ businessName: e.target.value })}
             />
             <Input
               label="Business Phone"
-              value={settings.businessPhone || ''}
-              onChange={(e) => updateSettings({ businessPhone: e.target.value })}
+              value={localSettings.businessPhone ?? ''}
+              onChange={(e) => updateLocal({ businessPhone: e.target.value })}
             />
           </div>
           <Input
             label="Business Address"
-            value={settings.businessAddress || ''}
-            onChange={(e) => updateSettings({ businessAddress: e.target.value })}
+            value={localSettings.businessAddress ?? ''}
+            onChange={(e) => updateLocal({ businessAddress: e.target.value })}
           />
           <Input
             label="TRN (Tax Registration Number)"
-            value={settings.businessTRN || ''}
-            onChange={(e) => updateSettings({ businessTRN: e.target.value })}
+            value={localSettings.businessTRN ?? ''}
+            onChange={(e) => updateLocal({ businessTRN: e.target.value })}
           />
           <Input
             label="Receipt Footer Message"
-            value={settings.receiptFooter || ''}
-            onChange={(e) => updateSettings({ receiptFooter: e.target.value })}
+            value={localSettings.receiptFooter ?? ''}
+            onChange={(e) => updateLocal({ receiptFooter: e.target.value })}
             placeholder="Thank you for your business!"
           />
         </CardContent>
         <CardFooter>
-          <Button>Save Changes</Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleSaveSettings}
+              disabled={updateSettingsMutation.isPending}
+            >
+              {updateSettingsMutation.isPending ? (
+                <>
+                  <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+            {saveSuccess && (
+              <span className="text-sm text-emerald-600 flex items-center gap-1">
+                <CheckCircleIcon className="w-4 h-4" />
+                Saved
+              </span>
+            )}
+            {updateSettingsMutation.error && (
+              <span className="text-sm text-red-600">
+                {updateSettingsMutation.error instanceof Error
+                  ? updateSettingsMutation.error.message
+                  : 'Save failed'}
+              </span>
+            )}
+          </div>
         </CardFooter>
       </Card>
 
@@ -121,21 +281,21 @@ export default function POSSettingsPage() {
             <Input
               label="GCT Rate (%)"
               type="number"
-              value={settings.gctRate * 100}
-              onChange={(e) => updateSettings({ gctRate: (parseFloat(e.target.value) || 15) / 100 })}
+              value={(localSettings.gctRate ?? 0.15) * 100}
+              onChange={(e) => updateLocal({ gctRate: (parseFloat(e.target.value) || 15) / 100 })}
             />
             <Input
               label="GCT Registration Number"
-              value={settings.gctRegistrationNumber || ''}
-              onChange={(e) => updateSettings({ gctRegistrationNumber: e.target.value })}
+              value={localSettings.gctRegistrationNumber ?? ''}
+              onChange={(e) => updateLocal({ gctRegistrationNumber: e.target.value })}
             />
           </div>
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="taxIncluded"
-              checked={settings.taxIncludedInPrice}
-              onChange={(e) => updateSettings({ taxIncludedInPrice: e.target.checked })}
+              checked={localSettings.taxIncludedInPrice ?? false}
+              onChange={(e) => updateLocal({ taxIncludedInPrice: e.target.checked })}
               className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
             />
             <label htmlFor="taxIncluded" className="text-sm text-gray-700">
@@ -159,13 +319,13 @@ export default function POSSettingsPage() {
               >
                 <input
                   type="checkbox"
-                  checked={settings.enabledPaymentMethods?.includes(method.id as any) ?? true}
+                  checked={(localSettings.enabledPaymentMethods ?? []).includes(method.id)}
                   onChange={(e) => {
-                    const current = settings.enabledPaymentMethods || paymentMethods.map(m => m.id);
+                    const current = localSettings.enabledPaymentMethods || ['CASH'];
                     const updated = e.target.checked
                       ? [...current, method.id]
-                      : current.filter(m => m !== method.id);
-                    updateSettings({ enabledPaymentMethods: updated as any });
+                      : current.filter((m: string) => m !== method.id);
+                    updateLocal({ enabledPaymentMethods: updated });
                   }}
                   className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
@@ -182,7 +342,11 @@ export default function POSSettingsPage() {
           <CardTitle>POS Terminals</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {terminals.length === 0 ? (
+          {terminalsLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <ArrowPathIcon className="w-5 h-5 text-gray-400 animate-spin" />
+            </div>
+          ) : terminals.length === 0 ? (
             <p className="text-gray-500 text-sm">No terminals configured yet.</p>
           ) : (
             <div className="space-y-3">
@@ -220,11 +384,25 @@ export default function POSSettingsPage() {
               onChange={(e) => setNewTerminalName(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleAddTerminal} disabled={!newTerminalName.trim()}>
-              <PlusIcon className="w-4 h-4 mr-1" />
+            <Button
+              onClick={handleAddTerminal}
+              disabled={!newTerminalName.trim() || createTerminalMutation.isPending}
+            >
+              {createTerminalMutation.isPending ? (
+                <ArrowPathIcon className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <PlusIcon className="w-4 h-4 mr-1" />
+              )}
               Add Terminal
             </Button>
           </div>
+          {createTerminalMutation.error && (
+            <p className="text-sm text-red-600">
+              {createTerminalMutation.error instanceof Error
+                ? createTerminalMutation.error.message
+                : 'Failed to add terminal'}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -245,8 +423,8 @@ export default function POSSettingsPage() {
             <label key={option.key} className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={settings[option.key as keyof typeof settings] as boolean}
-                onChange={(e) => updateSettings({ [option.key]: e.target.checked })}
+                checked={localSettings[option.key] ?? false}
+                onChange={(e) => updateLocal({ [option.key]: e.target.checked })}
                 className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
               <span className="text-sm text-gray-700">{option.label}</span>

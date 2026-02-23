@@ -19,15 +19,16 @@ export async function GET(request: NextRequest) {
     if (companyError) return companyError;
 
     const subscription = await getSubscriptionStatus(companyId!);
-    const currentPlanId = subscription?.planId ?? 'starter';
+    const currentPlanId = subscription?.plan?.toLowerCase() ?? 'solo';
     const plan = getPlan(currentPlanId);
 
     return NextResponse.json({
       subscription: subscription ?? {
-        active: false,
-        planId: null,
-        periodEnd: null,
-        cancelAtPeriodEnd: false,
+        isActive: false,
+        plan: null,
+        status: 'INACTIVE',
+        currentPeriodEnd: null,
+        trialDaysRemaining: 0,
       },
       plan: plan ?? null,
       plans: PLANS,
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 // ---- POST (Create Checkout Session) ----
 
 const checkoutSchema = z.object({
-  planId: z.enum(['starter', 'business', 'pro']),
+  planId: z.enum(['solo', 'team']),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
 });
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Check if the user already has an active subscription for this plan
     const existing = await getSubscriptionStatus(companyId!);
-    if (existing?.active && existing.planId === planId) {
+    if (existing?.isActive && existing.plan?.toLowerCase() === planId) {
       return badRequest('Already subscribed to this plan');
     }
 

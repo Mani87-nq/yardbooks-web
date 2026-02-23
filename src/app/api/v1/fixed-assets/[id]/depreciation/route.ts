@@ -7,8 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, notFound, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 // ============================================
 // GET — List depreciation entries for an asset
 // ============================================
@@ -19,10 +17,6 @@ export async function GET(
 ) {
   try {
     const { id: assetId } = await params;
-
-    // Plan gate
-    const { error: planError } = await requireFeature(request, 'fixed_assets');
-    if (planError) return planError;
 
     // Auth + permission
     const { user, error: authError } = await requirePermission(request, 'fixed_assets:read');
@@ -65,7 +59,7 @@ export async function GET(
       assetId,
       companyId: companyId!,
       ...(fiscalYear ? { fiscalYear } : {}),
-      ...(status ? { status } : {}),
+      ...(status ? { status: status as any } : {}),
     };
 
     const entries = await prisma.fixedAssetDepreciationEntry.findMany({

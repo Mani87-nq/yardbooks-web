@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
               subscriptionStatus: 'ACTIVE',
               stripeCustomerId: session.customer ?? null,
               stripeSubscriptionId: session.subscription ?? null,
-              subscriptionCurrentPeriodEnd: session.subscription
+              subscriptionEndDate: session.subscription
                 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // ~30 days
                 : null,
             },
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
             where: { id: company.id },
             data: {
               subscriptionStatus: mapStripeStatus(subscription.status),
-              subscriptionCurrentPeriodEnd: subscription.current_period_end
+              subscriptionEndDate: subscription.current_period_end
                 ? new Date(subscription.current_period_end * 1000)
                 : null,
             },
@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
           await prisma.company.update({
             where: { id: company.id },
             data: {
-              subscriptionStatus: 'CANCELLED',
-              subscriptionPlan: 'STARTER',
+              subscriptionStatus: 'CANCELLED' as const,
+              subscriptionPlan: 'SOLO' as const,
             },
           });
           console.log(`Subscription cancelled - Company: ${company.id}`);
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function mapStripeStatus(stripeStatus: string): string {
+function mapStripeStatus(stripeStatus: string): 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'INACTIVE' {
   switch (stripeStatus) {
     case 'active': return 'ACTIVE';
     case 'past_due': return 'PAST_DUE';

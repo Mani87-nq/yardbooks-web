@@ -6,8 +6,6 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { notFound, badRequest, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 type RouteContext = { params: Promise<{ id: string }> };
 
 const voidOrderSchema = z.object({
@@ -16,9 +14,6 @@ const voidOrderSchema = z.object({
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const { error: planError } = await requireFeature(request, 'pos');
-    if (planError) return planError;
-
     const { id } = await context.params;
     const { user, error: authError } = await requirePermission(request, 'pos:void');
     if (authError) return authError;

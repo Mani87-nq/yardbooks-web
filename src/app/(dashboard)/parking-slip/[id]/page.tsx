@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -13,6 +13,7 @@ import {
   XMarkIcon,
   PrinterIcon,
 } from '@heroicons/react/24/outline';
+import { api } from '@/lib/api-client';
 import { useAppStore } from '@/store/appStore';
 import {
   PARKING_STATUS_LABELS,
@@ -20,7 +21,7 @@ import {
   calculateParkingDuration,
   calculateParkingAmount,
 } from '@/types/parkingSlip';
-import type { ParkingSlipStatus } from '@/types/parkingSlip';
+import type { ParkingSlip, ParkingSlipStatus } from '@/types/parkingSlip';
 import { printContent, generateStatCards, formatPrintCurrency } from '@/lib/print';
 
 interface PageProps {
@@ -30,20 +31,50 @@ interface PageProps {
 export default function ParkingSlipDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const parkingSlips = useAppStore((state) => state.parkingSlips) || [];
-  const updateParkingSlip = useAppStore((state) => state.updateParkingSlip);
   const activeCompany = useAppStore((state) => state.activeCompany);
 
+  const [slip, setSlip] = useState<ParkingSlip | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('cash');
 
-  const slip = parkingSlips.find((s) => s.id === id);
+  const fetchSlip = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<ParkingSlip>(`/api/v1/parking-slips/${id}`);
+      setSlip(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load parking slip');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
-  if (!slip) {
+  useEffect(() => {
+    fetchSlip();
+  }, [fetchSlip]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">Loading parking slip...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !slip) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <TruckIcon className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Slip Not Found</h2>
-        <p className="text-gray-500 mb-4">The parking slip you're looking for doesn't exist.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          {error || 'Slip Not Found'}
+        </h2>
+        <p className="text-gray-500 mb-4">The parking slip you are looking for doesn't exist or could not be loaded.</p>
         <Link
           href="/parking-slip"
           className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
@@ -76,27 +107,32 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
     return colors[status];
   };
 
-  const handleCheckout = () => {
-    if (updateParkingSlip) {
-      updateParkingSlip(slip.id, {
-        status: 'completed',
-        exitTime: new Date(),
-        totalAmount: amount,
-        isPaid: true,
+  const handleCheckout = async () => {
+    setUpdating(true);
+    try {
+      await api.post(`/api/v1/parking-slips/${slip.id}/exit`);
+      await api.post(`/api/v1/parking-slips/${slip.id}/payment`, {
         paymentMethod,
-        updatedAt: new Date(),
+        totalAmount: amount,
       });
       router.push('/parking-slip');
+    } catch (err: any) {
+      alert(err.message || 'Failed to complete checkout');
+    } finally {
+      setUpdating(false);
     }
   };
 
-  const handleCancel = () => {
-    if (updateParkingSlip && confirm('Are you sure you want to cancel this parking slip?')) {
-      updateParkingSlip(slip.id, {
-        status: 'cancelled',
-        updatedAt: new Date(),
-      });
+  const handleCancel = async () => {
+    if (!confirm('Are you sure you want to cancel this parking slip?')) return;
+    setUpdating(true);
+    try {
+      await api.put(`/api/v1/parking-slips/${slip.id}`, { status: 'cancelled' });
       router.push('/parking-slip');
+    } catch (err: any) {
+      alert(err.message || 'Failed to cancel parking slip');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -321,10 +357,11 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
               <button
                 onClick={handleCheckout}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+                disabled={updating}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50"
               >
                 <CheckCircleIcon className="w-5 h-5" />
-                Complete Checkout
+                {updating ? 'Processing...' : 'Complete Checkout'}
               </button>
             </div>
           )}
@@ -335,10 +372,11 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
               <h2 className="font-semibold text-gray-900 mb-4">Actions</h2>
               <button
                 onClick={handleCancel}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                disabled={updating}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
               >
                 <XMarkIcon className="w-4 h-4" />
-                Cancel Slip
+                {updating ? 'Cancelling...' : 'Cancel Slip'}
               </button>
             </div>
           )}

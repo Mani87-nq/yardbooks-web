@@ -46,10 +46,8 @@ const BUSINESS_TYPES = [
 ];
 
 const PLANS: Record<string, { name: string; price: string }> = {
-  starter: { name: 'Starter', price: '$16.99/mo' },
-  business: { name: 'Business', price: '$34.99/mo' },
-  pro: { name: 'Pro', price: '$69.99/mo' },
-  enterprise: { name: 'Enterprise', price: '$149.99/mo' },
+  solo: { name: 'Solo', price: '$19.99/mo' },
+  team: { name: 'Team', price: '$14.99/user/mo' },
 };
 
 interface RegisterResponse {
@@ -78,8 +76,8 @@ function SignupContent() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   // Get selected plan from URL
-  const selectedPlan = searchParams.get('plan') || 'starter';
-  const planInfo = PLANS[selectedPlan] || PLANS.starter;
+  const selectedPlan = searchParams.get('plan') || 'solo';
+  const planInfo = PLANS[selectedPlan] || PLANS.solo;
 
   const [formData, setFormData] = useState({
     // Step 1: Personal Info

@@ -6,54 +6,49 @@
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  price: number; // Monthly price in JMD
   priceUsd: number; // Monthly USD
   priceUsdAnnual: number; // Annual USD (2 months free)
-  maxUsers: number;
+  perUser: boolean; // If true, price is per-user
+  maxUsers: number; // -1 = unlimited
   maxCompanies: number;
   features: string[];
 }
 
 export const PLANS: SubscriptionPlan[] = [
   {
-    id: 'starter',
-    name: 'Starter',
-    price: 2599, // ~$16.99 USD in JMD
-    priceUsd: 16.99,
-    priceUsdAnnual: 169.99, // 2 months free
+    id: 'solo',
+    name: 'Solo',
+    priceUsd: 19.99,
+    priceUsdAnnual: 199.99, // 2 months free
+    perUser: false,
     maxUsers: 1,
     maxCompanies: 1,
-    features: ['Invoicing', 'Expenses', 'Basic Reports', 'POS', 'GCT Filing', 'Email Support'],
+    features: [
+      'All features included',
+      'Invoicing & Quotations',
+      'POS System',
+      'Inventory Management',
+      'Payroll & Compliance',
+      'Bank Reconciliation',
+      'GCT & Tax Reports',
+      'Email Support',
+    ],
   },
   {
-    id: 'business',
-    name: 'Business',
-    price: 5399, // ~$34.99 USD in JMD
-    priceUsd: 34.99,
-    priceUsdAnnual: 349.99, // 2 months free
-    maxUsers: 3,
-    maxCompanies: 1,
-    features: ['All Starter features', 'Bank Reconciliation', 'Payroll', 'Recurring Invoices', 'Credit Notes', 'Advanced Reports', 'Priority Support'],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: 10799, // ~$69.99 USD in JMD
-    priceUsd: 69.99,
-    priceUsdAnnual: 699.99, // 2 months free
-    maxUsers: 10,
-    maxCompanies: 3,
-    features: ['All Business features', 'Multi-Currency', 'API Access', 'Custom Reports', 'Audit Trail', 'Phone Support'],
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 23099, // ~$149.99 USD in JMD
-    priceUsd: 149.99,
-    priceUsdAnnual: 1499.99, // 2 months free
+    id: 'team',
+    name: 'Team',
+    priceUsd: 14.99,
+    priceUsdAnnual: 149.99, // 2 months free
+    perUser: true,
     maxUsers: -1, // Unlimited
     maxCompanies: -1,
-    features: ['All Pro features', 'Unlimited Users', 'Unlimited Companies', 'Dedicated Account Manager', 'Custom Integrations', 'SLA', 'On-site Training'],
+    features: [
+      'Everything in Solo, plus:',
+      'Unlimited users',
+      'Unlimited companies',
+      'All features included',
+      'Priority Support',
+    ],
   },
 ];
 
@@ -72,6 +67,17 @@ export function checkPlanLimits(planId: string, currentUsers: number, currentCom
   return { withinLimits, userLimit: plan.maxUsers, companyLimit: plan.maxCompanies };
 }
 
+/**
+ * Map legacy plan IDs (starter, business, pro, enterprise) to the new model.
+ * Solo users -> 'solo', everyone else -> 'team'.
+ */
+export function migrateLegacyPlanId(planId: string): string {
+  if (planId === 'solo' || planId === 'team') return planId;
+  // Legacy mapping: starter maps to solo, everything else maps to team
+  if (planId === 'starter') return 'solo';
+  return 'team';
+}
+
 // Stripe API integration (requires STRIPE_SECRET_KEY env var)
 export async function createCheckoutSession(params: {
   planId: string;
@@ -85,7 +91,7 @@ export async function createCheckoutSession(params: {
   if (!apiKey) return { error: 'Stripe not configured' };
 
   const plan = getPlan(params.planId);
-  if (!plan || plan.price === 0) return { error: 'Invalid plan for checkout' };
+  if (!plan) return { error: 'Invalid plan for checkout' };
 
   // Create Stripe checkout session via API
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -132,9 +138,7 @@ export interface SubscriptionStatusResult {
  * a normalized subscription status. Handles trial expiry detection.
  */
 export async function getSubscriptionStatus(companyId: string): Promise<SubscriptionStatusResult | null> {
-  // Lazy import to avoid circular deps at module-load time
   const { default: prisma } = await import('@/lib/db');
-  const { getTrialStatus } = await import('@/lib/plan-gate');
 
   const company = await prisma.company.findUnique({
     where: { id: companyId },
@@ -148,35 +152,45 @@ export async function getSubscriptionStatus(companyId: string): Promise<Subscrip
 
   if (!company) return null;
 
-  const trial = getTrialStatus(company);
+  // Determine trial status inline (no plan-gate dependency)
+  let trialDaysRemaining = 0;
+  let trialExpired = false;
+  if (company.subscriptionStatus === 'TRIALING') {
+    const endDate = company.subscriptionEndDate ? new Date(company.subscriptionEndDate) : null;
+    if (!endDate) {
+      trialExpired = true;
+    } else {
+      const diffMs = endDate.getTime() - Date.now();
+      trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      trialExpired = trialDaysRemaining <= 0;
+    }
+  }
 
-  // Determine effective plan considering trial expiry
-  let effectivePlan = company.subscriptionPlan ?? 'STARTER';
+  let effectivePlan = company.subscriptionPlan ?? 'SOLO';
   let effectiveStatus = company.subscriptionStatus ?? 'INACTIVE';
 
-  if (effectiveStatus === 'TRIALING' && trial.expired) {
-    // Auto-downgrade in the database
+  if (effectiveStatus === 'TRIALING' && trialExpired) {
     await prisma.company.update({
       where: { id: companyId },
       data: {
-        subscriptionPlan: 'STARTER',
+        subscriptionPlan: 'SOLO',
         subscriptionStatus: 'INACTIVE',
       },
     });
-    effectivePlan = 'STARTER';
+    effectivePlan = 'SOLO';
     effectiveStatus = 'INACTIVE';
   }
 
   const isActive =
     effectiveStatus === 'ACTIVE' ||
     effectiveStatus === 'PAST_DUE' ||
-    (effectiveStatus === 'TRIALING' && !trial.expired);
+    (effectiveStatus === 'TRIALING' && !trialExpired);
 
   return {
     plan: effectivePlan,
     status: effectiveStatus,
     isActive,
-    trialDaysRemaining: trial.daysRemaining,
+    trialDaysRemaining,
     currentPeriodEnd: company.subscriptionEndDate ? new Date(company.subscriptionEndDate) : null,
   };
 }
