@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import {
@@ -11,8 +11,10 @@ import {
   BanknotesIcon,
   UserGroupIcon,
   PrinterIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
 import { printContent, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
 
 interface PageProps {
@@ -25,6 +27,9 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
   const employees = useAppStore((state) => state.employees);
   const updatePayrollRun = useAppStore((state) => state.updatePayrollRun);
   const activeCompany = useAppStore((state) => state.activeCompany);
+
+  const [approving, setApproving] = useState(false);
+  const [emailing, setEmailing] = useState(false);
 
   const run = payrollRuns.find((r) => r.id === id);
 
@@ -51,12 +56,42 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
     return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
-  const handleApprove = () => {
-    updatePayrollRun?.(run.id, { status: 'approved' });
+  const handleApprove = async () => {
+    if (!confirm('Are you sure you want to approve this payroll run? This will post it to the General Ledger.')) return;
+    setApproving(true);
+    try {
+      await api.post(`/api/v1/payroll/${run.id}/approve`);
+      updatePayrollRun?.(run.id, { status: 'approved' });
+      alert('Payroll run approved successfully!');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to approve payroll run';
+      alert(message);
+    } finally {
+      setApproving(false);
+    }
   };
 
   const handleMarkPaid = () => {
     updatePayrollRun?.(run.id, { status: 'paid' });
+  };
+
+  const handleEmailPayslips = async () => {
+    if (!confirm('Send payslip emails to all employees in this run?')) return;
+    setEmailing(true);
+    try {
+      const result = await api.post<{ sent: number; failed: number; errors?: string[] }>(
+        `/api/v1/payroll/${run.id}/payslips`,
+      );
+      const data = result as any;
+      const sent = data.sent ?? 0;
+      const failed = data.failed ?? 0;
+      alert(`Payslips emailed: ${sent} sent, ${failed} failed`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to email payslips';
+      alert(message);
+    } finally {
+      setEmailing(false);
+    }
   };
 
   // Get employee name helper
@@ -152,21 +187,32 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
           >
             <PrinterIcon className="w-5 h-5 text-gray-600" />
           </button>
-          {run.status === 'draft' && (
+          {(run.status === 'draft' || (run.status as string) === 'DRAFT') && (
             <button
               onClick={handleApprove}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={approving}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              Approve
+              {approving ? 'Approving...' : 'Approve'}
             </button>
           )}
-          {run.status === 'approved' && (
-            <button
-              onClick={handleMarkPaid}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              Mark as Paid
-            </button>
+          {(run.status === 'approved' || (run.status as string) === 'APPROVED') && (
+            <>
+              <button
+                onClick={handleEmailPayslips}
+                disabled={emailing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
+              >
+                <EnvelopeIcon className="w-4 h-4" />
+                {emailing ? 'Sending...' : 'Email Payslips'}
+              </button>
+              <button
+                onClick={handleMarkPaid}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Mark as Paid
+              </button>
+            </>
           )}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Modal, ModalBody, ModalFooter, Input, Textarea } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { formatJMD } from '@/lib/utils';
+import { api } from '@/lib/api-client';
 import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
 import {
   ArrowLeftIcon,
@@ -76,17 +77,24 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
 
     setEmailSending(true);
 
-    // Simulate sending email (in production, this would call an API)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      await api.post(`/api/v1/invoices/${invoice.id}/send`, {
+        to: emailTo,
+        subject: emailSubject,
+        message: emailMessage,
+      });
 
-    // Update invoice status to 'sent' if it was draft
-    if (invoice.status === 'draft') {
-      updateInvoice(invoice.id, { status: 'sent', updatedAt: new Date() });
+      if (invoice.status === 'draft') {
+        updateInvoice(invoice.id, { status: 'sent', updatedAt: new Date() });
+      }
+
+      setShowEmailModal(false);
+      alert(`Invoice sent to ${emailTo}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to send invoice');
+    } finally {
+      setEmailSending(false);
     }
-
-    setEmailSending(false);
-    setShowEmailModal(false);
-    alert(`Invoice sent to ${emailTo}`);
   };
 
   const handleRecordPayment = () => {

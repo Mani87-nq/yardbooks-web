@@ -21,6 +21,8 @@ import {
   BanknotesIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
+  CheckCircleIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 
@@ -98,6 +100,8 @@ export default function PayrollPage() {
   // Payroll runs — fetch via direct API call
   const [payrollRuns, setPayrollRuns] = useState<PayrollRunAPI[]>([]);
   const [payrollLoading, setPayrollLoading] = useState(false);
+  const [approvingRunId, setApprovingRunId] = useState<string | null>(null);
+  const [emailingRunId, setEmailingRunId] = useState<string | null>(null);
 
   // Fetch payroll runs when switching to that tab
   const fetchPayrollRuns = async () => {
@@ -118,6 +122,40 @@ export default function PayrollPage() {
     setActiveTab(tab);
     if (tab === 'payroll' && payrollRuns.length === 0) {
       fetchPayrollRuns();
+    }
+  };
+
+  const handleApproveRun = async (runId: string) => {
+    if (!confirm('Are you sure you want to approve this payroll run? This will post it to the General Ledger.')) return;
+    setApprovingRunId(runId);
+    try {
+      await api.post(`/api/v1/payroll/${runId}/approve`);
+      await fetchPayrollRuns();
+      alert('Payroll run approved successfully!');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to approve payroll run';
+      alert(message);
+    } finally {
+      setApprovingRunId(null);
+    }
+  };
+
+  const handleEmailPayslips = async (runId: string) => {
+    if (!confirm('Send payslip emails to all employees in this run?')) return;
+    setEmailingRunId(runId);
+    try {
+      const result = await api.post<{ sent: number; failed: number; errors?: string[] }>(
+        `/api/v1/payroll/${runId}/payslips`,
+      );
+      const data = result as any;
+      const sent = data.sent ?? 0;
+      const failed = data.failed ?? 0;
+      alert(`Payslips emailed: ${sent} sent, ${failed} failed`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to email payslips';
+      alert(message);
+    } finally {
+      setEmailingRunId(null);
     }
   };
 
@@ -557,12 +595,13 @@ export default function PayrollPage() {
                   <TableHead>Gross Pay</TableHead>
                   <TableHead>Net Pay</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payrollRuns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-12 text-gray-500">
                       <p className="mb-4">No payroll runs yet</p>
                       <Button onClick={handleOpenPayrollModal}>
                         <PlayIcon className="w-4 h-4 mr-1" />
@@ -586,13 +625,45 @@ export default function PayrollPage() {
                       <TableCell>
                         <Badge
                           variant={
-                            run.status === 'paid' ? 'success' :
-                            run.status === 'approved' ? 'warning' :
+                            run.status === 'paid' || run.status === 'PAID' ? 'success' :
+                            run.status === 'approved' || run.status === 'APPROVED' ? 'warning' :
                             'default'
                           }
                         >
                           {run.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {(run.status === 'DRAFT' || run.status === 'draft') && (
+                            <PermissionGate permission="payroll:create">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleApproveRun(run.id)}
+                                disabled={approvingRunId === run.id}
+                                className="text-green-600 border-green-300 hover:bg-green-50"
+                              >
+                                <CheckCircleIcon className="w-4 h-4 mr-1" />
+                                {approvingRunId === run.id ? 'Approving...' : 'Approve'}
+                              </Button>
+                            </PermissionGate>
+                          )}
+                          {(run.status === 'APPROVED' || run.status === 'approved') && (
+                            <PermissionGate permission="payroll:create">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEmailPayslips(run.id)}
+                                disabled={emailingRunId === run.id}
+                                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              >
+                                <EnvelopeIcon className="w-4 h-4 mr-1" />
+                                {emailingRunId === run.id ? 'Sending...' : 'Email Payslips'}
+                              </Button>
+                            </PermissionGate>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

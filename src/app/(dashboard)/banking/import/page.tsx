@@ -10,6 +10,7 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '@/store/appStore';
+import { getAccessToken } from '@/lib/api-client';
 
 const SUPPORTED_FORMATS = [
   { extension: 'CSV', description: 'Comma-separated values' },
@@ -54,18 +55,47 @@ export default function ImportTransactionsPage() {
     }
 
     setIsUploading(true);
+    setUploadResult(null);
 
-    // Simulate import process
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('bankAccountId', selectedAccount);
 
-    setUploadResult({
-      success: true,
-      message: 'Transactions imported successfully',
-      imported: 25,
-      duplicates: 3,
-    });
+      const token = getAccessToken();
+      const response = await fetch('/api/v1/banking/import', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
 
-    setIsUploading(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setUploadResult({
+          success: false,
+          message: data.detail || data.title || 'Import failed',
+        });
+        return;
+      }
+
+      setUploadResult({
+        success: true,
+        message: data.message || 'Transactions imported successfully',
+        imported: data.imported,
+        duplicates: data.skipped,
+      });
+    } catch (err) {
+      setUploadResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Import failed',
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
