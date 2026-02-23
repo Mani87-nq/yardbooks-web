@@ -1,5 +1,5 @@
 /**
- * Email templates for YardBooks.
+ * Email templates for YaadBooks.
  *
  * Each template function returns { subject, html, text } suitable for
  * passing directly to sendEmail(). Templates use inline styles for
@@ -29,7 +29,7 @@ function layout(title: string, body: string): string {
           <!-- Header -->
           <tr>
             <td style="background-color:${BRAND_COLOR};padding:24px 32px;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">YardBooks</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">YaadBooks</h1>
             </td>
           </tr>
           <!-- Body -->
@@ -42,7 +42,7 @@ function layout(title: string, body: string): string {
           <tr>
             <td style="padding:16px 32px;background-color:#f9fafb;border-top:1px solid #e5e7eb;">
               <p style="margin:0;font-size:12px;color:${MUTED_COLOR};text-align:center;">
-                &copy; ${new Date().getFullYear()} YardBooks &mdash; Jamaica-First Accounting
+                &copy; ${new Date().getFullYear()} YaadBooks &mdash; Jamaica-First Accounting
               </p>
             </td>
           </tr>
@@ -246,7 +246,7 @@ export function payslipEmail(params: PayslipEmailParams) {
       <p style="margin:0 0 4px 0;font-size:13px;color:${MUTED_COLOR};">Net Pay</p>
       <p style="margin:0;font-size:28px;font-weight:700;color:${BRAND_COLOR};">${formattedPay}</p>
     </div>
-    <p>Please log in to your YardBooks account to view the full breakdown of your earnings and deductions.</p>
+    <p>Please log in to your YaadBooks account to view the full breakdown of your earnings and deductions.</p>
     <p style="color:${MUTED_COLOR};font-size:13px;">If you have any questions about your payslip, please contact your employer.</p>
     <p>Regards,<br />${escapeHtml(companyName)}</p>
   `;
@@ -258,7 +258,7 @@ export function payslipEmail(params: PayslipEmailParams) {
     '',
     `Net Pay: ${formattedPay}`,
     '',
-    'Please log in to your YardBooks account to view the full breakdown of your earnings and deductions.',
+    'Please log in to your YaadBooks account to view the full breakdown of your earnings and deductions.',
     '',
     'If you have any questions about your payslip, please contact your employer.',
     '',
@@ -309,7 +309,7 @@ export function securityAlertEmail(params: SecurityAlertEmailParams) {
       </tr>` : ''}
     </table>
     <p>If this was you, no action is needed. If you did not perform this action, please secure your account immediately by changing your password and enabling two-factor authentication.</p>
-    <p style="color:${MUTED_COLOR};font-size:13px;">This is an automated security notification from YardBooks.</p>
+    <p style="color:${MUTED_COLOR};font-size:13px;">This is an automated security notification from YaadBooks.</p>
   `;
 
   const text = [
@@ -340,11 +340,11 @@ export interface WelcomeEmailParams {
 export function welcomeEmail(params: WelcomeEmailParams) {
   const { userName, companyName } = params;
 
-  const subject = `Welcome to YardBooks, ${userName}!`;
+  const subject = `Welcome to YaadBooks, ${userName}!`;
 
   const body = `
     <p>Hello ${escapeHtml(userName)},</p>
-    <p>Welcome to <strong>YardBooks</strong>! Your account for <strong>${escapeHtml(companyName)}</strong> has been set up and is ready to use.</p>
+    <p>Welcome to <strong>YaadBooks</strong>! Your account for <strong>${escapeHtml(companyName)}</strong> has been set up and is ready to use.</p>
     <p>Here are a few things you can do to get started:</p>
     <ul style="padding-left:20px;">
       <li style="margin-bottom:8px;">Set up your company profile and upload your logo</li>
@@ -353,15 +353,15 @@ export function welcomeEmail(params: WelcomeEmailParams) {
       <li style="margin-bottom:8px;">Connect your bank accounts</li>
       <li style="margin-bottom:8px;">Configure your GCT settings</li>
     </ul>
-    <p>YardBooks is built for Jamaican businesses, with full support for GCT, statutory payroll deductions (PAYE, NIS, NHT, Education Tax), and Jamaica-specific tax reporting.</p>
+    <p>YaadBooks is built for Jamaican businesses, with full support for GCT, statutory payroll deductions (PAYE, NIS, NHT, Education Tax), and Jamaica-specific tax reporting.</p>
     <p>If you need help getting started, check out our documentation or reach out to our support team.</p>
-    <p>Regards,<br />The YardBooks Team</p>
+    <p>Regards,<br />The YaadBooks Team</p>
   `;
 
   const text = [
     `Hello ${userName},`,
     '',
-    `Welcome to YardBooks! Your account for ${companyName} has been set up and is ready to use.`,
+    `Welcome to YaadBooks! Your account for ${companyName} has been set up and is ready to use.`,
     '',
     'Here are a few things you can do to get started:',
     '- Set up your company profile and upload your logo',
@@ -370,12 +370,12 @@ export function welcomeEmail(params: WelcomeEmailParams) {
     '- Connect your bank accounts',
     '- Configure your GCT settings',
     '',
-    'YardBooks is built for Jamaican businesses, with full support for GCT, statutory payroll deductions (PAYE, NIS, NHT, Education Tax), and Jamaica-specific tax reporting.',
+    'YaadBooks is built for Jamaican businesses, with full support for GCT, statutory payroll deductions (PAYE, NIS, NHT, Education Tax), and Jamaica-specific tax reporting.',
     '',
     'If you need help getting started, check out our documentation or reach out to our support team.',
     '',
     'Regards,',
-    'The YardBooks Team',
+    'The YaadBooks Team',
   ].join('\n');
 
   return { subject, html: layout(subject, body), text };
@@ -427,7 +427,7 @@ export function taxDeadlineEmail(params: TaxDeadlineEmailParams) {
       </tr>
     </table>
     <p>Please ensure all required filings and payments are completed before the deadline to avoid penalties from Tax Administration Jamaica (TAJ).</p>
-    <p style="color:${MUTED_COLOR};font-size:13px;">This is an automated reminder from YardBooks.</p>
+    <p style="color:${MUTED_COLOR};font-size:13px;">This is an automated reminder from YaadBooks.</p>
   `;
 
   const text = [

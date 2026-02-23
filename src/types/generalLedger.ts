@@ -1,4 +1,4 @@
-// YardBooks Web - General Ledger Type Definitions
+// YaadBooks Web - General Ledger Type Definitions
 
 // ============================================
 // JOURNAL ENTRIES

@@ -1,4 +1,4 @@
-// YardBooks Web - Fixed Asset Register Type Definitions
+// YaadBooks Web - Fixed Asset Register Type Definitions
 // Supports dual tracking: Book Depreciation (IFRS) + Tax Capital Allowances (Jamaica)
 
 // ============================================

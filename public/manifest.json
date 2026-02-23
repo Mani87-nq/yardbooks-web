@@ -1,6 +1,6 @@
 {
-  "name": "YardBooks - Jamaican Accounting Software",
-  "short_name": "YardBooks",
+  "name": "YaadBooks - Jamaican Accounting Software",
+  "short_name": "YaadBooks",
   "description": "Professional accounting software built for Jamaican businesses",
   "start_url": "/dashboard",
   "display": "standalone",

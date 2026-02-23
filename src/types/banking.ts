@@ -1,4 +1,4 @@
-// YardBooks Web - Banking Type Definitions
+// YaadBooks Web - Banking Type Definitions
 
 export interface BankAccount {
   id: string;

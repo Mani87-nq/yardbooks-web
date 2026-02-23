@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const secret = new Secret({ size: 20 });
 
     const totp = new TOTP({
-      issuer: 'YardBooks',
+      issuer: 'YaadBooks',
       label: dbUser.email,
       algorithm: 'SHA1',
       digits: 6,

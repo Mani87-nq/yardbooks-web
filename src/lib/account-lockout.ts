@@ -1,5 +1,5 @@
 /**
- * Account lockout system for YardBooks.
+ * Account lockout system for YaadBooks.
  *
  * Locks user accounts after repeated failed login attempts with
  * progressive lockout durations:

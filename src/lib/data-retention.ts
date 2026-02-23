@@ -335,7 +335,7 @@ export async function exportUserData(userId: string): Promise<{
  *    with anonymized references to the former user
  */
 export async function anonymizeUser(userId: string): Promise<void> {
-  const anonymizedEmail = `deleted-${userId}@anonymized.yardbooks.local`;
+  const anonymizedEmail = `deleted-${userId}@anonymized.yaadbooks.local`;
   const anonymizedName = 'Deleted User';
   const now = new Date();
 

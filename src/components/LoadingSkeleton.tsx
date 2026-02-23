@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Reusable loading skeleton components for YardBooks.
+ * Reusable loading skeleton components for YaadBooks.
  */
 
 function Shimmer({ className = '' }: { className?: string }) {

@@ -54,7 +54,7 @@ export default function InvoicesPage() {
     const customer = invoice.customer || customers.find((c) => c.id === invoice.customerId);
     setSelectedInvoice(invoice);
     setEmailTo(customer?.email || '');
-    setEmailSubject(`Invoice ${invoice.invoiceNumber} from ${activeCompany?.businessName || 'YardBooks'}`);
+    setEmailSubject(`Invoice ${invoice.invoiceNumber} from ${activeCompany?.businessName || 'YaadBooks'}`);
     setEmailMessage(`Dear ${customer?.name || 'Valued Customer'},
 
 Please find attached invoice ${invoice.invoiceNumber} for ${formatJMD(invoice.total)}.
@@ -64,7 +64,7 @@ Payment is due by ${format(new Date(invoice.dueDate), 'MMMM dd, yyyy')}.
 Thank you for your business!
 
 Best regards,
-${activeCompany?.businessName || 'YardBooks'}`);
+${activeCompany?.businessName || 'YaadBooks'}`);
     setShowEmailModal(true);
   };
 

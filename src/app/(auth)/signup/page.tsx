@@ -211,7 +211,7 @@ export default function SignupPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-emerald-600 font-bold text-xl">
               YB
             </div>
-            <span className="text-2xl font-bold text-white">YardBooks</span>
+            <span className="text-2xl font-bold text-white">YaadBooks</span>
           </div>
         </div>
 
@@ -220,7 +220,7 @@ export default function SignupPage() {
             Start managing your<br />business today
           </h1>
           <p className="text-emerald-100 text-lg mb-8">
-            Join thousands of Jamaican businesses using YardBooks to streamline their operations.
+            Join thousands of Jamaican businesses using YaadBooks to streamline their operations.
           </p>
           <div className="space-y-4">
             {[
@@ -253,7 +253,7 @@ export default function SignupPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
               YB
             </div>
-            <span className="text-2xl font-bold text-gray-900">YardBooks</span>
+            <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
           </div>
 
           {/* Progress Indicator */}

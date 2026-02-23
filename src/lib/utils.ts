@@ -1,4 +1,4 @@
-// YardBooks Web - Utility Functions
+// YaadBooks Web - Utility Functions
 import { clsx, type ClassValue } from 'clsx';
 
 // ============================================

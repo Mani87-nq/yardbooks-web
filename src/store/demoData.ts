@@ -1,4 +1,4 @@
-// YardBooks Web - Demo Data for Testing
+// YaadBooks Web - Demo Data for Testing
 import type {
   User,
   Company,
@@ -19,7 +19,7 @@ import type { BankAccount, BankTransaction } from '@/types/banking';
 // ============================================
 export const demoUser: User = {
   id: 'user-001',
-  email: 'demo@yardbooks.com',
+  email: 'demo@yaadbooks.com',
   firstName: 'Damany',
   lastName: 'Dolphy',
   phone: '876-555-1234',

@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     if (!verified && totpCode && dbUser.twoFactorSecret) {
       const totp = new TOTP({
-        issuer: 'YardBooks',
+        issuer: 'YaadBooks',
         label: dbUser.email,
         algorithm: 'SHA1',
         digits: 6,

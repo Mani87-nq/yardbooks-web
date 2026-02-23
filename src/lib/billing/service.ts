@@ -1,5 +1,5 @@
 /**
- * Stripe billing integration for YardBooks SaaS subscriptions.
+ * Stripe billing integration for YaadBooks SaaS subscriptions.
  * Uses Stripe API directly via fetch (no SDK dependency).
  */
 
@@ -100,7 +100,7 @@ export async function createCheckoutSession(params: {
       'line_items[0][price_data][currency]': 'usd',
       'line_items[0][price_data][unit_amount]': String(Math.round(plan.priceUsd * 100)),
       'line_items[0][price_data][recurring][interval]': 'month',
-      'line_items[0][price_data][product_data][name]': `YardBooks ${plan.name}`,
+      'line_items[0][price_data][product_data][name]': `YaadBooks ${plan.name}`,
       'success_url': params.successUrl,
       'cancel_url': params.cancelUrl,
       'metadata[companyId]': params.companyId,

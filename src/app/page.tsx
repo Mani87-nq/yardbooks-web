@@ -22,7 +22,7 @@ export default function HomePage() {
         <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-2xl mx-auto mb-4">
           YB
         </div>
-        <p className="text-gray-500">Loading YardBooks...</p>
+        <p className="text-gray-500">Loading YaadBooks...</p>
       </div>
     </div>
   );

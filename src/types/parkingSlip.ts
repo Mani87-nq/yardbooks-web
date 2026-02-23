@@ -1,4 +1,4 @@
-// YardBooks Web - Parking Slip Types
+// YaadBooks Web - Parking Slip Types
 
 export type ParkingSlipStatus = 'active' | 'completed' | 'cancelled' | 'expired';
 

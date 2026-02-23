@@ -1,4 +1,4 @@
-// YardBooks Web - Stock Count Type Definitions
+// YaadBooks Web - Stock Count Type Definitions
 
 export interface StockCount {
   id: string;

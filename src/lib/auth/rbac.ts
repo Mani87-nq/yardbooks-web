@@ -1,5 +1,5 @@
 /**
- * Role-Based Access Control (RBAC) for YardBooks.
+ * Role-Based Access Control (RBAC) for YaadBooks.
  *
  * Role hierarchy: OWNER > ADMIN > ACCOUNTANT > STAFF > READ_ONLY
  *

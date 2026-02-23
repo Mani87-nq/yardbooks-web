@@ -1,4 +1,4 @@
-// YardBooks Web - Notification Types
+// YaadBooks Web - Notification Types
 
 export type NotificationType =
   | 'invoice_due'

@@ -288,7 +288,7 @@ export default function CustomerStatementsPage() {
       subtitle: periodLabel,
       companyName: activeCompany?.businessName,
       content,
-      footer: `${activeCompany?.businessName || 'YardBooks'} | ${activeCompany?.phone || ''} | ${activeCompany?.email || ''} | Generated on ${formatDate(new Date())}`,
+      footer: `${activeCompany?.businessName || 'YaadBooks'} | ${activeCompany?.phone || ''} | ${activeCompany?.email || ''} | Generated on ${formatDate(new Date())}`,
     });
   };
 

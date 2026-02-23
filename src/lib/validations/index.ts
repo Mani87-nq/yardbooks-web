@@ -1,5 +1,5 @@
 /**
- * YardBooks validation schemas — central re-export.
+ * YaadBooks validation schemas — central re-export.
  */
 export * from './common';
 export * from './customer';

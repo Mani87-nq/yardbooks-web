@@ -274,7 +274,7 @@ export default function DashboardPage() {
             <div>
               <h3 className="text-lg font-semibold">GCT Ready</h3>
               <p className="text-emerald-100 text-sm">
-                YardBooks automatically calculates GCT at 15% on all applicable transactions.
+                YaadBooks automatically calculates GCT at 15% on all applicable transactions.
               </p>
             </div>
             <div className="flex gap-3">

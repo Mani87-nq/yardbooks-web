@@ -1,5 +1,5 @@
 /**
- * Prisma Seed Script - YardBooks
+ * Prisma Seed Script - YaadBooks
  *
  * Populates the database with:
  * 1. Default chart of accounts (Jamaica standard - 30+ core accounts)
@@ -13,7 +13,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
-const connectionString = process.env.DATABASE_URL ?? 'postgresql://dolphy@localhost:5432/yardbooks?schema=public';
+const connectionString = process.env.DATABASE_URL ?? 'postgresql://dolphy@localhost:5432/yaadbooks?schema=public';
 const pool = new pg.Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -752,7 +752,7 @@ function logParishes() {
 async function main() {
   console.log('');
   console.log('========================================');
-  console.log('  YardBooks Database Seed');
+  console.log('  YaadBooks Database Seed');
   console.log('========================================');
   console.log('');
 

@@ -1,5 +1,5 @@
 /**
- * Notification service for YardBooks.
+ * Notification service for YaadBooks.
  *
  * Provides helpers to create in-app notifications (stored in the
  * Notification table) and optionally send an accompanying email.

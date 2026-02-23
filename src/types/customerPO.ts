@@ -1,4 +1,4 @@
-// YardBooks Web - Customer Purchase Order Types
+// YaadBooks Web - Customer Purchase Order Types
 
 import type { Address } from './index';
 

@@ -1,5 +1,5 @@
 /**
- * OWASP Top 10 Compliance Checker for YardBooks.
+ * OWASP Top 10 Compliance Checker for YaadBooks.
  *
  * Programmatically verifies that key security controls are in place
  * across the application. Each check maps to an OWASP Top 10 (2021) category.

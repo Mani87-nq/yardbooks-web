@@ -1,4 +1,4 @@
-// YardBooks Web - Main App Store
+// YaadBooks Web - Main App Store
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
@@ -787,7 +787,7 @@ export const useAppStore = create<AppState>()(
       }),
     }),
     {
-      name: 'yardbooks-web-storage',
+      name: 'yaadbooks-web-storage',
       version: 2, // Increment this when type structures change
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState, version) => {
@@ -804,7 +804,7 @@ export const useAppStore = create<AppState>()(
           console.error('Error rehydrating store:', error);
           // Clear corrupted localStorage data
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('yardbooks-web-storage');
+            localStorage.removeItem('yaadbooks-web-storage');
           }
         }
       },

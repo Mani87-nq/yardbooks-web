@@ -1,4 +1,4 @@
-# YardBooks Production Deployment Guide
+# YaadBooks Production Deployment Guide
 
 ## Quick Deployment Steps
 

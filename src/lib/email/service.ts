@@ -1,5 +1,5 @@
 /**
- * Email service layer for YardBooks.
+ * Email service layer for YaadBooks.
  *
  * Supports multiple providers via environment configuration.
  * Currently implemented: Resend (RESEND_API_KEY).
@@ -27,7 +27,7 @@ export interface EmailResult {
 }
 
 // Default sender address
-const DEFAULT_FROM = process.env.EMAIL_FROM ?? 'YardBooks <noreply@yardbooks.com>';
+const DEFAULT_FROM = process.env.EMAIL_FROM ?? 'YaadBooks <noreply@yaadbooks.com>';
 
 /**
  * Send an email using the configured provider.

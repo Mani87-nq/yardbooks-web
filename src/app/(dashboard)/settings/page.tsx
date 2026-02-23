@@ -145,7 +145,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `yardbooks-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `yaadbooks-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

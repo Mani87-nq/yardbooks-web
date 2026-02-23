@@ -1,4 +1,4 @@
-// YardBooks Web - Core Type Definitions
+// YaadBooks Web - Core Type Definitions
 
 // ============================================
 // USER & AUTHENTICATION

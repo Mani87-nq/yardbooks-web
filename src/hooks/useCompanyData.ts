@@ -1,4 +1,4 @@
-// YardBooks Web - Company-Aware Data Hooks
+// YaadBooks Web - Company-Aware Data Hooks
 // These hooks filter all data by the active company
 
 import { useMemo } from 'react';

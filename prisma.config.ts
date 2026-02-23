@@ -9,6 +9,6 @@ export default defineConfig({
   datasource: {
     // Use DIRECT_URL for migrations if available (bypasses connection pooler)
     // Fall back to DATABASE_URL for regular operations
-    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? 'postgresql://localhost:5432/yardbooks',
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? 'postgresql://localhost:5432/yaadbooks',
   },
 });

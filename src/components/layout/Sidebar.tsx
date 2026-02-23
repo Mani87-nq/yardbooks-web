@@ -137,7 +137,7 @@ export function Sidebar() {
               YB
             </div>
             {sidebarOpen && (
-              <span className="text-lg font-semibold">YardBooks</span>
+              <span className="text-lg font-semibold">YaadBooks</span>
             )}
           </Link>
           <button

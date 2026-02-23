@@ -50,7 +50,7 @@ export async function signAccessToken(payload: Omit<AccessTokenPayload, 'iat' | 
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)
-    .setIssuer('yardbooks')
+    .setIssuer('yaadbooks')
     .sign(getAccessSecret());
 }
 
@@ -59,7 +59,7 @@ export async function signRefreshToken(payload: Omit<RefreshTokenPayload, 'iat' 
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(REFRESH_TOKEN_EXPIRY)
-    .setIssuer('yardbooks')
+    .setIssuer('yaadbooks')
     .sign(getRefreshSecret());
 }
 
@@ -69,14 +69,14 @@ export async function signRefreshToken(payload: Omit<RefreshTokenPayload, 'iat' 
 
 export async function verifyAccessToken(token: string): Promise<AccessTokenPayload> {
   const { payload } = await jwtVerify(token, getAccessSecret(), {
-    issuer: 'yardbooks',
+    issuer: 'yaadbooks',
   });
   return payload as unknown as AccessTokenPayload;
 }
 
 export async function verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
   const { payload } = await jwtVerify(token, getRefreshSecret(), {
-    issuer: 'yardbooks',
+    issuer: 'yaadbooks',
   });
   return payload as unknown as RefreshTokenPayload;
 }
@@ -85,7 +85,7 @@ export async function verifyRefreshToken(token: string): Promise<RefreshTokenPay
 // COOKIE HELPERS
 // ============================================
 
-export const REFRESH_TOKEN_COOKIE = 'yardbooks_refresh_token';
+export const REFRESH_TOKEN_COOKIE = 'yaadbooks_refresh_token';
 
 export function getRefreshTokenCookieOptions() {
   return {

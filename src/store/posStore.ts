@@ -945,7 +945,7 @@ export const usePosStore = create<PosState>()(
       getZReport: (id) => get().zReports.find((r) => r.id === id),
     }),
     {
-      name: 'yardbooks-pos-web',
+      name: 'yaadbooks-pos-web',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         orders: state.orders,

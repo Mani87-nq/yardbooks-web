@@ -1,4 +1,4 @@
-// Print & PDF utilities for YardBooks
+// Print & PDF utilities for YaadBooks
 import DOMPurify from 'dompurify';
 
 /**
@@ -167,7 +167,7 @@ export function printContent(options: PrintOptions): void {
       </div>
       ${footer ? `<div class="footer">${sanitize(footer)}</div>` : `
         <div class="footer">
-          Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | YardBooks
+          Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | YaadBooks
         </div>
       `}
       <script>

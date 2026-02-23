@@ -122,7 +122,7 @@ export default function LoginPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-emerald-600 font-bold text-xl">
               YB
             </div>
-            <span className="text-2xl font-bold text-white">YardBooks</span>
+            <span className="text-2xl font-bold text-white">YaadBooks</span>
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export default function LoginPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
               YB
             </div>
-            <span className="text-2xl font-bold text-gray-900">YardBooks</span>
+            <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
@@ -248,7 +248,7 @@ export default function LoginPage() {
               Load Demo Data &amp; Explore
             </button>
             <p className="mt-2 text-xs text-center text-gray-500">
-              Explore YardBooks with sample companies, customers, products, invoices, and more
+              Explore YaadBooks with sample companies, customers, products, invoices, and more
             </p>
           </div>
 

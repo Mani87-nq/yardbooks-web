@@ -1,5 +1,5 @@
 /**
- * Enhanced password security utilities for YardBooks.
+ * Enhanced password security utilities for YaadBooks.
  *
  * Provides:
  *  - HIBP (Have I Been Pwned) breach checking via k-anonymity
@@ -45,7 +45,7 @@ export async function checkPasswordBreached(
     `https://api.pwnedpasswords.com/range/${prefix}`,
     {
       headers: {
-        'User-Agent': 'YardBooks-PasswordSecurity',
+        'User-Agent': 'YaadBooks-PasswordSecurity',
       },
     },
   );
