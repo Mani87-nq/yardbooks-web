@@ -39,7 +39,11 @@ export type Permission =
   // Tax
   | 'tax:read' | 'tax:export' | 'tax:file'
   // Inventory (Purchase Orders, Goods Received Notes)
-  | 'inventory:read' | 'inventory:create' | 'inventory:update' | 'inventory:delete';
+  | 'inventory:read' | 'inventory:create' | 'inventory:update' | 'inventory:delete'
+  // Fixed Assets
+  | 'fixed_assets:read' | 'fixed_assets:create' | 'fixed_assets:update' | 'fixed_assets:delete' | 'fixed_assets:depreciate'
+  // POS
+  | 'pos:read' | 'pos:create' | 'pos:update' | 'pos:delete' | 'pos:void' | 'pos:settings';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   READ_ONLY: [
@@ -57,6 +61,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'settings:read',
     'tax:read',
     'inventory:read',
+    'fixed_assets:read',
+    'pos:read',
   ],
 
   STAFF: [
@@ -68,6 +74,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'expenses:create', 'expenses:update',
     'banking:create',
     'inventory:create', 'inventory:update',
+    'fixed_assets:create', 'fixed_assets:update',
+    'pos:create', 'pos:update',
   ],
 
   ACCOUNTANT: [
@@ -85,6 +93,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'tax:export', 'tax:file',
     'audit:read',
     'inventory:delete',
+    'fixed_assets:delete', 'fixed_assets:depreciate',
+    'pos:delete', 'pos:void',
   ],
 
   ADMIN: [
@@ -92,6 +102,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'company:update',
     'users:read', 'users:create', 'users:update', 'users:delete',
     'settings:update', 'settings:write',
+    'pos:settings',
   ],
 
   OWNER: [
