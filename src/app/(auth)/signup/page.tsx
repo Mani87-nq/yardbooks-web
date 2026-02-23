@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
+import { api, setAccessToken, ApiRequestError } from '@/lib/api-client';
 import {
   UserIcon,
   EnvelopeIcon,
@@ -35,6 +36,29 @@ const PARISHES = [
   'St. Elizabeth', 'Manchester', 'Clarendon', 'St. Catherine',
 ];
 
+const BUSINESS_TYPES = [
+  { value: 'SOLE_PROPRIETOR', label: 'Sole Proprietor' },
+  { value: 'PARTNERSHIP', label: 'Partnership' },
+  { value: 'LIMITED_COMPANY', label: 'Limited Company' },
+  { value: 'NGO', label: 'Non-Profit / NGO' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+interface RegisterResponse {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    activeCompanyId: string | null;
+  };
+  company: {
+    id: string;
+    businessName: string;
+  } | null;
+  accessToken: string;
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const { setUser, setActiveCompany } = useAppStore();
@@ -42,6 +66,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const [formData, setFormData] = useState({
     // Step 1: Personal Info
@@ -54,27 +79,44 @@ export default function SignupPage() {
     // Step 2: Business Info
     businessName: '',
     tradingName: '',
+    businessType: 'SOLE_PROPRIETOR',
     industry: '',
     parish: '',
     trnNumber: '',
   });
 
   const handleNext = () => {
+    setError('');
+    setFieldErrors({});
+
     if (step === 1) {
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-        setError('Please fill in all required fields');
-        return;
+      const errors: Record<string, string[]> = {};
+
+      if (!formData.firstName.trim()) {
+        errors.firstName = ['First name is required'];
+      }
+      if (!formData.lastName.trim()) {
+        errors.lastName = ['Last name is required'];
+      }
+      if (!formData.email.trim()) {
+        errors.email = ['Email is required'];
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        errors.email = ['Please enter a valid email address'];
+      }
+      if (!formData.password) {
+        errors.password = ['Password is required'];
+      } else if (formData.password.length < 12) {
+        errors.password = ['Password must be at least 12 characters'];
       }
       if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        return;
+        errors.confirmPassword = ['Passwords do not match'];
       }
-      if (formData.password.length < 8) {
-        setError('Password must be at least 8 characters');
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
         return;
       }
     }
-    setError('');
     setStep(step + 1);
   };
 
@@ -85,42 +127,80 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     setIsLoading(true);
 
-    if (!formData.businessName) {
-      setError('Please enter your business name');
+    if (!formData.businessName.trim()) {
+      setFieldErrors({ businessName: ['Business name is required'] });
       setIsLoading(false);
       return;
     }
 
-    // Simulate signup
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const data = await api.post<RegisterResponse>('/api/auth/register', {
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone || undefined,
+        companyName: formData.businessName,
+        businessType: formData.businessType,
+      });
 
-    setUser({
-      id: '1',
-      email: formData.email,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
-      role: 'admin',
-      createdAt: new Date(),
-    });
+      // Store access token
+      setAccessToken(data.accessToken);
 
-    setActiveCompany({
-      id: '1',
-      businessName: formData.businessName,
-      tradingName: formData.tradingName,
-      trnNumber: formData.trnNumber,
-      email: formData.email,
-      phone: formData.phone,
-      parish: formData.parish,
-      industry: formData.industry,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+      // Set user in store
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        role: 'admin',
+        createdAt: new Date(),
+      });
 
-    router.push('/dashboard');
+      // Set active company
+      if (data.company) {
+        setActiveCompany({
+          id: data.company.id,
+          businessName: data.company.businessName,
+          tradingName: formData.tradingName,
+          trnNumber: formData.trnNumber,
+          email: formData.email,
+          phone: formData.phone,
+          address: '',
+          parish: formData.parish,
+          industry: formData.industry,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      router.push('/dashboard');
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        if (err.status === 409) {
+          setError('An account with this email already exists. Please sign in instead.');
+        } else if (err.status === 429) {
+          setError('Too many registration attempts. Please wait a moment and try again.');
+        } else if (err.errors) {
+          setFieldErrors(err.errors);
+          if (err.errors.password) {
+            setStep(1); // Go back to step 1 if password error
+          }
+        } else {
+          setError(err.detail ?? 'Registration failed. Please try again.');
+        }
+      } else {
+        setError('An error occurred. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const getFieldError = (field: string) => fieldErrors[field]?.[0];
 
   return (
     <div className="min-h-screen flex">
@@ -217,10 +297,15 @@ export default function SignupPage() {
                         type="text"
                         value={formData.firstName}
                         onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                          getFieldError('firstName') ? 'border-red-300' : 'border-gray-300'
+                        }`}
                         placeholder="John"
                       />
                     </div>
+                    {getFieldError('firstName') && (
+                      <p className="mt-1 text-xs text-red-600">{getFieldError('firstName')}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -230,9 +315,14 @@ export default function SignupPage() {
                       type="text"
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('lastName') ? 'border-red-300' : 'border-gray-300'
+                      }`}
                       placeholder="Brown"
                     />
+                    {getFieldError('lastName') && (
+                      <p className="mt-1 text-xs text-red-600">{getFieldError('lastName')}</p>
+                    )}
                   </div>
                 </div>
 
@@ -248,10 +338,15 @@ export default function SignupPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('email') ? 'border-red-300' : 'border-gray-300'
+                      }`}
                       placeholder="you@example.com"
                     />
                   </div>
+                  {getFieldError('email') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('email')}</p>
+                  )}
                 </div>
 
                 <div>
@@ -284,8 +379,10 @@ export default function SignupPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Min. 8 characters"
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('password') ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="Min. 12 characters"
                     />
                     <button
                       type="button"
@@ -299,6 +396,9 @@ export default function SignupPage() {
                       )}
                     </button>
                   </div>
+                  {getFieldError('password') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('password')}</p>
+                  )}
                 </div>
 
                 <div>
@@ -309,9 +409,14 @@ export default function SignupPage() {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                      getFieldError('confirmPassword') ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Re-enter password"
                   />
+                  {getFieldError('confirmPassword') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('confirmPassword')}</p>
+                  )}
                 </div>
 
                 <button
@@ -338,10 +443,15 @@ export default function SignupPage() {
                       type="text"
                       value={formData.businessName}
                       onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('businessName') ? 'border-red-300' : 'border-gray-300'
+                      }`}
                       placeholder="Your Company Ltd."
                     />
                   </div>
+                  {getFieldError('businessName') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('businessName')}</p>
+                  )}
                 </div>
 
                 <div>
@@ -355,6 +465,21 @@ export default function SignupPage() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="DBA / Trade As name (optional)"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Business Type
+                  </label>
+                  <select
+                    value={formData.businessType}
+                    onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  >
+                    {BUSINESS_TYPES.map((bt) => (
+                      <option key={bt.value} value={bt.value}>{bt.label}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -433,9 +558,9 @@ export default function SignupPage() {
           {step === 1 && (
             <p className="mt-4 text-center text-xs text-gray-400">
               By signing up, you agree to our{' '}
-              <Link href="#" className="text-emerald-600">Terms of Service</Link>
+              <Link href="/legal/terms" className="text-emerald-600">Terms of Service</Link>
               {' '}and{' '}
-              <Link href="#" className="text-emerald-600">Privacy Policy</Link>
+              <Link href="/legal/privacy" className="text-emerald-600">Privacy Policy</Link>
             </p>
           )}
         </div>
