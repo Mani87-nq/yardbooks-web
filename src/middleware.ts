@@ -7,11 +7,17 @@ import { verifyAccessToken } from '@/lib/auth/jwt';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
+  '/',  // Landing page
   '/login',
   '/signup',
   '/forgot-password',
   '/reset-password',
   '/verify-email',
+  '/privacy',
+  '/terms',
+  '/contact',
+  '/billing/success',
+  '/billing/cancelled',
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/logout',
@@ -19,6 +25,10 @@ const PUBLIC_ROUTES = [
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/verify-email',
+  '/api/auth/oauth/google',
+  '/api/v1/billing/plans',
+  '/api/billing/checkout',
+  '/api/billing/webhook',
 ];
 
 // Routes that should redirect to dashboard if already authenticated
