@@ -1,19 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
-import type { FixedAsset } from '@/types/fixedAssets';
-
-interface LocalAssetCategory {
-  id: string;
-  name: string;
-  usefulLife: number;
-  depreciationMethod: string;
-  depreciationRate: number;
-}
+import {
+  useFixedAssets,
+  useAssetCategories,
+  useCreateFixedAsset,
+  useUpdateFixedAsset,
+  useDeleteFixedAsset,
+  useRunDepreciation,
+} from '@/hooks/api/useFixedAssets';
+import type { FixedAssetAPI, AssetCategoryAPI } from '@/hooks/api/useFixedAssets';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -25,13 +23,15 @@ import {
   TruckIcon,
   ComputerDesktopIcon,
   BuildingOfficeIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const DEPRECIATION_METHODS = [
-  { value: 'straight_line', label: 'Straight Line' },
-  { value: 'declining_balance', label: 'Declining Balance' },
-  { value: 'sum_of_years', label: 'Sum of Years Digits' },
-  { value: 'units_of_production', label: 'Units of Production' },
+  { value: 'STRAIGHT_LINE', label: 'Straight Line' },
+  { value: 'REDUCING_BALANCE', label: 'Reducing Balance' },
+  { value: 'UNITS_OF_PRODUCTION', label: 'Units of Production' },
+  { value: 'NONE', label: 'None' },
 ];
 
 // Jamaica Capital Allowance Classes (Income Tax Act)
@@ -45,21 +45,41 @@ const JAMAICA_CAPITAL_ALLOWANCE_CLASSES = [
   { class: 'G', name: 'Farm Works', initialAllowance: 0.33, annualAllowance: 0.167, notes: 'Agricultural improvements' },
 ];
 
-const ASSET_CATEGORIES: LocalAssetCategory[] = [
-  { id: '1', name: 'Buildings', usefulLife: 240, depreciationMethod: 'straight_line', depreciationRate: 0.05 },
-  { id: '2', name: 'Vehicles', usefulLife: 60, depreciationMethod: 'declining_balance', depreciationRate: 0.20 },
-  { id: '3', name: 'Computer Equipment', usefulLife: 36, depreciationMethod: 'straight_line', depreciationRate: 0.33 },
-  { id: '4', name: 'Furniture & Fixtures', usefulLife: 84, depreciationMethod: 'straight_line', depreciationRate: 0.143 },
-  { id: '5', name: 'Machinery & Equipment', usefulLife: 120, depreciationMethod: 'straight_line', depreciationRate: 0.10 },
-  { id: '6', name: 'Land', usefulLife: 0, depreciationMethod: 'straight_line', depreciationRate: 0 },
+// Fallback categories for the form when API categories haven't been set up yet
+const FALLBACK_CATEGORIES = [
+  { name: 'Buildings', usefulLife: 240, depreciationMethod: 'STRAIGHT_LINE' },
+  { name: 'Vehicles', usefulLife: 60, depreciationMethod: 'REDUCING_BALANCE' },
+  { name: 'Computer Equipment', usefulLife: 36, depreciationMethod: 'STRAIGHT_LINE' },
+  { name: 'Furniture & Fixtures', usefulLife: 84, depreciationMethod: 'STRAIGHT_LINE' },
+  { name: 'Machinery & Equipment', usefulLife: 120, depreciationMethod: 'STRAIGHT_LINE' },
+  { name: 'Land', usefulLife: 0, depreciationMethod: 'NONE' },
 ];
 
 const getCategoryIcon = (categoryName: string) => {
-  if (categoryName.includes('Building')) return BuildingOfficeIcon;
-  if (categoryName.includes('Vehicle')) return TruckIcon;
-  if (categoryName.includes('Computer')) return ComputerDesktopIcon;
-  if (categoryName.includes('Machinery')) return WrenchScrewdriverIcon;
+  if (categoryName?.includes('Building')) return BuildingOfficeIcon;
+  if (categoryName?.includes('Vehicle') || categoryName?.includes('Motor')) return TruckIcon;
+  if (categoryName?.includes('Computer')) return ComputerDesktopIcon;
+  if (categoryName?.includes('Machinery') || categoryName?.includes('Plant')) return WrenchScrewdriverIcon;
   return CubeIcon;
+};
+
+const STATUS_MAP: Record<string, string> = {
+  ACTIVE: 'active',
+  IDLE: 'idle',
+  UNDER_MAINTENANCE: 'under_maintenance',
+  DISPOSED: 'disposed',
+  LOST: 'lost',
+  TRANSFERRED: 'transferred',
+};
+
+const getStatusDisplay = (status: string) => {
+  return status.toLowerCase().replace(/_/g, ' ');
+};
+
+const getStatusVariant = (status: string): 'success' | 'warning' | 'default' | 'info' => {
+  if (status === 'ACTIVE') return 'success';
+  if (status === 'DISPOSED' || status === 'LOST') return 'default';
+  return 'warning';
 };
 
 export default function FixedAssetsPage() {
@@ -68,73 +88,74 @@ export default function FixedAssetsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [showDepreciationModal, setShowDepreciationModal] = useState(false);
-  const [showCapitalAllowanceModal, setShowCapitalAllowanceModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'assets' | 'allowances'>('assets');
-  const [editingAsset, setEditingAsset] = useState<FixedAsset | null>(null);
+  const [editingAsset, setEditingAsset] = useState<FixedAssetAPI | null>(null);
+  const [saveError, setSaveError] = useState('');
 
-  const { fixedAssets, addFixedAsset, updateFixedAsset, deleteFixedAsset } = useAppStore();
+  // API hooks
+  const apiStatus = statusFilter !== 'all' ? statusFilter.toUpperCase() : undefined;
+  const { data: assetsResponse, isLoading, error: fetchError, refetch } = useFixedAssets({
+    search: searchQuery || undefined,
+    status: apiStatus,
+    limit: 100,
+  });
+  const { data: categoriesResponse } = useAssetCategories();
+  const createAsset = useCreateFixedAsset();
+  const updateAsset = useUpdateFixedAsset();
+  const deleteAsset = useDeleteFixedAsset();
+  const runDepreciation = useRunDepreciation();
+
+  const fixedAssets = assetsResponse?.data ?? [];
+  const apiCategories = categoriesResponse?.data ?? [];
+
+  // Use API categories if available, otherwise use fallback
+  const categoryOptions = apiCategories.length > 0
+    ? apiCategories.map(c => ({ id: c.id, name: c.name, usefulLife: c.defaultBookUsefulLifeMonths, depreciationMethod: c.defaultBookMethod }))
+    : FALLBACK_CATEGORIES.map((c, i) => ({ id: `fallback-${i}`, name: c.name, usefulLife: c.usefulLife, depreciationMethod: c.depreciationMethod }));
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    assetNumber: '',
-    category: '',
+    assetTag: '',
+    categoryId: '',
+    categoryName: '',
     purchaseDate: new Date().toISOString().split('T')[0],
     purchaseCost: '',
     salvageValue: '',
     usefulLife: '',
-    depreciationMethod: 'straight_line',
+    depreciationMethod: 'STRAIGHT_LINE',
     location: '',
     serialNumber: '',
     vendor: '',
   });
 
+  // Client-side filtering for category (if needed beyond API search)
   const filteredAssets = fixedAssets.filter((asset) => {
-    const matchesSearch = !searchQuery ||
-      (asset.name || asset.description)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.assetNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory = categoryFilter === 'all' || asset.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || asset.status === statusFilter;
-
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesCategory = categoryFilter === 'all' ||
+      asset.categoryName === categoryFilter ||
+      asset.category?.name === categoryFilter;
+    return matchesCategory;
   });
 
-  const generateAssetNumber = () => {
-    const prefix = 'FA';
-    const year = new Date().getFullYear();
-    const count = fixedAssets.length + 1;
-    return `${prefix}-${year}-${String(count).padStart(4, '0')}`;
-  };
-
-  const calculateDepreciation = (asset: FixedAsset): number => {
-    if (!asset.purchaseDate || !asset.purchaseCost) return 0;
-    const monthsSincePurchase = Math.floor(
-      (new Date().getTime() - new Date(asset.purchaseDate).getTime()) / (1000 * 60 * 60 * 24 * 30)
-    );
-    const depreciableAmount = asset.purchaseCost - (asset.salvageValue || 0);
-
-    if (asset.depreciationMethod === 'straight_line') {
-      const monthlyDepreciation = depreciableAmount / (asset.usefulLife || 1);
-      return Math.min(monthlyDepreciation * monthsSincePurchase, depreciableAmount);
-    }
-
-    return 0;
-  };
-
-  const handleOpenModal = (asset?: FixedAsset) => {
+  const handleOpenModal = useCallback((asset?: FixedAssetAPI) => {
+    setSaveError('');
     if (asset) {
       setEditingAsset(asset);
       setFormData({
         name: asset.name || asset.description || '',
         description: asset.description || '',
-        assetNumber: asset.assetNumber || asset.assetTag || '',
-        category: asset.category || asset.categoryName || '',
-        purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        purchaseCost: asset.purchaseCost?.toString() || '',
-        salvageValue: asset.salvageValue?.toString() || '',
-        usefulLife: asset.usefulLife?.toString() || '',
-        depreciationMethod: asset.depreciationMethod || 'straight_line',
+        assetTag: asset.assetTag || '',
+        categoryId: asset.categoryId || '',
+        categoryName: asset.categoryName || asset.category?.name || '',
+        purchaseDate: asset.purchaseDate
+          ? new Date(asset.purchaseDate).toISOString().split('T')[0]
+          : asset.acquisitionDate
+            ? new Date(asset.acquisitionDate).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0],
+        purchaseCost: (asset.purchaseCost ?? asset.acquisitionCost ?? '').toString(),
+        salvageValue: (asset.bookResidualValue ?? '').toString(),
+        usefulLife: (asset.bookUsefulLifeMonths ?? '').toString(),
+        depreciationMethod: asset.bookDepreciationMethod || 'STRAIGHT_LINE',
         location: asset.location || asset.locationName || '',
         serialNumber: asset.serialNumber || '',
         vendor: asset.vendor || asset.supplierName || '',
@@ -144,115 +165,123 @@ export default function FixedAssetsPage() {
       setFormData({
         name: '',
         description: '',
-        assetNumber: generateAssetNumber(),
-        category: '',
+        assetTag: '',
+        categoryId: '',
+        categoryName: '',
         purchaseDate: new Date().toISOString().split('T')[0],
         purchaseCost: '',
         salvageValue: '',
         usefulLife: '',
-        depreciationMethod: 'straight_line',
+        depreciationMethod: 'STRAIGHT_LINE',
         location: '',
         serialNumber: '',
         vendor: '',
       });
     }
     setShowModal(true);
-  };
+  }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaveError('');
     if (!formData.name.trim()) {
-      alert('Please enter an asset name');
+      setSaveError('Please enter an asset name');
       return;
     }
     if (!formData.purchaseCost || parseFloat(formData.purchaseCost) <= 0) {
-      alert('Please enter a valid purchase cost');
-      return;
-    }
-    if (!formData.category) {
-      alert('Please select a category');
+      setSaveError('Please enter a valid purchase cost');
       return;
     }
 
-    const assetData = {
+    const payload: Record<string, unknown> = {
       name: formData.name,
       description: formData.description || formData.name,
-      assetNumber: formData.assetNumber,
-      category: formData.category,
-      purchaseDate: new Date(formData.purchaseDate),
+      assetTag: formData.assetTag || undefined,
+      purchaseDate: formData.purchaseDate ? new Date(formData.purchaseDate).toISOString() : undefined,
       purchaseCost: parseFloat(formData.purchaseCost),
-      salvageValue: formData.salvageValue ? parseFloat(formData.salvageValue) : 0,
-      usefulLife: formData.usefulLife ? parseInt(formData.usefulLife) : undefined,
-      depreciationMethod: formData.depreciationMethod,
+      acquisitionCost: parseFloat(formData.purchaseCost),
+      bookResidualValue: formData.salvageValue ? parseFloat(formData.salvageValue) : 0,
+      bookUsefulLifeMonths: formData.usefulLife ? parseInt(formData.usefulLife) : undefined,
+      bookDepreciationMethod: formData.depreciationMethod,
       location: formData.location || undefined,
       serialNumber: formData.serialNumber || undefined,
       vendor: formData.vendor || undefined,
-      updatedAt: new Date(),
     };
 
-    if (editingAsset) {
-      updateFixedAsset(editingAsset.id, assetData);
-    } else {
-      addFixedAsset({
-        id: uuidv4(),
-        ...assetData,
-        status: 'active',
-        bookAccumulatedDepreciation: 0,
-        bookNetBookValue: parseFloat(formData.purchaseCost),
-        createdAt: new Date(),
-      });
+    // If an API category was selected, include categoryId
+    if (formData.categoryId && !formData.categoryId.startsWith('fallback-')) {
+      payload.categoryId = formData.categoryId;
     }
-    setShowModal(false);
-  };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this asset?')) {
-      deleteFixedAsset(id);
-    }
-  };
-
-  const handleRunDepreciation = () => {
-    const activeAssets = fixedAssets.filter(a => a.status === 'active');
-    let updated = 0;
-
-    activeAssets.forEach(asset => {
-      const depreciation = calculateDepreciation(asset);
-      const accumulated = (asset.bookAccumulatedDepreciation || 0) + depreciation;
-      const bookValue = (asset.purchaseCost || 0) - accumulated;
-
-      if (bookValue !== asset.bookNetBookValue) {
-        updateFixedAsset(asset.id, {
-          bookAccumulatedDepreciation: accumulated,
-          bookNetBookValue: Math.max(bookValue, asset.salvageValue || 0),
-        });
-        updated++;
+    try {
+      if (editingAsset) {
+        await updateAsset.mutateAsync({ id: editingAsset.id, data: payload });
+      } else {
+        payload.status = 'ACTIVE';
+        await createAsset.mutateAsync(payload);
       }
-    });
+      setShowModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save asset';
+      setSaveError(message);
+    }
+  };
 
-    alert(`Depreciation calculated for ${updated} assets`);
-    setShowDepreciationModal(false);
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to dispose of this asset?')) {
+      try {
+        await deleteAsset.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete asset';
+        alert(message);
+      }
+    }
+  };
+
+  const handleRunDepreciation = async () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const periodStart = new Date(year, month - 1, 1);
+    const periodEnd = new Date(year, month, 0);
+
+    try {
+      const result = await runDepreciation.mutateAsync({
+        fiscalYear: year,
+        periodNumber: month,
+        periodStartDate: periodStart.toISOString(),
+        periodEndDate: periodEnd.toISOString(),
+      });
+      alert(`Depreciation calculated for ${result.summary.assetsProcessed} assets.\nBook: ${formatJMD(result.summary.totalBookDepreciation)}\nTax: ${formatJMD(result.summary.totalTaxAllowance)}`);
+      setShowDepreciationModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to run depreciation';
+      alert(message);
+    }
   };
 
   // Stats
-  const totalCost = fixedAssets.reduce((sum, a) => sum + (a.purchaseCost || 0), 0);
-  const totalBookValue = fixedAssets.reduce((sum, a) => sum + (a.bookNetBookValue || a.purchaseCost || 0), 0);
-  const totalDepreciation = fixedAssets.reduce((sum, a) => sum + (a.bookAccumulatedDepreciation || 0), 0);
+  const totalCost = fixedAssets.reduce((sum, a) => sum + (a.purchaseCost ?? a.acquisitionCost ?? 0), 0);
+  const totalBookValue = fixedAssets.reduce((sum, a) => sum + (a.bookNetBookValue ?? 0), 0);
+  const totalDepreciation = fixedAssets.reduce((sum, a) => sum + (a.bookAccumulatedDepreciation ?? 0), 0);
 
-  // Calculate Capital Allowance stats (Jamaica tax deductions)
-  const totalTaxWDV = fixedAssets.reduce((sum, a) => sum + (a.taxWrittenDownValue || a.purchaseCost || 0), 0);
-  const totalInitialAllowanceClaimed = fixedAssets.reduce((sum, a) => sum + (a.taxInitialAllowanceClaimed || 0), 0);
-  const totalAccumulatedAllowances = fixedAssets.reduce((sum, a) => sum + (a.taxAccumulatedAllowances || 0), 0);
+  // Capital Allowance stats
+  const totalTaxWDV = fixedAssets.reduce((sum, a) => sum + (a.taxWrittenDownValue ?? 0), 0);
+  const totalInitialAllowanceClaimed = fixedAssets.reduce((sum, a) => sum + (a.taxInitialAllowanceClaimed ?? 0), 0);
+  const totalAccumulatedAllowances = fixedAssets.reduce((sum, a) => sum + (a.taxAccumulatedAllowances ?? 0), 0);
 
-  // Group assets by capital allowance class for summary
+  // Group assets by capital allowance class
   const allowanceClassSummary = JAMAICA_CAPITAL_ALLOWANCE_CLASSES.map(cls => {
     const classAssets = fixedAssets.filter(a => a.taxCapitalAllowanceClass === cls.class);
     return {
       ...cls,
       assetCount: classAssets.length,
-      totalCost: classAssets.reduce((sum, a) => sum + (a.purchaseCost || 0), 0),
-      totalWDV: classAssets.reduce((sum, a) => sum + (a.taxWrittenDownValue || a.purchaseCost || 0), 0),
-      totalClaimed: classAssets.reduce((sum, a) => sum + (a.taxAccumulatedAllowances || 0), 0),
+      totalCost: classAssets.reduce((sum, a) => sum + (a.purchaseCost ?? a.acquisitionCost ?? 0), 0),
+      totalWDV: classAssets.reduce((sum, a) => sum + (a.taxWrittenDownValue ?? 0), 0),
+      totalClaimed: classAssets.reduce((sum, a) => sum + (a.taxAccumulatedAllowances ?? 0), 0),
     };
   }).filter(cls => cls.assetCount > 0);
+
+  const activeAssetCount = fixedAssets.filter(a => a.status === 'ACTIVE').length;
 
   return (
     <div className="space-y-6">
@@ -298,6 +327,20 @@ export default function FixedAssetsPage() {
         </nav>
       </div>
 
+      {/* Error State */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">Failed to load fixed assets. {fetchError instanceof Error ? fetchError.message : ''}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <ArrowPathIcon className="w-4 h-4 mr-1" />
+            Retry
+          </Button>
+        </div>
+      )}
+
       {activeTab === 'assets' && (
         <>
           {/* Stats */}
@@ -305,25 +348,25 @@ export default function FixedAssetsPage() {
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Assets</p>
-                <p className="text-2xl font-bold text-gray-900">{fixedAssets.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : fixedAssets.length}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Cost</p>
-                <p className="text-2xl font-bold text-blue-600">{formatJMD(totalCost)}</p>
+                <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(totalCost)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Book Value</p>
-                <p className="text-2xl font-bold text-emerald-600">{formatJMD(totalBookValue)}</p>
+                <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : formatJMD(totalBookValue)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Depreciation</p>
-                <p className="text-2xl font-bold text-orange-600">{formatJMD(totalDepreciation)}</p>
+                <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : formatJMD(totalDepreciation)}</p>
               </div>
             </Card>
           </div>
@@ -337,25 +380,25 @@ export default function FixedAssetsPage() {
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Cost (Tax Base)</p>
-                <p className="text-2xl font-bold text-gray-900">{formatJMD(totalCost)}</p>
+                <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : formatJMD(totalCost)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Written Down Value</p>
-                <p className="text-2xl font-bold text-blue-600">{formatJMD(totalTaxWDV)}</p>
+                <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(totalTaxWDV)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Initial Allowances</p>
-                <p className="text-2xl font-bold text-emerald-600">{formatJMD(totalInitialAllowanceClaimed)}</p>
+                <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : formatJMD(totalInitialAllowanceClaimed)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Claimed</p>
-                <p className="text-2xl font-bold text-orange-600">{formatJMD(totalAccumulatedAllowances)}</p>
+                <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : formatJMD(totalAccumulatedAllowances)}</p>
               </div>
             </Card>
           </div>
@@ -480,7 +523,7 @@ export default function FixedAssetsPage() {
             className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
           >
             <option value="all">All Categories</option>
-            {ASSET_CATEGORIES.map((cat) => (
+            {categoryOptions.map((cat) => (
               <option key={cat.id} value={cat.name}>{cat.name}</option>
             ))}
           </select>
@@ -492,12 +535,24 @@ export default function FixedAssetsPage() {
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="disposed">Disposed</option>
-            <option value="fully_depreciated">Fully Depreciated</option>
+            <option value="idle">Idle</option>
+            <option value="under_maintenance">Under Maintenance</option>
           </select>
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <div className="p-12 text-center">
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
+            <p className="text-gray-500">Loading assets...</p>
+          </div>
+        </Card>
+      )}
+
       {/* Table */}
+      {!isLoading && (
       <Card padding="none">
         <Table>
           <TableHeader>
@@ -522,7 +577,8 @@ export default function FixedAssetsPage() {
               </TableRow>
             ) : (
               filteredAssets.map((asset) => {
-                const CategoryIcon = getCategoryIcon(asset.category || '');
+                const catName = asset.categoryName || asset.category?.name || '';
+                const CategoryIcon = getCategoryIcon(catName);
                 return (
                   <TableRow key={asset.id}>
                     <TableCell>
@@ -536,24 +592,20 @@ export default function FixedAssetsPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-500">{asset.category || asset.categoryName}</TableCell>
-                    <TableCell className="text-gray-500">{asset.purchaseDate ? formatDate(asset.purchaseDate) : '-'}</TableCell>
-                    <TableCell className="font-medium">{formatJMD(asset.purchaseCost || 0)}</TableCell>
+                    <TableCell className="text-gray-500">{catName || '-'}</TableCell>
+                    <TableCell className="text-gray-500">
+                      {asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : asset.acquisitionDate ? formatDate(new Date(asset.acquisitionDate)) : '-'}
+                    </TableCell>
+                    <TableCell className="font-medium">{formatJMD(asset.purchaseCost ?? asset.acquisitionCost ?? 0)}</TableCell>
                     <TableCell className="text-orange-600">
-                      {formatJMD(asset.bookAccumulatedDepreciation || 0)}
+                      {formatJMD(asset.bookAccumulatedDepreciation ?? 0)}
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600">
-                      {formatJMD(asset.bookNetBookValue || asset.purchaseCost || 0)}
+                      {formatJMD(asset.bookNetBookValue ?? 0)}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          asset.status === 'active' ? 'success' :
-                          asset.status === 'disposed' ? 'default' :
-                          'warning'
-                        }
-                      >
-                        {asset.status?.replace('_', ' ')}
+                      <Badge variant={getStatusVariant(asset.status)}>
+                        {getStatusDisplay(asset.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -561,7 +613,12 @@ export default function FixedAssetsPage() {
                         <Button variant="ghost" size="sm" onClick={() => handleOpenModal(asset)}>
                           <PencilIcon className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(asset.id)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(asset.id)}
+                          disabled={deleteAsset.isPending}
+                        >
                           <TrashIcon className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
@@ -573,6 +630,7 @@ export default function FixedAssetsPage() {
           </TableBody>
         </Table>
       </Card>
+      )}
         </>
       )}
 
@@ -585,6 +643,11 @@ export default function FixedAssetsPage() {
       >
         <ModalBody>
           <div className="space-y-4">
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                {saveError}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Asset Name *"
@@ -593,9 +656,10 @@ export default function FixedAssetsPage() {
                 placeholder="e.g., Delivery Van"
               />
               <Input
-                label="Asset Number"
-                value={formData.assetNumber}
-                onChange={(e) => setFormData({ ...formData, assetNumber: e.target.value })}
+                label="Asset Tag"
+                value={formData.assetTag}
+                onChange={(e) => setFormData({ ...formData, assetTag: e.target.value })}
+                placeholder="Optional identifier"
               />
             </div>
             <div>
@@ -609,23 +673,24 @@ export default function FixedAssetsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select
-                  value={formData.category}
+                  value={formData.categoryId}
                   onChange={(e) => {
-                    const cat = ASSET_CATEGORIES.find(c => c.name === e.target.value);
+                    const cat = categoryOptions.find(c => c.id === e.target.value);
                     setFormData({
                       ...formData,
-                      category: e.target.value,
+                      categoryId: e.target.value,
+                      categoryName: cat?.name || '',
                       usefulLife: cat?.usefulLife?.toString() || '',
-                      depreciationMethod: cat?.depreciationMethod || 'straight_line',
+                      depreciationMethod: cat?.depreciationMethod || 'STRAIGHT_LINE',
                     });
                   }}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   <option value="">Select category</option>
-                  {ASSET_CATEGORIES.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  {categoryOptions.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
               </div>
@@ -695,7 +760,12 @@ export default function FixedAssetsPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{editingAsset ? 'Update' : 'Create'}</Button>
+          <Button
+            onClick={handleSave}
+            disabled={createAsset.isPending || updateAsset.isPending}
+          >
+            {(createAsset.isPending || updateAsset.isPending) ? 'Saving...' : editingAsset ? 'Update' : 'Create'}
+          </Button>
         </ModalFooter>
       </Modal>
 
@@ -708,20 +778,24 @@ export default function FixedAssetsPage() {
         <ModalBody>
           <div className="space-y-4">
             <p className="text-gray-600">
-              This will calculate and record depreciation for all active assets based on their depreciation method and useful life.
+              This will calculate and record depreciation for all active assets based on their depreciation method and useful life
+              for the current month.
             </p>
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-600">
-                <strong>{fixedAssets.filter(a => a.status === 'active').length}</strong> active assets will be processed
+                <strong>{activeAssetCount}</strong> active assets will be processed
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Period: {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
               </p>
             </div>
           </div>
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowDepreciationModal(false)}>Cancel</Button>
-          <Button onClick={handleRunDepreciation}>
+          <Button onClick={handleRunDepreciation} disabled={runDepreciation.isPending}>
             <CalculatorIcon className="w-4 h-4 mr-1" />
-            Calculate Depreciation
+            {runDepreciation.isPending ? 'Calculating...' : 'Calculate Depreciation'}
           </Button>
         </ModalFooter>
       </Modal>

@@ -1,10 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { usePosStore, useTodayOrders } from '@/store/posStore';
-import { useAppStore, useActiveProducts } from '@/store/appStore';
+import { useProducts } from '@/hooks/api/useProducts';
+import { useCustomers } from '@/hooks/api/useCustomers';
+import {
+  usePosSettings,
+  usePosOrders,
+  useCreatePosOrder,
+  useAddPosPayment,
+  useHoldPosOrder,
+  frontendMethodToApi,
+} from '@/hooks/api/usePos';
 import { formatJMD, cn } from '@/lib/utils';
 import {
   ShoppingCartIcon,
@@ -23,7 +31,45 @@ import {
   DocumentTextIcon,
   PauseIcon,
   PlayIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
+
+// ---- Local cart types (client-only, not persisted to API until order creation) ----
+
+interface CartItem {
+  tempId: string;
+  productId?: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  uomCode: string;
+  unitPrice: number;
+  isGctExempt: boolean;
+  discountType?: 'percent' | 'amount';
+  discountValue?: number;
+  notes?: string;
+}
+
+interface LocalCart {
+  items: CartItem[];
+  customerId?: string;
+  customerName: string;
+  orderDiscountType?: 'percent' | 'amount';
+  orderDiscountValue?: number;
+  orderDiscountReason?: string;
+  notes?: string;
+}
+
+const EMPTY_CART: LocalCart = {
+  items: [],
+  customerName: 'Walk-in',
+};
+
+let tempIdCounter = 0;
+function nextTempId() {
+  return `tmp_${++tempIdCounter}_${Date.now()}`;
+}
 
 // Payment method icons
 const PaymentMethodIcon = ({ method }: { method: string }) => {
@@ -44,7 +90,7 @@ function ProductCard({
   product,
   onAdd,
 }: {
-  product: { id: string; name: string; unitPrice: number; quantity: number; category?: string; sku: string };
+  product: { id: string; name: string; unitPrice: number; quantity: number; category?: string | null; sku: string };
   onAdd: () => void;
 }) {
   return (
@@ -73,12 +119,12 @@ function ProductCard({
 }
 
 // Cart Item
-function CartItem({
+function CartItemRow({
   item,
   onUpdateQuantity,
   onRemove,
 }: {
-  item: { tempId: string; name: string; quantity: number; unitPrice: number; uomCode: string };
+  item: CartItem;
   onUpdateQuantity: (quantity: number) => void;
   onRemove: () => void;
 }) {
@@ -125,38 +171,85 @@ export default function POSPage() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   const [cashTendered, setCashTendered] = useState('');
+  const [currentCart, setCurrentCart] = useState<LocalCart>(EMPTY_CART);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
-  const products = useActiveProducts();
-  const customers = useAppStore((state) => state.customers);
-  const todayOrders = useTodayOrders();
+  // ---- API data fetching ----
+  const { data: productsData, isLoading: productsLoading, error: productsError } = useProducts({ limit: 200 });
+  const { data: customersData } = useCustomers({ type: 'CUSTOMER', limit: 100 });
+  const { data: settingsData, isLoading: settingsLoading } = usePosSettings();
+  const { data: heldOrdersData } = usePosOrders({ status: 'HELD', limit: 1 });
 
-  const currentCart = usePosStore((state) => state.currentCart);
-  const addToCart = usePosStore((state) => state.addToCart);
-  const updateCartItem = usePosStore((state) => state.updateCartItem);
-  const removeFromCart = usePosStore((state) => state.removeFromCart);
-  const clearCart = usePosStore((state) => state.clearCart);
-  const setCartCustomer = usePosStore((state) => state.setCartCustomer);
-  const createOrderFromCart = usePosStore((state) => state.createOrderFromCart);
-  const addPayment = usePosStore((state) => state.addPayment);
-  const completeOrder = usePosStore((state) => state.completeOrder);
-  const posSettings = usePosStore((state) => state.settings);
-  const holdOrder = usePosStore((state) => state.holdOrder);
-  const orders = usePosStore((state) => state.orders);
-  const sessions = usePosStore((state) => state.sessions);
-  const currentSessionId = usePosStore((state) => state.currentSessionId);
+  const products = productsData?.data ?? [];
+  const customers = customersData?.data ?? [];
+  const posSettings = settingsData;
+  const gctRate = posSettings ? Number(posSettings.gctRate) : 0.15;
+  const heldOrderCount = heldOrdersData?.pagination?.hasMore
+    ? `${heldOrdersData.data.length}+`
+    : String(heldOrdersData?.data?.length ?? 0);
 
-  // Derived state - calculated outside store to avoid infinite loops
-  const currentSession = useMemo(() => {
-    if (!currentSessionId) return undefined;
-    return sessions.find((s) => s.id === currentSessionId);
-  }, [currentSessionId, sessions]);
+  // ---- Mutations ----
+  const createOrder = useCreatePosOrder();
+  const addPayment = useAddPosPayment();
+  const holdOrderMutation = useHoldPosOrder();
 
-  const heldOrders = useMemo(() => {
-    return orders.filter((o) => o.status === 'held');
-  }, [orders]);
+  // ---- Cart logic (local state) ----
+
+  const addToCart = useCallback((product: typeof products[0]) => {
+    setCurrentCart((prev) => {
+      // Check if product is already in cart
+      const existing = prev.items.find((i) => i.productId === product.id);
+      if (existing) {
+        return {
+          ...prev,
+          items: prev.items.map((i) =>
+            i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          ),
+        };
+      }
+      return {
+        ...prev,
+        items: [
+          ...prev.items,
+          {
+            tempId: nextTempId(),
+            productId: product.id,
+            name: product.name,
+            quantity: 1,
+            unitPrice: Number(product.unitPrice),
+            uomCode: product.unit || 'EA',
+            isGctExempt: product.gctRate === 'exempt',
+          },
+        ],
+      };
+    });
+  }, []);
+
+  const updateCartItem = useCallback((tempId: string, updates: Partial<CartItem>) => {
+    setCurrentCart((prev) => ({
+      ...prev,
+      items: prev.items.map((item) =>
+        item.tempId === tempId ? { ...item, ...updates } : item
+      ),
+    }));
+  }, []);
+
+  const removeFromCart = useCallback((tempId: string) => {
+    setCurrentCart((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => item.tempId !== tempId),
+    }));
+  }, []);
+
+  const clearCart = useCallback(() => setCurrentCart(EMPTY_CART), []);
+
+  const setCartCustomer = useCallback((customerId: string | undefined, customerName: string) => {
+    setCurrentCart((prev) => ({ ...prev, customerId, customerName }));
+  }, []);
+
+  // ---- Derived state ----
 
   const cartTotals = useMemo(() => {
-    const gctRate = posSettings.gctRate;
     let subtotal = 0;
     let taxableAmount = 0;
     let exemptAmount = 0;
@@ -185,17 +278,17 @@ export default function POSPage() {
     const total = subtotal - discountAmount + gctAmount;
 
     return { subtotal, discountAmount, taxableAmount, exemptAmount, gctAmount, total, itemCount };
-  }, [currentCart, posSettings.gctRate]);
+  }, [currentCart, gctRate]);
 
   // Get unique categories
   const categories = useMemo(() => {
-    const cats = new Set(products.map((p) => p.category).filter(Boolean));
+    const cats = new Set(products.map((p: any) => p.category).filter(Boolean));
     return Array.from(cats) as string[];
   }, [products]);
 
   // Filter products
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return products.filter((product: any) => {
       const matchesSearch =
         !searchQuery ||
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -205,58 +298,105 @@ export default function POSPage() {
     });
   }, [products, searchQuery, selectedCategory]);
 
-  // Handle add to cart
-  const handleAddToCart = (product: typeof products[0]) => {
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      quantity: 1,
-      unitPrice: product.unitPrice,
-      uomCode: product.unit || 'EA',
-      isGctExempt: product.gctRate === 'exempt',
-    });
-  };
-
   // Handle checkout
   const handleCheckout = () => {
     if (currentCart.items.length === 0) return;
     setShowPaymentModal(true);
   };
 
-  // Process payment
-  const handleProcessPayment = () => {
-    // Create order from cart
-    const order = createOrderFromCart({
-      cart: currentCart,
-      sessionId: currentSession?.id,
-    });
+  // Process payment: create order via API, then add payment via API
+  const handleProcessPayment = async () => {
+    if (processingPayment) return;
+    setProcessingPayment(true);
 
-    // Add payment
-    const tenderedAmount = parseFloat(cashTendered) || cartTotals.total;
-    addPayment({
-      orderId: order.id,
-      method: paymentMethod as 'cash' | 'jam_dex' | 'card_visa',
-      amount: cartTotals.total,
-      amountTendered: paymentMethod === 'cash' ? tenderedAmount : undefined,
-    });
+    try {
+      // Build items in API format
+      const apiItems = currentCart.items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        description: item.description,
+        quantity: item.quantity,
+        uomCode: item.uomCode,
+        unitPrice: item.unitPrice,
+        isGctExempt: item.isGctExempt,
+        ...(item.discountType ? {
+          discountType: item.discountType === 'percent' ? 'PERCENTAGE' : 'FIXED',
+          discountValue: item.discountValue,
+        } : {}),
+        notes: item.notes,
+      }));
 
-    // Complete order
-    completeOrder(order.id);
+      // Create order via API
+      const order = await createOrder.mutateAsync({
+        customerId: currentCart.customerId,
+        customerName: currentCart.customerName || 'Walk-in Customer',
+        items: apiItems,
+        ...(currentCart.orderDiscountType ? {
+          orderDiscountType: currentCart.orderDiscountType === 'percent' ? 'PERCENTAGE' : 'FIXED',
+          orderDiscountValue: currentCart.orderDiscountValue,
+          orderDiscountReason: currentCart.orderDiscountReason,
+        } : {}),
+        notes: currentCart.notes,
+        status: 'PENDING_PAYMENT',
+      });
 
-    // Reset
-    setShowPaymentModal(false);
-    setCashTendered('');
-    setPaymentMethod('cash');
+      // Add payment to the order
+      const tenderedAmount = parseFloat(cashTendered) || cartTotals.total;
+      await addPayment.mutateAsync({
+        orderId: order.id,
+        method: frontendMethodToApi(paymentMethod),
+        amount: Number(order.total),
+        ...(paymentMethod === 'cash' ? { amountTendered: tenderedAmount } : {}),
+        status: 'COMPLETED',
+      });
+
+      // Reset
+      setShowPaymentModal(false);
+      setCashTendered('');
+      setPaymentMethod('cash');
+      setCurrentCart(EMPTY_CART);
+    } catch (err) {
+      console.error('Payment processing failed:', err);
+      // The error will be visible in the UI through the mutation state
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
-  // Hold order
-  const handleHoldOrder = () => {
+  // Hold order: create order via API, then hold it
+  const handleHoldOrder = async () => {
     if (currentCart.items.length === 0) return;
-    const order = createOrderFromCart({
-      cart: currentCart,
-      sessionId: currentSession?.id,
-    });
-    holdOrder(order.id, 'Parked from POS');
+
+    try {
+      const apiItems = currentCart.items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        description: item.description,
+        quantity: item.quantity,
+        uomCode: item.uomCode,
+        unitPrice: item.unitPrice,
+        isGctExempt: item.isGctExempt,
+        notes: item.notes,
+      }));
+
+      // Create as DRAFT, then hold
+      const order = await createOrder.mutateAsync({
+        customerId: currentCart.customerId,
+        customerName: currentCart.customerName || 'Walk-in Customer',
+        items: apiItems,
+        notes: currentCart.notes,
+        status: 'PENDING_PAYMENT',
+      });
+
+      await holdOrderMutation.mutateAsync({
+        id: order.id,
+        heldReason: 'Parked from POS',
+      });
+
+      setCurrentCart(EMPTY_CART);
+    } catch (err) {
+      console.error('Hold order failed:', err);
+    }
   };
 
   const changeAmount = paymentMethod === 'cash' && cashTendered
@@ -266,8 +406,52 @@ export default function POSPage() {
   // Quick cash amounts
   const quickCashAmounts = [1000, 2000, 5000, 10000];
 
+  // Error from mutations
+  const mutationError = createOrder.error || addPayment.error || holdOrderMutation.error;
+
+  // Loading state
+  if (productsLoading || settingsLoading) {
+    return (
+      <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="text-center">
+          <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-emerald-500 animate-spin" />
+          <p className="text-gray-500">Loading POS...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (productsError) {
+    return (
+      <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="text-center">
+          <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
+          <p className="text-gray-700 font-medium mb-1">Failed to load products</p>
+          <p className="text-gray-500 text-sm">
+            {productsError instanceof Error ? productsError.message : 'Please try again.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-8rem)] flex gap-6">
+      {/* Mutation error banner */}
+      {mutationError && (
+        <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 max-w-md shadow-lg">
+          <div className="flex items-start gap-2">
+            <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Operation failed</p>
+              <p className="text-sm text-red-600 mt-1">
+                {mutationError instanceof Error ? mutationError.message : 'An error occurred'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Products Section */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Search & Filters */}
@@ -323,11 +507,11 @@ export default function POSPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product: any) => (
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onAdd={() => handleAddToCart(product)}
+                  onAdd={() => addToCart(product)}
                 />
               ))}
             </div>
@@ -345,7 +529,7 @@ export default function POSPage() {
               <Link href="/pos/held">
                 <Button variant="ghost" size="sm">
                   <ClockIcon className="w-4 h-4" />
-                  <span className="ml-1">{heldOrders.length}</span>
+                  <span className="ml-1">{heldOrderCount}</span>
                 </Button>
               </Link>
               <Link href="/pos/settings">
@@ -380,7 +564,7 @@ export default function POSPage() {
             </div>
           ) : (
             currentCart.items.map((item) => (
-              <CartItem
+              <CartItemRow
                 key={item.tempId}
                 item={item}
                 onUpdateQuantity={(qty) => updateCartItem(item.tempId, { quantity: qty })}
@@ -397,7 +581,7 @@ export default function POSPage() {
             <span className="text-gray-900">{formatJMD(cartTotals.subtotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">GCT (15%)</span>
+            <span className="text-gray-500">GCT ({Math.round(gctRate * 100)}%)</span>
             <span className="text-gray-900">{formatJMD(cartTotals.gctAmount)}</span>
           </div>
           {cartTotals.discountAmount > 0 && (
@@ -426,9 +610,13 @@ export default function POSPage() {
             <Button
               variant="outline"
               onClick={handleHoldOrder}
-              disabled={currentCart.items.length === 0}
+              disabled={currentCart.items.length === 0 || holdOrderMutation.isPending}
             >
-              <PauseIcon className="w-4 h-4 mr-1" />
+              {holdOrderMutation.isPending ? (
+                <ArrowPathIcon className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <PauseIcon className="w-4 h-4 mr-1" />
+              )}
               Hold
             </Button>
           </div>
@@ -527,6 +715,19 @@ export default function POSPage() {
                 )}
               </div>
             )}
+
+            {/* Error display */}
+            {(createOrder.error || addPayment.error) && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">
+                  {createOrder.error instanceof Error
+                    ? createOrder.error.message
+                    : addPayment.error instanceof Error
+                    ? addPayment.error.message
+                    : 'Payment failed. Please try again.'}
+                </p>
+              </div>
+            )}
           </div>
         </ModalBody>
         <ModalFooter>
@@ -535,9 +736,19 @@ export default function POSPage() {
           </Button>
           <Button
             onClick={handleProcessPayment}
-            disabled={paymentMethod === 'cash' && (!cashTendered || parseFloat(cashTendered) < cartTotals.total)}
+            disabled={
+              processingPayment ||
+              (paymentMethod === 'cash' && (!cashTendered || parseFloat(cashTendered) < cartTotals.total))
+            }
           >
-            Complete Payment
+            {processingPayment ? (
+              <>
+                <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Complete Payment'
+            )}
           </Button>
         </ModalFooter>
       </Modal>
@@ -561,24 +772,25 @@ export default function POSPage() {
               <UserIcon className="w-5 h-5 text-gray-400" />
               <span className="font-medium text-gray-900">Walk-in Customer</span>
             </button>
-            {customers
-              .filter((c) => c.type === 'customer' || c.type === 'both')
-              .map((customer) => (
-                <button
-                  key={customer.id}
-                  onClick={() => {
-                    setCartCustomer(customer.id, customer.name);
-                    setShowCustomerModal(false);
-                  }}
-                  className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                >
-                  <UserIcon className="w-5 h-5 text-emerald-500" />
-                  <div>
-                    <p className="font-medium text-gray-900">{customer.name}</p>
-                    <p className="text-sm text-gray-500">{customer.phone || customer.email}</p>
-                  </div>
-                </button>
-              ))}
+            {customers.map((customer: any) => (
+              <button
+                key={customer.id}
+                onClick={() => {
+                  setCartCustomer(customer.id, customer.name);
+                  setShowCustomerModal(false);
+                }}
+                className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+              >
+                <UserIcon className="w-5 h-5 text-emerald-500" />
+                <div>
+                  <p className="font-medium text-gray-900">{customer.name}</p>
+                  <p className="text-sm text-gray-500">{customer.phone || customer.email}</p>
+                </div>
+              </button>
+            ))}
+            {customers.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">No customers found</p>
+            )}
           </div>
         </ModalBody>
       </Modal>

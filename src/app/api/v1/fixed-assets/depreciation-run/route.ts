@@ -12,8 +12,6 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, conflict, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 // ============================================
 // Validation schema
 // ============================================
@@ -33,10 +31,6 @@ const depreciationRunSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Plan gate
-    const { error: planError } = await requireFeature(request, 'fixed_assets');
-    if (planError) return planError;
-
     // Auth + permission (requires depreciate permission)
     const { user, error: authError } = await requirePermission(request, 'fixed_assets:depreciate');
     if (authError) return authError;

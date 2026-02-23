@@ -3,10 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatAddress } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
-import type { Customer } from '@/types';
+import { formatJMD } from '@/lib/utils';
+import {
+  useCustomers,
+  useCreateCustomer,
+  useUpdateCustomer,
+  useDeleteCustomer,
+} from '@/hooks/api';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -14,15 +17,42 @@ import {
   TrashIcon,
   PhoneIcon,
   EnvelopeIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
+import { PermissionGate } from '@/components/PermissionGate';
+
+interface CustomerAPI {
+  id: string;
+  name: string;
+  type: string;
+  companyName: string | null;
+  email: string | null;
+  phone: string | null;
+  trnNumber: string | null;
+  balance: number;
+  isActive: boolean;
+  createdAt: string;
+}
 
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerAPI | null>(null);
+  const [saveError, setSaveError] = useState('');
 
-  const { customers, addCustomer, updateCustomer, deleteCustomer, activeCompany } = useAppStore();
+  // API hooks
+  const { data: customersResponse, isLoading, error: fetchError, refetch } = useCustomers({
+    search: searchQuery || undefined,
+    type: typeFilter !== 'all' ? typeFilter : undefined,
+    limit: 200,
+  });
+  const createCustomer = useCreateCustomer();
+  const updateCustomer = useUpdateCustomer();
+  const deleteCustomer = useDeleteCustomer();
+
+  const customers: CustomerAPI[] = (customersResponse as any)?.data ?? [];
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,16 +64,8 @@ export default function CustomersPage() {
     notes: '',
   });
 
-  const filteredCustomers = customers.filter((customer) => {
-    const matchesSearch = !searchQuery ||
-      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.phone?.includes(searchQuery);
-    const matchesType = typeFilter === 'all' || customer.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
-  const handleOpenModal = (customer?: Customer) => {
+  const handleOpenModal = (customer?: CustomerAPI) => {
+    setSaveError('');
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
@@ -51,9 +73,9 @@ export default function CustomersPage() {
         companyName: customer.companyName || '',
         email: customer.email || '',
         phone: customer.phone || '',
-        type: customer.type,
+        type: (customer.type as 'customer' | 'vendor' | 'both') || 'customer',
         trnNumber: customer.trnNumber || '',
-        notes: customer.notes || '',
+        notes: '',
       });
     } else {
       setEditingCustomer(null);
@@ -70,33 +92,44 @@ export default function CustomersPage() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaveError('');
     if (!formData.name.trim()) {
-      alert('Please enter a name');
+      setSaveError('Please enter a name');
       return;
     }
 
-    if (editingCustomer) {
-      updateCustomer(editingCustomer.id, {
-        ...formData,
-        updatedAt: new Date(),
-      });
-    } else {
-      addCustomer({
-        id: uuidv4(),
-        companyId: activeCompany?.id || '',
-        ...formData,
-        balance: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    const payload: Record<string, unknown> = {
+      name: formData.name,
+      companyName: formData.companyName || undefined,
+      email: formData.email || undefined,
+      phone: formData.phone || undefined,
+      type: formData.type,
+      trnNumber: formData.trnNumber || undefined,
+      notes: formData.notes || undefined,
+    };
+
+    try {
+      if (editingCustomer) {
+        await updateCustomer.mutateAsync({ id: editingCustomer.id, data: payload });
+      } else {
+        await createCustomer.mutateAsync(payload);
+      }
+      setShowModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save contact';
+      setSaveError(message);
     }
-    setShowModal(false);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this customer?')) {
-      deleteCustomer(id);
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this contact?')) {
+      try {
+        await deleteCustomer.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete contact';
+        alert(message);
+      }
     }
   };
 
@@ -115,35 +148,51 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-bold text-gray-900">Customers & Vendors</h1>
           <p className="text-gray-500">Manage your business contacts</p>
         </div>
-        <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
-          Add Contact
-        </Button>
+        <PermissionGate permission="customers:create">
+          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+            Add Contact
+          </Button>
+        </PermissionGate>
       </div>
+
+      {/* Error State */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">Failed to load contacts. {fetchError instanceof Error ? fetchError.message : ''}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <ArrowPathIcon className="w-4 h-4 mr-1" />
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Contacts</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : stats.total}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Customers</p>
-            <p className="text-2xl font-bold text-emerald-600">{stats.customers}</p>
+            <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : stats.customers}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Vendors</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.vendors}</p>
+            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : stats.vendors}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">With Balance</p>
-            <p className="text-2xl font-bold text-orange-600">{stats.withBalance}</p>
+            <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : stats.withBalance}</p>
           </div>
         </Card>
       </div>
@@ -175,7 +224,18 @@ export default function CustomersPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <div className="p-12 text-center">
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
+            <p className="text-gray-500">Loading contacts...</p>
+          </div>
+        </Card>
+      )}
+
       {/* Table */}
+      {!isLoading && (
       <Card padding="none">
         <Table>
           <TableHeader>
@@ -189,15 +249,17 @@ export default function CustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCustomers.length === 0 ? (
+            {customers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-gray-500">
                   <p className="mb-4">No contacts found</p>
-                  <Button onClick={() => handleOpenModal()}>Add your first contact</Button>
+                  <PermissionGate permission="customers:create">
+                    <Button onClick={() => handleOpenModal()}>Add your first contact</Button>
+                  </PermissionGate>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredCustomers.map((customer) => (
+              customers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell>
                     <div>
@@ -234,12 +296,21 @@ export default function CustomersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenModal(customer)}>
-                        <PencilIcon className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(customer.id)}>
-                        <TrashIcon className="w-4 h-4 text-red-500" />
-                      </Button>
+                      <PermissionGate permission="customers:update">
+                        <Button variant="ghost" size="sm" onClick={() => handleOpenModal(customer)}>
+                          <PencilIcon className="w-4 h-4" />
+                        </Button>
+                      </PermissionGate>
+                      <PermissionGate permission="customers:delete">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(customer.id)}
+                          disabled={deleteCustomer.isPending}
+                        >
+                          <TrashIcon className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </PermissionGate>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -248,6 +319,7 @@ export default function CustomersPage() {
           </TableBody>
         </Table>
       </Card>
+      )}
 
       {/* Add/Edit Modal */}
       <Modal
@@ -258,6 +330,11 @@ export default function CustomersPage() {
       >
         <ModalBody>
           <div className="space-y-4">
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                {saveError}
+              </div>
+            )}
             <Input
               label="Name *"
               value={formData.name}
@@ -314,7 +391,12 @@ export default function CustomersPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{editingCustomer ? 'Update' : 'Create'}</Button>
+          <Button
+            onClick={handleSave}
+            disabled={createCustomer.isPending || updateCustomer.isPending}
+          >
+            {(createCustomer.isPending || updateCustomer.isPending) ? 'Saving...' : editingCustomer ? 'Update' : 'Create'}
+          </Button>
         </ModalFooter>
       </Modal>
     </div>

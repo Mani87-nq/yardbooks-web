@@ -7,14 +7,8 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 export async function GET(request: NextRequest) {
   try {
-    // Plan gate: customer PO requires BUSINESS plan
-    const { error: planError } = await requireFeature(request, 'customer_po');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'invoices:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
@@ -35,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     const where = {
       companyId: companyId!,
-      ...(status ? { status } : {}),
+      ...(status ? { status: status as any } : {}),
       ...(customerId ? { customerId } : {}),
     };
 
@@ -97,10 +91,6 @@ const createCustomerPOSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Plan gate: customer PO requires BUSINESS plan
-    const { error: planError } = await requireFeature(request, 'customer_po');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'invoices:create');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);

@@ -18,7 +18,7 @@ export default withSentryConfig(nextConfig, {
 
   // Wipe source maps after upload for security
   widenClientFileUpload: true,
-  hideSourceMaps: true,
+  sourcemaps: { deleteSourcemapsAfterUpload: true },
 
   // Disable telemetry
   telemetry: false,

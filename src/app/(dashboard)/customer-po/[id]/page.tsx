@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -12,16 +12,15 @@ import {
   DocumentPlusIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
-import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
+import type { CustomerPurchaseOrder, CustomerPOStatus } from '@/types/customerPO';
 import {
   CUSTOMER_PO_STATUS_LABELS,
-  CUSTOMER_PO_STATUS_COLORS,
   calculatePOProgress,
   canCreateInvoiceFromPO,
   canEditPO,
   canCancelPO,
 } from '@/types/customerPO';
-import type { CustomerPOStatus } from '@/types/customerPO';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -30,17 +29,48 @@ interface PageProps {
 export default function CustomerPODetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const customerPOs = useAppStore((state) => state.customerPOs) || [];
-  const updateCustomerPO = useAppStore((state) => state.updateCustomerPO);
 
-  const po = customerPOs.find((p) => p.id === id);
+  const [po, setPO] = useState<CustomerPurchaseOrder | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
-  if (!po) {
+  const fetchPO = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<CustomerPurchaseOrder>(`/api/v1/customer-pos/${id}`);
+      setPO(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load purchase order');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchPO();
+  }, [fetchPO]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">Loading purchase order...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !po) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <DocumentTextIcon className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">PO Not Found</h2>
-        <p className="text-gray-500 mb-4">The purchase order you're looking for doesn't exist.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          {error || 'PO Not Found'}
+        </h2>
+        <p className="text-gray-500 mb-4">The purchase order you are looking for doesn't exist or could not be loaded.</p>
         <Link
           href="/customer-po"
           className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
@@ -65,14 +95,19 @@ export default function CustomerPODetailPage({ params }: PageProps) {
     return colors[status];
   };
 
-  const handleStatusChange = (newStatus: CustomerPOStatus) => {
-    if (updateCustomerPO) {
-      updateCustomerPO(po.id, { status: newStatus, updatedAt: new Date() });
+  const handleStatusChange = async (newStatus: CustomerPOStatus) => {
+    setUpdating(true);
+    try {
+      await api.put(`/api/v1/customer-pos/${po.id}`, { status: newStatus });
+      fetchPO();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update status');
+    } finally {
+      setUpdating(false);
     }
   };
 
   const handleCreateInvoice = () => {
-    // Navigate to invoice creation with PO pre-selected
     router.push(`/invoices/new?poId=${po.id}`);
   };
 
@@ -280,27 +315,30 @@ export default function CustomerPODetailPage({ params }: PageProps) {
               {po.status === 'draft' && (
                 <button
                   onClick={() => handleStatusChange('open')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={updating}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   <CheckCircleIcon className="w-4 h-4" />
-                  Open PO
+                  {updating ? 'Updating...' : 'Open PO'}
                 </button>
               )}
               {canCancelPO(po.status) && (
                 <button
                   onClick={() => handleStatusChange('cancelled')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                  disabled={updating}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
                 >
                   <XMarkIcon className="w-4 h-4" />
-                  Cancel PO
+                  {updating ? 'Updating...' : 'Cancel PO'}
                 </button>
               )}
               {po.status === 'fully_invoiced' && (
                 <button
                   onClick={() => handleStatusChange('closed')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  disabled={updating}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Close PO
+                  {updating ? 'Updating...' : 'Close PO'}
                 </button>
               )}
             </div>

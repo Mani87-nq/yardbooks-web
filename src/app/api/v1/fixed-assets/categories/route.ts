@@ -7,18 +7,12 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, conflict, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 // ============================================
 // GET — List asset categories
 // ============================================
 
 export async function GET(request: NextRequest) {
   try {
-    // Plan gate
-    const { error: planError } = await requireFeature(request, 'fixed_assets');
-    if (planError) return planError;
-
     // Auth + permission
     const { user, error: authError } = await requirePermission(request, 'fixed_assets:read');
     if (authError) return authError;
@@ -91,10 +85,6 @@ const createCategorySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Plan gate
-    const { error: planError } = await requireFeature(request, 'fixed_assets');
-    if (planError) return planError;
-
     // Auth + permission
     const { user, error: authError } = await requirePermission(request, 'fixed_assets:create');
     if (authError) return authError;

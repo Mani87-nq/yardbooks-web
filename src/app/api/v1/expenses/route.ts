@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const where = {
       companyId: companyId!,
       deletedAt: null,
-      ...(category ? { category } : {}),
+      ...(category ? { category: category as any } : {}),
     };
 
     const expenses = await prisma.expense.findMany({

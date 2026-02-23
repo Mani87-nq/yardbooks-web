@@ -7,14 +7,8 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 export async function GET(request: NextRequest) {
   try {
-    // Plan gate: parking slip requires ENTERPRISE plan
-    const { error: planError } = await requireFeature(request, 'parking_slip');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'inventory:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
@@ -38,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const where = {
       companyId: companyId!,
-      ...(status ? { status } : {}),
+      ...(status ? { status: status as any } : {}),
       ...(vehiclePlate ? { vehiclePlate: { contains: vehiclePlate, mode: 'insensitive' as const } } : {}),
       ...(lotId ? { lotId } : {}),
       ...(isPaid !== undefined ? { isPaid } : {}),
@@ -80,10 +74,6 @@ const createParkingSlipSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Plan gate: parking slip requires ENTERPRISE plan
-    const { error: planError } = await requireFeature(request, 'parking_slip');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'inventory:create');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);

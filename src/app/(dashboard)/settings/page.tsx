@@ -87,11 +87,11 @@ interface TeamMeta {
 
 function getRoleBadgeVariant(role: TeamRole): 'success' | 'info' | 'warning' | 'default' | 'danger' {
   switch (role) {
-    case 'OWNER': return 'success';
-    case 'ADMIN': return 'info';
-    case 'ACCOUNTANT': return 'warning';
-    case 'STAFF': return 'default';
-    case 'READ_ONLY': return 'default';
+    case 'OWNER': return 'warning';      // Gold/amber
+    case 'ADMIN': return 'info';          // Purple/blue
+    case 'ACCOUNTANT': return 'info';     // Blue
+    case 'STAFF': return 'success';       // Green
+    case 'READ_ONLY': return 'default';   // Gray
     default: return 'default';
   }
 }
@@ -139,8 +139,8 @@ function getInitials(firstName: string, lastName: string): string {
 // ============================================
 
 function TeamTab() {
-  const { user } = useAppStore();
-  const currentUserRole = (user as { role?: string } | null)?.role as TeamRole | undefined;
+  const { user, userRole } = useAppStore();
+  const currentUserRole = (userRole || (user as { role?: string } | null)?.role) as TeamRole | undefined;
   const isManager = canManageTeam(currentUserRole);
 
   // State
@@ -286,6 +286,8 @@ function TeamTab() {
   const atUserLimit = meta.maxMembers !== -1 && meta.totalMembers >= meta.maxMembers;
 
   const planDisplayName: Record<string, string> = {
+    solo: 'Solo',
+    team: 'Team',
     starter: 'Starter',
     business: 'Business',
     pro: 'Pro',
@@ -1227,20 +1229,19 @@ export default function SettingsPage() {
                   <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-emerald-800">Free Plan</p>
-                        <p className="text-sm text-emerald-600">Basic features included</p>
+                        <p className="font-medium text-emerald-800">Current Plan</p>
+                        <p className="text-sm text-emerald-600">All features included</p>
                       </div>
-                      <Button variant="outline">Upgrade</Button>
+                      <Button variant="outline">Manage Subscription</Button>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="font-medium text-gray-900 mb-3">Available Plans</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {[
-                        { name: 'Starter', price: 'Free', features: ['Up to 100 invoices/month', 'Basic POS', '1 User'] },
-                        { name: 'Professional', price: '$29/mo', features: ['Unlimited invoices', 'Full POS', '5 Users', 'Advanced reports'] },
-                        { name: 'Enterprise', price: '$99/mo', features: ['Everything in Pro', 'Unlimited users', 'API access', 'Priority support'] },
+                        { name: 'Solo', price: '$19.99/mo', features: ['1 user', '1 company', 'All features included', 'Email support'] },
+                        { name: 'Team', price: '$14.99/user/mo', features: ['Unlimited users', 'Unlimited companies', 'All features included', 'Priority support'] },
                       ].map((plan) => (
                         <div key={plan.name} className="border rounded-lg p-4">
                           <h4 className="font-medium text-gray-900">{plan.name}</h4>

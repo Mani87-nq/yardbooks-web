@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { format, differenceInMinutes } from 'date-fns';
+import { format } from 'date-fns';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -10,11 +10,10 @@ import {
   ClockIcon,
   CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
-import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
 import type { ParkingSlip, ParkingSlipStatus } from '@/types/parkingSlip';
 import {
   PARKING_STATUS_LABELS,
-  PARKING_STATUS_COLORS,
   VEHICLE_TYPE_LABELS,
   calculateParkingDuration,
   calculateParkingAmount,
@@ -28,9 +27,29 @@ const FILTER_OPTIONS: { value: ParkingSlipStatus | 'all'; label: string }[] = [
 ];
 
 export default function ParkingSlipPage() {
-  const parkingSlips = useAppStore((state) => state.parkingSlips) || [];
+  const [parkingSlips, setParkingSlips] = useState<ParkingSlip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<ParkingSlipStatus | 'all'>('all');
+
+  const fetchSlips = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<{ data: ParkingSlip[] } | ParkingSlip[]>('/api/v1/parking-slips');
+      const list = Array.isArray(data) ? data : (data as any).data ?? [];
+      setParkingSlips(list);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load parking slips');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSlips();
+  }, [fetchSlips]);
 
   const filteredSlips = useMemo(() => {
     let result = [...parkingSlips];
@@ -80,6 +99,31 @@ export default function ParkingSlipPage() {
     .filter(s => s.status === 'completed' && s.exitTime &&
       new Date(s.exitTime).toDateString() === new Date().toDateString())
     .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">Loading parking slips...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={fetchSlips}
+          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -132,7 +176,7 @@ export default function ParkingSlipPage() {
               <CurrencyDollarIcon className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Today's Revenue</p>
+              <p className="text-sm text-gray-500">Today&apos;s Revenue</p>
               <p className="text-2xl font-bold text-gray-900">${todayRevenue.toLocaleString()}</p>
             </div>
           </div>

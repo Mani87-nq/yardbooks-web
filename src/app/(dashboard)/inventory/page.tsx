@@ -3,10 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatJMD } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
-import type { Product } from '@/types';
+import {
+  useProducts,
+  useCreateProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+} from '@/hooks/api';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -16,16 +19,49 @@ import {
   ArrowPathIcon,
   QrCodeIcon,
   TagIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
+import { PermissionGate } from '@/components/PermissionGate';
+
+interface ProductAPI {
+  id: string;
+  companyId: string;
+  sku: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  unitPrice: number;
+  costPrice: number;
+  quantity: number;
+  reorderLevel: number;
+  unit: string;
+  taxable: boolean;
+  gctRate: string;
+  barcode: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ProductAPI | null>(null);
+  const [saveError, setSaveError] = useState('');
 
-  const { products, addProduct, updateProduct, deleteProduct, activeCompany } = useAppStore();
+  // API hooks
+  const { data: productsResponse, isLoading, error: fetchError, refetch } = useProducts({
+    search: searchQuery || undefined,
+    category: categoryFilter !== 'all' ? categoryFilter : undefined,
+    limit: 100,
+  });
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+
+  const products: ProductAPI[] = (productsResponse as any)?.data ?? [];
 
   const [formData, setFormData] = useState({
     name: '',
@@ -37,31 +73,26 @@ export default function InventoryPage() {
     costPrice: '',
     quantity: '',
     reorderLevel: '',
-    unit: 'each',
+    unit: 'EACH',
     gctApplicable: true,
     isActive: true,
   });
 
-  // Get unique categories
-  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  // Get unique categories from fetched products
+  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
 
+  // Client-side filtering for stock level (API doesn't provide this filter)
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = !searchQuery ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.barcode?.includes(searchQuery);
-
-    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-
     const matchesStock = stockFilter === 'all' ||
-      (stockFilter === 'low' && product.quantity <= (product.reorderLevel || 0)) ||
+      (stockFilter === 'low' && product.quantity <= (product.reorderLevel || 0) && product.quantity > 0) ||
       (stockFilter === 'out' && product.quantity === 0) ||
       (stockFilter === 'in' && product.quantity > 0);
 
-    return matchesSearch && matchesCategory && matchesStock;
+    return matchesStock;
   });
 
-  const handleOpenModal = (product?: Product) => {
+  const handleOpenModal = (product?: ProductAPI) => {
+    setSaveError('');
     if (product) {
       setEditingProduct(product);
       setFormData({
@@ -74,7 +105,7 @@ export default function InventoryPage() {
         costPrice: product.costPrice?.toString() || '',
         quantity: product.quantity.toString(),
         reorderLevel: product.reorderLevel?.toString() || '',
-        unit: product.unit || 'each',
+        unit: product.unit || 'EACH',
         gctApplicable: product.taxable,
         isActive: product.isActive,
       });
@@ -90,7 +121,7 @@ export default function InventoryPage() {
         costPrice: '',
         quantity: '',
         reorderLevel: '',
-        unit: 'each',
+        unit: 'EACH',
         gctApplicable: true,
         isActive: true,
       });
@@ -98,19 +129,24 @@ export default function InventoryPage() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaveError('');
     if (!formData.name.trim()) {
-      alert('Please enter a product name');
+      setSaveError('Please enter a product name');
       return;
     }
     if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
-      alert('Please enter a valid price');
+      setSaveError('Please enter a valid price');
+      return;
+    }
+    if (!formData.sku.trim()) {
+      setSaveError('Please enter a SKU');
       return;
     }
 
-    const productData = {
+    const payload: Record<string, unknown> = {
       name: formData.name,
-      sku: formData.sku || '',
+      sku: formData.sku,
       barcode: formData.barcode || undefined,
       description: formData.description || undefined,
       category: formData.category || undefined,
@@ -118,29 +154,33 @@ export default function InventoryPage() {
       costPrice: formData.costPrice ? parseFloat(formData.costPrice) : 0,
       quantity: parseInt(formData.quantity) || 0,
       reorderLevel: formData.reorderLevel ? parseInt(formData.reorderLevel) : 0,
-      unit: formData.unit as Product['unit'],
+      unit: formData.unit,
       taxable: formData.gctApplicable,
-      gctRate: 'standard' as Product['gctRate'],
+      gctRate: formData.gctApplicable ? 'STANDARD' : 'EXEMPT',
       isActive: formData.isActive,
-      updatedAt: new Date(),
     };
 
-    if (editingProduct) {
-      updateProduct(editingProduct.id, productData);
-    } else {
-      addProduct({
-        id: uuidv4(),
-        companyId: activeCompany?.id || '',
-        ...productData,
-        createdAt: new Date(),
-      });
+    try {
+      if (editingProduct) {
+        await updateProduct.mutateAsync({ id: editingProduct.id, data: payload });
+      } else {
+        await createProduct.mutateAsync(payload);
+      }
+      setShowModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save product';
+      setSaveError(message);
     }
-    setShowModal(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      deleteProduct(id);
+      try {
+        await deleteProduct.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete product';
+        alert(message);
+      }
     }
   };
 
@@ -152,6 +192,8 @@ export default function InventoryPage() {
     totalValue: products.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0),
   };
 
+  const unitDisplay = (unit: string) => unit?.toLowerCase() || 'each';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -161,47 +203,65 @@ export default function InventoryPage() {
           <p className="text-gray-500">Manage your products and stock levels</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/inventory/stock-count">
-            <Button variant="outline" icon={<ArrowPathIcon className="w-4 h-4" />}>
-              Stock Count
+          <PermissionGate permission="inventory:create">
+            <Link href="/inventory/stock-count">
+              <Button variant="outline" icon={<ArrowPathIcon className="w-4 h-4" />}>
+                Stock Count
+              </Button>
+            </Link>
+          </PermissionGate>
+          <PermissionGate permission="inventory:create">
+            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+              Add Product
             </Button>
-          </Link>
-          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
-            Add Product
-          </Button>
+          </PermissionGate>
         </div>
       </div>
+
+      {/* Error State */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">Failed to load products. {fetchError instanceof Error ? fetchError.message : ''}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <ArrowPathIcon className="w-4 h-4 mr-1" />
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Products</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : stats.total}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Active</p>
-            <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+            <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : stats.active}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Low Stock</p>
-            <p className="text-2xl font-bold text-orange-600">{stats.lowStock}</p>
+            <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : stats.lowStock}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Out of Stock</p>
-            <p className="text-2xl font-bold text-red-600">{stats.outOfStock}</p>
+            <p className="text-2xl font-bold text-red-600">{isLoading ? '-' : stats.outOfStock}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Value</p>
-            <p className="text-2xl font-bold text-blue-600">{formatJMD(stats.totalValue)}</p>
+            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(stats.totalValue)}</p>
           </div>
         </Card>
       </div>
@@ -240,7 +300,18 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <div className="p-12 text-center">
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
+            <p className="text-gray-500">Loading products...</p>
+          </div>
+        </Card>
+      )}
+
       {/* Table */}
+      {!isLoading && (
       <Card padding="none">
         <Table>
           <TableHeader>
@@ -260,7 +331,9 @@ export default function InventoryPage() {
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-12 text-gray-500">
                   <p className="mb-4">No products found</p>
-                  <Button onClick={() => handleOpenModal()}>Add your first product</Button>
+                  <PermissionGate permission="inventory:create">
+                    <Button onClick={() => handleOpenModal()}>Add your first product</Button>
+                  </PermissionGate>
                 </TableCell>
               </TableRow>
             ) : (
@@ -306,7 +379,7 @@ export default function InventoryPage() {
                           isLowStock ? 'text-orange-600 font-medium' :
                           'text-gray-900'
                         }>
-                          {product.quantity} {product.unit}
+                          {product.quantity} {unitDisplay(product.unit)}
                         </span>
                         {isLowStock && <ExclamationTriangleIcon className="w-4 h-4 text-orange-500" />}
                         {isOutOfStock && <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />}
@@ -324,12 +397,21 @@ export default function InventoryPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenModal(product)}>
-                          <PencilIcon className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)}>
-                          <TrashIcon className="w-4 h-4 text-red-500" />
-                        </Button>
+                        <PermissionGate permission="inventory:update">
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenModal(product)}>
+                            <PencilIcon className="w-4 h-4" />
+                          </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="inventory:delete">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(product.id)}
+                            disabled={deleteProduct.isPending}
+                          >
+                            <TrashIcon className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </PermissionGate>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -339,6 +421,7 @@ export default function InventoryPage() {
           </TableBody>
         </Table>
       </Card>
+      )}
 
       {/* Add/Edit Modal */}
       <Modal
@@ -349,6 +432,11 @@ export default function InventoryPage() {
       >
         <ModalBody>
           <div className="space-y-4">
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                {saveError}
+              </div>
+            )}
             <Input
               label="Product Name *"
               value={formData.name}
@@ -357,7 +445,7 @@ export default function InventoryPage() {
             />
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="SKU"
+                label="SKU *"
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                 placeholder="Stock keeping unit"
@@ -422,13 +510,18 @@ export default function InventoryPage() {
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
-                  <option value="each">Each</option>
-                  <option value="kg">Kilogram</option>
-                  <option value="lb">Pound</option>
-                  <option value="m">Meter</option>
-                  <option value="ft">Foot</option>
-                  <option value="box">Box</option>
-                  <option value="pack">Pack</option>
+                  <option value="EACH">Each</option>
+                  <option value="KG">Kilogram</option>
+                  <option value="LB">Pound</option>
+                  <option value="METRE">Meter</option>
+                  <option value="FOOT">Foot</option>
+                  <option value="BOX">Box</option>
+                  <option value="CASE">Case</option>
+                  <option value="DOZEN">Dozen</option>
+                  <option value="LITRE">Litre</option>
+                  <option value="GALLON">Gallon</option>
+                  <option value="HOUR">Hour</option>
+                  <option value="DAY">Day</option>
                 </select>
               </div>
             </div>
@@ -456,7 +549,12 @@ export default function InventoryPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{editingProduct ? 'Update' : 'Create'}</Button>
+          <Button
+            onClick={handleSave}
+            disabled={createProduct.isPending || updateProduct.isPending}
+          >
+            {(createProduct.isPending || updateProduct.isPending) ? 'Saving...' : editingProduct ? 'Update' : 'Create'}
+          </Button>
         </ModalFooter>
       </Modal>
     </div>

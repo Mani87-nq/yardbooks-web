@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -9,6 +9,7 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import { api } from '@/lib/api-client';
 import { useAppStore } from '@/store/appStore';
 import type { CustomerPOItem } from '@/types/customerPO';
 
@@ -16,8 +17,6 @@ export default function CreateCustomerPOPage() {
   const router = useRouter();
   const customers = useAppStore((state) => state.customers);
   const products = useAppStore((state) => state.products);
-  const addCustomerPO = useAppStore((state) => state.addCustomerPO);
-  const activeCompanyId = useAppStore((state) => state.activeCompany?.id);
 
   const [formData, setFormData] = useState({
     customerId: '',
@@ -33,6 +32,7 @@ export default function CreateCustomerPOPage() {
   const [searchProduct, setSearchProduct] = useState('');
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
@@ -79,37 +79,49 @@ export default function CreateCustomerPOPage() {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    const totalOrdered = items.reduce((sum, item) => sum + (item.orderedQuantity || 0), 0);
+    try {
+      const totalOrdered = items.reduce((sum, item) => sum + (item.orderedQuantity || 0), 0);
 
-    const newPO = {
-      id: `po-${Date.now()}`,
-      companyId: activeCompanyId!,
-      customerId: formData.customerId,
-      customer: selectedCustomer ? {
-        id: selectedCustomer.id,
-        name: selectedCustomer.name,
-        companyName: selectedCustomer.companyName,
-        email: selectedCustomer.email,
-        phone: selectedCustomer.phone,
-      } : undefined,
-      poNumber: formData.poNumber,
-      status: asDraft ? 'draft' as const : 'open' as const,
-      orderDate: new Date(formData.orderDate),
-      requestedDeliveryDate: formData.requestedDeliveryDate ? new Date(formData.requestedDeliveryDate) : undefined,
-      customerReference: formData.customerReference || undefined,
-      notes: formData.notes || undefined,
-      internalNotes: formData.internalNotes || undefined,
-      items: items as CustomerPOItem[],
-      totalOrderedQuantity: totalOrdered,
-      totalInvoicedQuantity: 0,
-      totalRemainingQuantity: totalOrdered,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      const payload = {
+        customerId: formData.customerId,
+        customer: selectedCustomer ? {
+          id: selectedCustomer.id,
+          name: selectedCustomer.name,
+          companyName: selectedCustomer.companyName,
+          email: selectedCustomer.email,
+          phone: selectedCustomer.phone,
+        } : undefined,
+        poNumber: formData.poNumber,
+        status: asDraft ? 'draft' : 'open',
+        orderDate: formData.orderDate,
+        requestedDeliveryDate: formData.requestedDeliveryDate || undefined,
+        customerReference: formData.customerReference || undefined,
+        notes: formData.notes || undefined,
+        internalNotes: formData.internalNotes || undefined,
+        items: items.map((item) => ({
+          productId: item.productId,
+          description: item.description,
+          orderedQuantity: item.orderedQuantity || 1,
+          invoicedQuantity: 0,
+          remainingQuantity: item.orderedQuantity || 1,
+          uomShortCode: item.uomShortCode || 'EA',
+          agreedUnitPrice: item.agreedUnitPrice || 0,
+          lineNumber: item.lineNumber,
+        })),
+        totalOrderedQuantity: totalOrdered,
+        totalInvoicedQuantity: 0,
+        totalRemainingQuantity: totalOrdered,
+      };
 
-    addCustomerPO?.(newPO);
-    router.push('/customer-po');
+      await api.post('/api/v1/customer-pos', payload);
+      router.push('/customer-po');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to create purchase order');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -127,6 +139,12 @@ export default function CreateCustomerPOPage() {
           <p className="text-gray-500">Record a new customer purchase order</p>
         </div>
       </div>
+
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+          {submitError}
+        </div>
+      )}
 
       <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
         {/* Customer & PO Details */}
@@ -260,7 +278,7 @@ export default function CreateCustomerPOPage() {
 
           {items.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No items added yet. Click "Add Item" to start.
+              No items added yet. Click &quot;Add Item&quot; to start.
             </div>
           ) : (
             <div className="overflow-x-auto">

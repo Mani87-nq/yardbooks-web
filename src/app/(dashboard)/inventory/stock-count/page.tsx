@@ -3,138 +3,104 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatDateTime } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
-import type { StockCount, StockCountItem } from '@/types/stockCount';
+import {
+  useStockCounts,
+  useCreateStockCount,
+  useUpdateStockCount,
+  useAddStockCountItems,
+} from '@/hooks/api/useStockCounts';
+import { useProducts } from '@/hooks/api';
+import type { StockCountAPI } from '@/hooks/api/useStockCounts';
 import {
   ArrowLeftIcon,
   PlusIcon,
   ClipboardDocumentCheckIcon,
   PlayIcon,
-  CheckIcon,
-  XMarkIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
+
+const getStatusVariant = (status: string): 'success' | 'warning' | 'info' | 'default' => {
+  switch (status) {
+    case 'POSTED': return 'success';
+    case 'IN_PROGRESS': return 'warning';
+    case 'APPROVED':
+    case 'PENDING_REVIEW': return 'info';
+    case 'DRAFT': return 'default';
+    case 'CANCELLED': return 'default';
+    default: return 'default';
+  }
+};
+
+const getStatusDisplay = (status: string) => status.toLowerCase().replace(/_/g, ' ');
 
 export default function StockCountPage() {
   const [showModal, setShowModal] = useState(false);
-  const [activeCount, setActiveCount] = useState<StockCount | null>(null);
-  const [countedQuantities, setCountedQuantities] = useState<Record<string, number>>({});
+  const [saveError, setSaveError] = useState('');
 
-  const { products, updateProduct, activeCompany } = useAppStore();
-  const [stockCounts, setStockCounts] = useState<StockCount[]>([]);
+  // API hooks
+  const { data: stockCountsResponse, isLoading, error: fetchError, refetch } = useStockCounts({ limit: 50 });
+  const { data: productsResponse } = useProducts({ limit: 200 });
+  const createStockCount = useCreateStockCount();
+  const updateStockCount = useUpdateStockCount();
+  const addStockCountItems = useAddStockCountItems();
+
+  const stockCounts = stockCountsResponse?.data ?? [];
+  const products = (productsResponse as any)?.data ?? [];
+
   const [formData, setFormData] = useState({
     name: '',
     notes: '',
-    countType: 'full' as 'full' | 'partial' | 'cycle',
+    countType: 'FULL' as string,
   });
 
-  const handleStartCount = () => {
+  const handleStartCount = async () => {
+    setSaveError('');
     if (!formData.name.trim()) {
-      alert('Please enter a count name');
+      setSaveError('Please enter a count name');
       return;
     }
 
-    const countId = uuidv4();
-    const items: StockCountItem[] = products.map((p, idx) => ({
-      id: `${countId}-${idx}`,
-      stockCountId: countId,
-      productId: p.id,
-      productName: p.name,
-      sku: p.sku,
-      uomCode: p.unit || 'each',
-      expectedQuantity: p.quantity,
-      countedQuantity: undefined,
-      variance: 0,
-    }));
-
-    const newCount: StockCount = {
-      id: countId,
-      companyId: activeCompany?.id ?? '',
-      countNumber: `SC-${Date.now()}`,
-      name: formData.name,
-      notes: formData.notes,
-      status: 'in_progress',
-      type: formData.countType as StockCount['type'],
-      items,
-      scheduledDate: new Date(),
-      startedAt: new Date(),
-      totalItems: items.length,
-      itemsCounted: 0,
-      itemsWithVariance: 0,
-      totalVarianceValue: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    setStockCounts([newCount, ...stockCounts]);
-    setActiveCount(newCount);
-    setCountedQuantities({});
-    setShowModal(false);
-    setFormData({ name: '', notes: '', countType: 'full' });
-  };
-
-  const handleUpdateQuantity = (productId: string, quantity: string) => {
-    const qty = quantity === '' ? undefined : parseInt(quantity);
-    setCountedQuantities({
-      ...countedQuantities,
-      [productId]: qty as number,
-    });
-  };
-
-  const handleCompleteCount = () => {
-    if (!activeCount) return;
-
-    const updatedItems = activeCount.items.map(item => {
-      const counted = countedQuantities[item.productId];
-      return {
-        ...item,
-        countedQuantity: counted,
-        variance: counted !== undefined ? counted - item.expectedQuantity : 0,
-      };
-    });
-
-    const completedCount: StockCount = {
-      ...activeCount,
-      items: updatedItems,
-      status: 'posted',
-      completedAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    // Update stock counts list
-    setStockCounts(stockCounts.map(sc =>
-      sc.id === activeCount.id ? completedCount : sc
-    ));
-
-    // Optionally apply variances to inventory
-    if (confirm('Apply counted quantities to inventory?')) {
-      updatedItems.forEach(item => {
-        if (item.countedQuantity !== undefined) {
-          updateProduct(item.productId, { quantity: item.countedQuantity });
-        }
+    try {
+      // 1. Create the stock count
+      const newCount = await createStockCount.mutateAsync({
+        name: formData.name,
+        type: formData.countType,
+        scheduledDate: new Date().toISOString(),
+        notes: formData.notes || undefined,
       });
+
+      // 2. Add items from products if there are products
+      if (products.length > 0) {
+        const items = products.map((p: any) => ({
+          productId: p.id,
+          productName: p.name,
+          sku: p.sku || '',
+          barcode: p.barcode || undefined,
+          uomCode: p.unit || 'EACH',
+          expectedQuantity: p.quantity ?? 0,
+        }));
+
+        await addStockCountItems.mutateAsync({
+          stockCountId: newCount.id,
+          items,
+        });
+      }
+
+      // 3. Set status to IN_PROGRESS
+      await updateStockCount.mutateAsync({
+        id: newCount.id,
+        data: { status: 'IN_PROGRESS' },
+      });
+
+      setShowModal(false);
+      setFormData({ name: '', notes: '', countType: 'FULL' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create stock count';
+      setSaveError(message);
     }
-
-    setActiveCount(null);
-    setCountedQuantities({});
-  };
-
-  const handleCancelCount = () => {
-    if (!activeCount) return;
-    if (!confirm('Are you sure you want to cancel this count?')) return;
-
-    setStockCounts(stockCounts.map(sc =>
-      sc.id === activeCount.id ? { ...sc, status: 'cancelled' as const } : sc
-    ));
-    setActiveCount(null);
-    setCountedQuantities({});
-  };
-
-  const getVarianceColor = (variance: number) => {
-    if (variance === 0) return 'text-gray-500';
-    if (variance > 0) return 'text-emerald-600';
-    return 'text-red-600';
   };
 
   return (
@@ -151,82 +117,37 @@ export default function StockCountPage() {
           <h1 className="text-2xl font-bold text-gray-900">Stock Count</h1>
           <p className="text-gray-500">Physical inventory counts and adjustments</p>
         </div>
-        {!activeCount && (
-          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => setShowModal(true)}>
-            New Count
-          </Button>
-        )}
+        <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => setShowModal(true)}>
+          New Count
+        </Button>
       </div>
 
-      {/* Active Count */}
-      {activeCount && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{activeCount.name}</CardTitle>
-                <p className="text-sm text-gray-500">
-                  Started: {activeCount.startedAt ? formatDateTime(activeCount.startedAt) : '-'}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCancelCount}>
-                  <XMarkIcon className="w-4 h-4 mr-1" />
-                  Cancel
-                </Button>
-                <Button onClick={handleCompleteCount}>
-                  <CheckIcon className="w-4 h-4 mr-1" />
-                  Complete Count
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Expected</TableHead>
-                  <TableHead>Counted</TableHead>
-                  <TableHead>Variance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeCount.items.map((item) => {
-                  const counted = countedQuantities[item.productId];
-                  const variance = counted !== undefined ? counted - item.expectedQuantity : 0;
+      {/* Error State */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">Failed to load stock counts. {fetchError instanceof Error ? fetchError.message : ''}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <ArrowPathIcon className="w-4 h-4 mr-1" />
+            Retry
+          </Button>
+        </div>
+      )}
 
-                  return (
-                    <TableRow key={item.productId}>
-                      <TableCell className="font-medium">{item.productName}</TableCell>
-                      <TableCell className="text-gray-500">{item.sku || '-'}</TableCell>
-                      <TableCell>{item.expectedQuantity}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={counted ?? ''}
-                          onChange={(e) => handleUpdateQuantity(item.productId, e.target.value)}
-                          className="w-24"
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell className={getVarianceColor(variance)}>
-                        {counted !== undefined ? (
-                          variance > 0 ? `+${variance}` : variance
-                        ) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <div className="p-12 text-center">
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
+            <p className="text-gray-500">Loading stock counts...</p>
+          </div>
         </Card>
       )}
 
       {/* Count History */}
-      {!activeCount && (
+      {!isLoading && (
         <Card padding="none">
           <CardHeader>
             <CardTitle>Count History</CardTitle>
@@ -243,37 +164,43 @@ export default function StockCountPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Count Number</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Items</TableHead>
                   <TableHead>Started</TableHead>
                   <TableHead>Completed</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {stockCounts.map((count) => (
                   <TableRow key={count.id}>
+                    <TableCell className="font-medium text-gray-900">{count.countNumber}</TableCell>
                     <TableCell className="font-medium">{count.name}</TableCell>
-                    <TableCell className="capitalize">{count.type}</TableCell>
+                    <TableCell className="capitalize text-gray-500">{count.type?.toLowerCase()}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          count.status === 'posted' ? 'success' :
-                          count.status === 'in_progress' ? 'warning' :
-                          count.status === 'approved' ? 'info' :
-                          'default'
-                        }
-                      >
-                        {count.status.replace('_', ' ')}
+                      <Badge variant={getStatusVariant(count.status)}>
+                        {getStatusDisplay(count.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{count.items.length}</TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      {count.startedAt ? formatDateTime(count.startedAt) : '-'}
+                    <TableCell className="text-gray-500">
+                      {count.totalItems || count._count?.items || 0}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">
-                      {count.completedAt ? formatDateTime(count.completedAt) : '-'}
+                      {count.startedAt ? formatDateTime(new Date(count.startedAt)) : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-500">
+                      {count.completedAt ? formatDateTime(new Date(count.completedAt)) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/inventory/stock-count/${count.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <EyeIcon className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -291,6 +218,11 @@ export default function StockCountPage() {
       >
         <ModalBody>
           <div className="space-y-4">
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                {saveError}
+              </div>
+            )}
             <Input
               label="Count Name *"
               value={formData.name}
@@ -301,12 +233,13 @@ export default function StockCountPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Count Type</label>
               <select
                 value={formData.countType}
-                onChange={(e) => setFormData({ ...formData, countType: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, countType: e.target.value })}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
               >
-                <option value="full">Full Count</option>
-                <option value="partial">Partial Count</option>
-                <option value="cycle">Cycle Count</option>
+                <option value="FULL">Full Count</option>
+                <option value="CYCLE">Cycle Count</option>
+                <option value="SPOT">Spot Check</option>
+                <option value="ANNUAL">Annual Count</option>
               </select>
             </div>
             <div>
@@ -321,16 +254,19 @@ export default function StockCountPage() {
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-600">
-                This count will include <strong>{products.length}</strong> products
+                This count will include <strong>{products.length}</strong> products from your inventory
               </p>
             </div>
           </div>
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button onClick={handleStartCount}>
+          <Button
+            onClick={handleStartCount}
+            disabled={createStockCount.isPending || addStockCountItems.isPending || updateStockCount.isPending}
+          >
             <PlayIcon className="w-4 h-4 mr-1" />
-            Start Count
+            {(createStockCount.isPending || addStockCountItems.isPending) ? 'Creating...' : 'Start Count'}
           </Button>
         </ModalFooter>
       </Modal>

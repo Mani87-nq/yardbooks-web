@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalBody, ModalFooter, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Select, Textarea } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
+import { useCustomers, useInvoices } from '@/hooks/api';
 import { formatJMD, formatDate } from '@/lib/utils';
 import {
   PlusIcon,
@@ -41,65 +42,6 @@ interface CreditNote {
 }
 
 // ============================================
-// DEMO DATA
-// ============================================
-
-const initialCreditNotes: CreditNote[] = [
-  {
-    id: 'cn-001',
-    creditNoteNumber: 'CN-001',
-    customerId: 'cust-001',
-    customerName: 'Yardie Foods',
-    invoiceRef: 'INV-003',
-    amount: 12500,
-    reason: 'Return of damaged goods',
-    notes: 'Customer returned 5 cases of damaged canned goods. Warehouse confirmed receipt of returned items.',
-    status: 'applied',
-    createdAt: new Date('2025-12-15'),
-    approvedAt: new Date('2025-12-16'),
-    appliedAt: new Date('2025-12-18'),
-  },
-  {
-    id: 'cn-002',
-    creditNoteNumber: 'CN-002',
-    customerId: 'cust-002',
-    customerName: 'Island Tech',
-    invoiceRef: 'INV-007',
-    amount: 25000,
-    reason: 'Service discount',
-    notes: 'Agreed upon service discount for annual maintenance contract renewal. Approved by management.',
-    status: 'approved',
-    createdAt: new Date('2026-01-08'),
-    approvedAt: new Date('2026-01-10'),
-  },
-  {
-    id: 'cn-003',
-    creditNoteNumber: 'CN-003',
-    customerId: 'cust-003',
-    customerName: 'Dolphy Enterprises',
-    invoiceRef: 'INV-012',
-    amount: 5750,
-    reason: 'Pricing error',
-    notes: 'Incorrect price applied for bulk order. Needs adjustment per agreed pricing schedule.',
-    status: 'draft',
-    createdAt: new Date('2026-02-01'),
-  },
-  {
-    id: 'cn-004',
-    creditNoteNumber: 'CN-004',
-    customerId: 'cust-004',
-    customerName: 'Kingston Motors',
-    invoiceRef: 'INV-009',
-    amount: 18000,
-    reason: 'Duplicate billing',
-    notes: 'Invoice was accidentally duplicated in the system. Original invoice INV-009 already paid. Voided as correction was made directly.',
-    status: 'void',
-    createdAt: new Date('2026-01-20'),
-    voidedAt: new Date('2026-01-22'),
-  },
-];
-
-// ============================================
 // HELPERS
 // ============================================
 
@@ -114,28 +56,22 @@ function getStatusBadge(status: CreditNoteStatus) {
   return <Badge variant={variant}>{label}</Badge>;
 }
 
-function getNextCNNumber(creditNotes: CreditNote[]): string {
-  const maxNum = creditNotes.reduce((max, cn) => {
-    const match = cn.creditNoteNumber.match(/CN-(\d+)/);
-    if (match) {
-      const num = parseInt(match[1], 10);
-      return num > max ? num : max;
-    }
-    return max;
-  }, 0);
-  return `CN-${String(maxNum + 1).padStart(3, '0')}`;
-}
-
 // ============================================
 // COMPONENT
 // ============================================
 
 export default function CreditNotesPage() {
-  // Store
-  const { customers, invoices } = useAppStore();
+  // Fetch customers & invoices from API for dropdowns
+  const { data: customersResponse } = useCustomers({ limit: 200 });
+  const { data: invoicesResponse } = useInvoices({ limit: 200 });
+  const customers = (customersResponse as any)?.data ?? [];
+  const invoices = (invoicesResponse as any)?.data ?? [];
 
-  // Credit notes state (demo mode)
-  const [creditNotes, setCreditNotes] = useState<CreditNote[]>(initialCreditNotes);
+  // API-driven state
+  const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,6 +90,24 @@ export default function CreditNotesPage() {
     notes: '',
   });
 
+  const fetchCreditNotes = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<{ data: CreditNote[] } | CreditNote[]>('/api/v1/credit-notes');
+      const list = Array.isArray(data) ? data : (data as any).data ?? [];
+      setCreditNotes(list);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load credit notes');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCreditNotes();
+  }, [fetchCreditNotes]);
+
   // ============================================
   // COMPUTED VALUES
   // ============================================
@@ -164,10 +118,10 @@ export default function CreditNotesPage() {
     return creditNotes.filter((cn) => {
       const matchesSearch =
         !searchQuery ||
-        cn.creditNoteNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        cn.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        cn.invoiceRef.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        cn.reason.toLowerCase().includes(searchQuery.toLowerCase());
+        cn.creditNoteNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cn.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cn.invoiceRef?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cn.reason?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'all' || cn.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -187,27 +141,16 @@ export default function CreditNotesPage() {
   // Customer invoices for the form selector
   const selectedCustomerInvoices = useMemo(() => {
     if (!formData.customerId) return [];
-    return invoices.filter((inv) => inv.customerId === formData.customerId);
+    return invoices.filter((inv: any) => inv.customerId === formData.customerId);
   }, [formData.customerId, invoices]);
 
   // Customer options for the form selector
   const customerOptions = useMemo(() => {
-    const storeCustomers = customers.map((c) => ({
+    const storeCustomers = customers.map((c: any) => ({
       value: c.id,
       label: c.name,
     }));
-
-    // Include demo customer names if not already present
-    const demoNames = ['Yardie Foods', 'Island Tech', 'Dolphy Enterprises', 'Kingston Motors'];
-    const existingNames = new Set(storeCustomers.map((c) => c.label));
-    const demoOptions = demoNames
-      .filter((name) => !existingNames.has(name))
-      .map((name, idx) => ({
-        value: `demo-cust-${idx}`,
-        label: name,
-      }));
-
-    return [{ value: '', label: 'Select a customer...' }, ...storeCustomers, ...demoOptions];
+    return [{ value: '', label: 'Select a customer...' }, ...storeCustomers];
   }, [customers]);
 
   // ============================================
@@ -226,74 +169,74 @@ export default function CreditNotesPage() {
     setShowCreateModal(true);
   };
 
-  const handleCreateCreditNote = () => {
+  const handleCreateCreditNote = async () => {
     if (!formData.customerId || !formData.amount || !formData.reason) {
       alert('Please fill in all required fields: Customer, Amount, and Reason.');
       return;
     }
 
-    const customerLabel =
-      customerOptions.find((c) => c.value === formData.customerId)?.label || 'Unknown';
+    setSaving(true);
+    try {
+      const customerLabel =
+        customerOptions.find((c) => c.value === formData.customerId)?.label || 'Unknown';
 
-    const newCreditNote: CreditNote = {
-      id: `cn-${Date.now()}`,
-      creditNoteNumber: getNextCNNumber(creditNotes),
-      customerId: formData.customerId,
-      customerName: customerLabel,
-      invoiceRef: formData.invoiceRef || 'N/A',
-      amount: parseFloat(formData.amount),
-      reason: formData.reason,
-      notes: formData.notes,
-      status: 'draft',
-      createdAt: new Date(),
-    };
+      await api.post('/api/v1/credit-notes', {
+        customerId: formData.customerId,
+        customerName: customerLabel,
+        invoiceRef: formData.invoiceRef || 'N/A',
+        amount: parseFloat(formData.amount),
+        reason: formData.reason,
+        notes: formData.notes,
+      });
 
-    setCreditNotes((prev) => [...prev, newCreditNote]);
-    setShowCreateModal(false);
-  };
-
-  const handleApprove = (id: string) => {
-    setCreditNotes((prev) =>
-      prev.map((cn) =>
-        cn.id === id
-          ? { ...cn, status: 'approved' as CreditNoteStatus, approvedAt: new Date() }
-          : cn
-      )
-    );
-    if (selectedCreditNote?.id === id) {
-      setSelectedCreditNote((prev) =>
-        prev ? { ...prev, status: 'approved', approvedAt: new Date() } : prev
-      );
+      setShowCreateModal(false);
+      fetchCreditNotes();
+    } catch (err: any) {
+      alert(err.message || 'Failed to create credit note');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleApplyToInvoice = (id: string) => {
-    setCreditNotes((prev) =>
-      prev.map((cn) =>
-        cn.id === id
-          ? { ...cn, status: 'applied' as CreditNoteStatus, appliedAt: new Date() }
-          : cn
-      )
-    );
-    if (selectedCreditNote?.id === id) {
-      setSelectedCreditNote((prev) =>
-        prev ? { ...prev, status: 'applied', appliedAt: new Date() } : prev
-      );
+  const handleApprove = async (id: string) => {
+    try {
+      await api.put(`/api/v1/credit-notes/${id}`, { status: 'approved' });
+      fetchCreditNotes();
+      if (selectedCreditNote?.id === id) {
+        setSelectedCreditNote((prev) =>
+          prev ? { ...prev, status: 'approved', approvedAt: new Date() } : prev
+        );
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to approve credit note');
     }
   };
 
-  const handleVoid = (id: string) => {
-    setCreditNotes((prev) =>
-      prev.map((cn) =>
-        cn.id === id
-          ? { ...cn, status: 'void' as CreditNoteStatus, voidedAt: new Date() }
-          : cn
-      )
-    );
-    if (selectedCreditNote?.id === id) {
-      setSelectedCreditNote((prev) =>
-        prev ? { ...prev, status: 'void', voidedAt: new Date() } : prev
-      );
+  const handleApplyToInvoice = async (id: string) => {
+    try {
+      await api.put(`/api/v1/credit-notes/${id}`, { status: 'applied' });
+      fetchCreditNotes();
+      if (selectedCreditNote?.id === id) {
+        setSelectedCreditNote((prev) =>
+          prev ? { ...prev, status: 'applied', appliedAt: new Date() } : prev
+        );
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to apply credit note');
+    }
+  };
+
+  const handleVoid = async (id: string) => {
+    try {
+      await api.put(`/api/v1/credit-notes/${id}`, { status: 'void' });
+      fetchCreditNotes();
+      if (selectedCreditNote?.id === id) {
+        setSelectedCreditNote((prev) =>
+          prev ? { ...prev, status: 'void', voidedAt: new Date() } : prev
+        );
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to void credit note');
     }
   };
 
@@ -306,6 +249,30 @@ export default function CreditNotesPage() {
     setShowDetailView(false);
     setSelectedCreditNote(null);
   };
+
+  // ============================================
+  // LOADING / ERROR
+  // ============================================
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">Loading credit notes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-red-600">{error}</p>
+        <Button onClick={fetchCreditNotes}>Retry</Button>
+      </div>
+    );
+  }
 
   // ============================================
   // DETAIL VIEW
@@ -673,7 +640,7 @@ export default function CreditNotesPage() {
                 label="Invoice Reference"
                 options={[
                   { value: '', label: 'Select an invoice...' },
-                  ...selectedCustomerInvoices.map((inv) => ({
+                  ...selectedCustomerInvoices.map((inv: any) => ({
                     value: inv.invoiceNumber,
                     label: `${inv.invoiceNumber} - ${formatJMD(inv.total)}`,
                   })),
@@ -720,8 +687,8 @@ export default function CreditNotesPage() {
           <Button variant="outline" onClick={() => setShowCreateModal(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreateCreditNote} icon={<PlusIcon className="w-4 h-4" />}>
-            Create Credit Note
+          <Button onClick={handleCreateCreditNote} icon={<PlusIcon className="w-4 h-4" />} disabled={saving}>
+            {saving ? 'Creating...' : 'Create Credit Note'}
           </Button>
         </ModalFooter>
       </Modal>

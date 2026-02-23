@@ -6,3 +6,5 @@ export * from './useEmployees';
 export * from './useBanking';
 export * from './useAccounting';
 export * from './useQuotations';
+export * from './useFixedAssets';
+export * from './useStockCounts';

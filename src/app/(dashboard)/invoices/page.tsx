@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Card, Button, Input, StatusBadge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter, Textarea } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
+import { useInvoices, useUpdateInvoice, useCustomers } from '@/hooks/api';
 import { formatJMD, formatDate } from '@/lib/utils';
 import type { Invoice } from '@/types';
 import {
@@ -16,6 +16,7 @@ import {
   EnvelopeIcon,
   PaperAirplaneIcon,
 } from '@heroicons/react/24/outline';
+import { PermissionGate } from '@/components/PermissionGate';
 
 export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,7 +28,12 @@ export default function InvoicesPage() {
   const [emailMessage, setEmailMessage] = useState('');
   const [emailSending, setEmailSending] = useState(false);
 
-  const { invoices, customers, updateInvoice, activeCompany } = useAppStore();
+  // API hooks
+  const { data: invoicesResponse, isLoading } = useInvoices({ limit: 200 });
+  const { data: customersResponse } = useCustomers({ limit: 200 });
+  const updateInvoiceMutation = useUpdateInvoice();
+  const invoices: Invoice[] = (invoicesResponse as any)?.data ?? [];
+  const customers: any[] = (customersResponse as any)?.data ?? [];
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch = !searchQuery ||
@@ -54,7 +60,7 @@ export default function InvoicesPage() {
     const customer = invoice.customer || customers.find((c) => c.id === invoice.customerId);
     setSelectedInvoice(invoice);
     setEmailTo(customer?.email || '');
-    setEmailSubject(`Invoice ${invoice.invoiceNumber} from ${activeCompany?.businessName || 'YaadBooks'}`);
+    setEmailSubject(`Invoice ${invoice.invoiceNumber} from YaadBooks`);
     setEmailMessage(`Dear ${customer?.name || 'Valued Customer'},
 
 Please find attached invoice ${invoice.invoiceNumber} for ${formatJMD(invoice.total)}.
@@ -64,7 +70,7 @@ Payment is due by ${format(new Date(invoice.dueDate), 'MMMM dd, yyyy')}.
 Thank you for your business!
 
 Best regards,
-${activeCompany?.businessName || 'YaadBooks'}`);
+YaadBooks`);
     setShowEmailModal(true);
   };
 
@@ -78,7 +84,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     if (selectedInvoice.status === 'draft') {
-      updateInvoice(selectedInvoice.id, { status: 'sent', updatedAt: new Date() });
+      await updateInvoiceMutation.mutateAsync({ id: selectedInvoice.id, data: { status: 'sent' } });
     }
 
     setEmailSending(false);
@@ -95,11 +101,13 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
           <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
           <p className="text-gray-500">Manage your sales invoices</p>
         </div>
-        <Link href="/invoices/new">
-          <Button icon={<PlusIcon className="w-4 h-4" />}>
-            New Invoice
-          </Button>
-        </Link>
+        <PermissionGate permission="invoices:create">
+          <Link href="/invoices/new">
+            <Button icon={<PlusIcon className="w-4 h-4" />}>
+              New Invoice
+            </Button>
+          </Link>
+        </PermissionGate>
       </div>
 
       {/* Stats */}
@@ -205,14 +213,18 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
                           <EyeIcon className="w-4 h-4" />
                         </Button>
                       </Link>
-                      <Link href={`/invoices/${invoice.id}/edit`}>
-                        <Button variant="ghost" size="sm">
-                          <PencilIcon className="w-4 h-4" />
+                      <PermissionGate permission="invoices:update">
+                        <Link href={`/invoices/${invoice.id}/edit`}>
+                          <Button variant="ghost" size="sm">
+                            <PencilIcon className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      </PermissionGate>
+                      <PermissionGate permission="invoices:update">
+                        <Button variant="ghost" size="sm" title="Send" onClick={() => handleOpenEmailModal(invoice)}>
+                          <EnvelopeIcon className="w-4 h-4" />
                         </Button>
-                      </Link>
-                      <Button variant="ghost" size="sm" title="Send" onClick={() => handleOpenEmailModal(invoice)}>
-                        <EnvelopeIcon className="w-4 h-4" />
-                      </Button>
+                      </PermissionGate>
                     </div>
                   </TableCell>
                 </TableRow>

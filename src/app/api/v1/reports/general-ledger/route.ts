@@ -7,14 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
-import { requireFeature } from '@/lib/plan-gate.server';
-
 export async function GET(request: NextRequest) {
   try {
-    // Plan gate: general ledger report requires BUSINESS plan (advanced_reports)
-    const { error: planError } = await requireFeature(request, 'advanced_reports');
-    if (planError) return planError;
-
     const { user, error: authError } = await requirePermission(request, 'reports:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
-    // 14-day free trial: new companies start on BUSINESS plan with TRIALING status
+    // 14-day free trial: new companies start on SOLO plan with TRIALING status
     const now = new Date();
     const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       const company = await tx.company.create({
         data: {
           ...parsed.data,
-          subscriptionPlan: 'BUSINESS',
+          subscriptionPlan: 'SOLO',
           subscriptionStatus: 'TRIALING',
           subscriptionStartDate: now,
           subscriptionEndDate: trialEnd,

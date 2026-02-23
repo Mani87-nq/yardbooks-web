@@ -9,12 +9,11 @@ export async function GET(_request: NextRequest) {
     data: PLANS.map(plan => ({
       id: plan.id,
       name: plan.name,
-      price: plan.price,
       priceUsd: plan.priceUsd,
+      perUser: plan.perUser,
       maxUsers: plan.maxUsers,
       maxCompanies: plan.maxCompanies,
       features: plan.features,
-      isCustomPricing: plan.price === 0,
     })),
   });
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeftIcon, TruckIcon } from '@heroicons/react/24/outline';
-import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
 import type { ParkingSlip } from '@/types/parkingSlip';
 
 const VEHICLE_TYPES = [
@@ -17,9 +17,6 @@ const VEHICLE_TYPES = [
 
 export default function NewParkingSlipPage() {
   const router = useRouter();
-  const addParkingSlip = useAppStore((state) => state.addParkingSlip);
-  const parkingSlips = useAppStore((state) => state.parkingSlips) || [];
-  const activeCompanyId = useAppStore((state) => state.activeCompany?.id);
 
   const [formData, setFormData] = useState({
     vehiclePlate: '',
@@ -35,15 +32,7 @@ export default function NewParkingSlipPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const generateSlipNumber = () => {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-    const count = parkingSlips.filter(s =>
-      new Date(s.entryTime).toDateString() === date.toDateString()
-    ).length + 1;
-    return `PS-${dateStr}-${count.toString().padStart(3, '0')}`;
-  };
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,30 +42,29 @@ export default function NewParkingSlipPage() {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    const newSlip: ParkingSlip = {
-      id: `slip-${Date.now()}`,
-      companyId: activeCompanyId || '',
-      slipNumber: generateSlipNumber(),
-      vehiclePlate: formData.vehiclePlate.toUpperCase(),
-      vehicleType: formData.vehicleType as ParkingSlip['vehicleType'],
-      vehicleColor: formData.vehicleColor || undefined,
-      vehicleDescription: formData.vehicleDescription || undefined,
-      driverName: formData.driverName || undefined,
-      driverPhone: formData.driverPhone || undefined,
-      lotName: formData.lotName || undefined,
-      spotNumber: formData.spotNumber || undefined,
-      status: 'active',
-      entryTime: new Date(),
-      hourlyRate: formData.hourlyRate,
-      isPaid: false,
-      notes: formData.notes || undefined,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      const payload = {
+        vehiclePlate: formData.vehiclePlate.toUpperCase(),
+        vehicleType: formData.vehicleType,
+        vehicleColor: formData.vehicleColor || undefined,
+        vehicleDescription: formData.vehicleDescription || undefined,
+        driverName: formData.driverName || undefined,
+        driverPhone: formData.driverPhone || undefined,
+        lotName: formData.lotName || undefined,
+        spotNumber: formData.spotNumber || undefined,
+        hourlyRate: formData.hourlyRate,
+        notes: formData.notes || undefined,
+      };
 
-    addParkingSlip?.(newSlip);
-    router.push('/parking-slip');
+      await api.post('/api/v1/parking-slips', payload);
+      router.push('/parking-slip');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to create parking slip');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -94,6 +82,12 @@ export default function NewParkingSlipPage() {
           <p className="text-gray-500">Record a vehicle entering the lot</p>
         </div>
       </div>
+
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+          {submitError}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Vehicle Info */}
