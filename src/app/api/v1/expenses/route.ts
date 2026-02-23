@@ -18,12 +18,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get('cursor') ?? undefined;
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '20'), 100);
-    const category = searchParams.get('category') ?? undefined;
+    const categoryParam = searchParams.get('category');
+    const validCategories = ['ADVERTISING', 'BANK_FEES', 'CONTRACTOR', 'EQUIPMENT', 'INSURANCE', 'INVENTORY', 'MEALS', 'OFFICE_SUPPLIES', 'PROFESSIONAL_SERVICES', 'RENT', 'REPAIRS', 'SALARIES', 'SOFTWARE', 'TAXES', 'TELEPHONE', 'TRAVEL', 'UTILITIES', 'VEHICLE', 'OTHER'] as const;
+    const category = categoryParam && validCategories.includes(categoryParam as any) ? categoryParam : undefined;
+    if (categoryParam && !category) {
+      return badRequest('Invalid expense category');
+    }
 
     const where = {
       companyId: companyId!,
       deletedAt: null,
-      ...(category ? { category: category as any } : {}),
+      ...(category ? { category } : {}),
     };
 
     const expenses = await prisma.expense.findMany({

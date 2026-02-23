@@ -18,13 +18,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get('cursor') ?? undefined;
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '20'), 100);
-    const status = searchParams.get('status') ?? undefined;
+    const statusParam = searchParams.get('status');
+    const validStatuses = ['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'PAID', 'OVERDUE', 'CANCELLED'] as const;
+    const status = statusParam && validStatuses.includes(statusParam as any) ? statusParam : undefined;
+    if (statusParam && !status) {
+      return badRequest('Invalid invoice status');
+    }
     const customerId = searchParams.get('customerId') ?? undefined;
 
     const where = {
       companyId: companyId!,
       deletedAt: null,
-      ...(status ? { status: status as any } : {}),
+      ...(status ? { status } : {}),
       ...(customerId ? { customerId } : {}),
     };
 

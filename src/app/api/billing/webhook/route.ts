@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'crypto';
+import prisma from '@/lib/db';
 
 // Stripe webhook handler for subscription events
-// TODO: Add database updates once schema is migrated
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
@@ -10,13 +11,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
   }
 
-  // For now, parse the event directly (add signature verification in production)
-  // TODO: Add STRIPE_WEBHOOK_SECRET and verify signature
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('STRIPE_WEBHOOK_SECRET is not configured');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
+
+  // Verify Stripe signature (HMAC-SHA256)
   let event;
   try {
-    event = JSON.parse(body);
-  } catch {
-    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    event = verifyStripeSignature(body, signature, webhookSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   try {
@@ -24,20 +31,74 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object;
         const { companyId, userId, planId } = session.metadata || {};
-        console.log(`✅ Checkout completed - Company: ${companyId}, Plan: ${planId}, User: ${userId}`);
-        // TODO: Update company subscription status in database
+        if (companyId && planId) {
+          await prisma.company.update({
+            where: { id: companyId },
+            data: {
+              subscriptionPlan: planId.toUpperCase() as any,
+              subscriptionStatus: 'ACTIVE',
+              stripeCustomerId: session.customer ?? null,
+              stripeSubscriptionId: session.subscription ?? null,
+              subscriptionCurrentPeriodEnd: session.subscription
+                ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // ~30 days
+                : null,
+            },
+          });
+          console.log(`Checkout completed - Company: ${companyId}, Plan: ${planId}`);
+        }
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
-        console.log(`📝 Subscription updated - Status: ${subscription.status}`);
+        const company = await prisma.company.findFirst({
+          where: { stripeSubscriptionId: subscription.id },
+        });
+        if (company) {
+          await prisma.company.update({
+            where: { id: company.id },
+            data: {
+              subscriptionStatus: mapStripeStatus(subscription.status),
+              subscriptionCurrentPeriodEnd: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000)
+                : null,
+            },
+          });
+          console.log(`Subscription updated - Company: ${company.id}, Status: ${subscription.status}`);
+        }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-        console.log(`❌ Subscription cancelled - ID: ${subscription.id}`);
+        const company = await prisma.company.findFirst({
+          where: { stripeSubscriptionId: subscription.id },
+        });
+        if (company) {
+          await prisma.company.update({
+            where: { id: company.id },
+            data: {
+              subscriptionStatus: 'CANCELLED',
+              subscriptionPlan: 'STARTER',
+            },
+          });
+          console.log(`Subscription cancelled - Company: ${company.id}`);
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const company = await prisma.company.findFirst({
+          where: { stripeCustomerId: invoice.customer },
+        });
+        if (company) {
+          await prisma.company.update({
+            where: { id: company.id },
+            data: { subscriptionStatus: 'PAST_DUE' },
+          });
+          console.log(`Payment failed - Company: ${company.id}`);
+        }
         break;
       }
 
@@ -47,10 +108,56 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('Webhook handler error:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }
     );
   }
+}
+
+function mapStripeStatus(stripeStatus: string): string {
+  switch (stripeStatus) {
+    case 'active': return 'ACTIVE';
+    case 'past_due': return 'PAST_DUE';
+    case 'canceled': return 'CANCELLED';
+    case 'unpaid': return 'PAST_DUE';
+    case 'trialing': return 'TRIALING';
+    default: return 'ACTIVE';
+  }
+}
+
+function verifyStripeSignature(payload: string, header: string, secret: string): any {
+  const parts = header.split(',');
+  const timestampPart = parts.find(p => p.startsWith('t='));
+  const signaturePart = parts.find(p => p.startsWith('v1='));
+
+  if (!timestampPart || !signaturePart) {
+    throw new Error('Invalid signature header format');
+  }
+
+  const timestamp = timestampPart.slice(2);
+  const expectedSig = signaturePart.slice(3);
+
+  // Reject events older than 5 minutes (replay attack prevention)
+  const tolerance = 300; // 5 minutes
+  const timestampAge = Math.floor(Date.now() / 1000) - parseInt(timestamp);
+  if (timestampAge > tolerance) {
+    throw new Error('Timestamp too old');
+  }
+
+  // Compute expected signature
+  const signedPayload = `${timestamp}.${payload}`;
+  const computedSig = createHmac('sha256', secret)
+    .update(signedPayload)
+    .digest('hex');
+
+  // Timing-safe comparison
+  const a = Buffer.from(expectedSig);
+  const b = Buffer.from(computedSig);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    throw new Error('Signature mismatch');
+  }
+
+  return JSON.parse(payload);
 }

@@ -304,9 +304,12 @@ export async function exportUserData(userId: string): Promise<{
     orderBy: { createdAt: 'desc' },
   });
 
-  // Fetch audit logs for the user
+  // Fetch audit logs for the user, scoped to their companies only
   const auditLogs = await prisma.auditLog.findMany({
-    where: { userId },
+    where: {
+      userId,
+      companyId: { in: companyIds },
+    },
     orderBy: { createdAt: 'desc' },
     take: 1000, // Limit to last 1000 audit entries for export size
   });

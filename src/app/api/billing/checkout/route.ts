@@ -3,7 +3,12 @@ import { createCheckoutSession, getPlan } from '@/lib/billing/service';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
     const { planId, companyId, userId, email } = body;
 
     if (!planId || !companyId || !userId || !email) {

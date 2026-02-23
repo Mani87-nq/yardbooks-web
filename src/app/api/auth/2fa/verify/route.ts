@@ -7,6 +7,12 @@ import { z } from 'zod/v4';
 import { TOTP, Secret } from 'otpauth';
 import prisma from '@/lib/db';
 import { requirePermission } from '@/lib/auth/middleware';
+import {
+  signAccessToken,
+  signRefreshToken,
+  REFRESH_TOKEN_COOKIE,
+  getRefreshTokenCookieOptions,
+} from '@/lib/auth';
 import { badRequest, unauthorized, internalError } from '@/lib/api-error';
 
 const verifySchema = z.object({
@@ -28,7 +34,15 @@ export async function POST(request: NextRequest) {
 
     const dbUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { twoFactorSecret: true, twoFactorEnabled: true, email: true },
+      select: {
+        twoFactorSecret: true,
+        twoFactorEnabled: true,
+        email: true,
+        activeCompanyId: true,
+        companyMemberships: {
+          include: { company: true },
+        },
+      },
     });
 
     if (!dbUser?.twoFactorSecret) {
@@ -64,11 +78,70 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Login verification
-    return NextResponse.json({
+    // Login verification — issue fresh tokens
+    const companies = dbUser.companyMemberships.map(m => m.companyId);
+    const activeCompanyId = dbUser.activeCompanyId ?? companies[0] ?? null;
+    const activeMembership = dbUser.companyMemberships.find(m => m.companyId === activeCompanyId);
+    const role = activeMembership?.role ?? 'STAFF';
+
+    const accessToken = await signAccessToken({
+      sub: userId,
+      email: dbUser.email,
+      role,
+      activeCompanyId,
+      companies,
+    });
+
+    const session = await prisma.session.create({
+      data: {
+        userId,
+        token: accessToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        userAgent: request.headers.get('user-agent') ?? undefined,
+        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined,
+      },
+    });
+
+    const refreshToken = await signRefreshToken({
+      sub: userId,
+      sessionId: session.id,
+    });
+
+    await prisma.session.update({
+      where: { id: session.id },
+      data: { refreshToken },
+    });
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
+
+    const response = NextResponse.json({
       success: true,
       message: '2FA verification successful.',
+      user: {
+        id: userId,
+        email: dbUser.email,
+        activeCompanyId,
+      },
+      companies: dbUser.companyMemberships.map(m => ({
+        id: m.company.id,
+        businessName: m.company.businessName,
+        role: m.role,
+      })),
+      accessToken,
     });
+
+    response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
+    response.cookies.set('accessToken', accessToken, {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    });
+
+    return response;
   } catch (error) {
     return internalError(error instanceof Error ? error.message : '2FA verification failed');
   }
