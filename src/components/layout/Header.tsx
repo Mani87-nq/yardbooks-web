@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
 import {
   Bars3Icon,
@@ -10,11 +11,41 @@ import {
   BuildingOfficeIcon,
   ChevronDownIcon,
   CheckIcon,
+  ArrowRightOnRectangleIcon,
+  Cog6ToothIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 
 export function Header() {
+  const router = useRouter();
   const { setSidebarOpen, user, activeCompany, companies, switchCompany } = useAppStore();
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        // Clear any client-side state
+        document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        
+        // Redirect to login
+        router.push('/login');
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 lg:px-6">
@@ -108,18 +139,78 @@ export function Header() {
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
         </button>
 
-        {/* User Menu */}
-        <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100">
-          <UserCircleIcon className="h-8 w-8 text-gray-400" />
-          <div className="hidden lg:block text-left">
-            <div className="text-sm font-medium text-gray-900">
-              {user?.firstName} {user?.lastName}
+        {/* User Menu with Dropdown */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowUserDropdown(!showUserDropdown)}
+            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100"
+          >
+            <UserCircleIcon className="h-8 w-8 text-gray-400" />
+            <div className="hidden lg:block text-left">
+              <div className="text-sm font-medium text-gray-900">
+                {user?.firstName} {user?.lastName}
+              </div>
+              <div className="text-xs text-gray-500">
+                {activeCompany?.businessName}
+              </div>
             </div>
-            <div className="text-xs text-gray-500">
-              {activeCompany?.businessName}
-            </div>
-          </div>
-        </button>
+            <ChevronDownIcon className="hidden lg:block h-4 w-4 text-gray-500" />
+          </button>
+
+          {showUserDropdown && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowUserDropdown(false)}
+              />
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                {/* User Info */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="text-sm font-medium text-gray-900">
+                    {user?.firstName} {user?.lastName}
+                  </div>
+                  <div className="text-xs text-gray-500">{user?.email}</div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      router.push('/settings/profile');
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    Your Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      router.push('/settings');
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Cog6ToothIcon className="h-4 w-4" />
+                    Settings
+                  </button>
+                </div>
+
+                {/* Sign Out */}
+                <div className="border-t border-gray-100 py-1">
+                  <button
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                    {loggingOut ? 'Signing out...' : 'Sign Out'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
