@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,14 +13,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#059669",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "YaadBooks — Jamaica's Complete Business Management Solution",
   description: "Invoicing, POS, inventory, payroll, GCT filing, and more — all in one place. Built for Jamaican businesses.",
   keywords: ["accounting software", "Jamaica", "invoicing", "POS", "payroll", "GCT", "business management"],
   authors: [{ name: "YaadBooks" }],
+  manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "YaadBooks",
   },
   openGraph: {
     title: "YaadBooks — Jamaica's Complete Business Management Solution",
@@ -41,6 +56,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
