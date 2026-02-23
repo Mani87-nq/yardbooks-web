@@ -81,6 +81,21 @@ enum UserRole {
   READ_ONLY
 }
 
+enum SubscriptionPlan {
+  STARTER
+  BUSINESS
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  INACTIVE
+}
+
 // ============================================
 // ENUMS - DOCUMENT STATUS
 // ============================================
@@ -677,6 +692,14 @@ model Company {
   currency         Currency      @default(JMD)
   fiscalYearEnd    Int           @default(3)  // Month (1-12), March default
   logoUrl          String?
+  
+  // Subscription & Billing
+  subscriptionPlan       SubscriptionPlan?    @default(STARTER)
+  subscriptionStatus     SubscriptionStatus?  @default(INACTIVE)
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  subscriptionStartDate  DateTime?
+  subscriptionEndDate    DateTime?
   
   // Invoice settings (JSON for flexibility)
   invoicePrefix    String        @default("INV")

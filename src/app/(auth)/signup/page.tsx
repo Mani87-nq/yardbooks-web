@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
 import { api, setAccessToken, ApiRequestError } from '@/lib/api-client';
 import {
@@ -13,6 +13,7 @@ import {
   PhoneIcon,
   EyeIcon,
   EyeSlashIcon,
+  ArrowLeftIcon,
 } from '@heroicons/react/24/outline';
 
 const INDUSTRIES = [
@@ -44,6 +45,13 @@ const BUSINESS_TYPES = [
   { value: 'OTHER', label: 'Other' },
 ];
 
+const PLANS: Record<string, { name: string; price: string }> = {
+  starter: { name: 'Starter', price: '$16.99/mo' },
+  business: { name: 'Business', price: '$34.99/mo' },
+  pro: { name: 'Pro', price: '$69.99/mo' },
+  enterprise: { name: 'Enterprise', price: '$149.99/mo' },
+};
+
 interface RegisterResponse {
   user: {
     id: string;
@@ -59,14 +67,19 @@ interface RegisterResponse {
   accessToken: string;
 }
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setUser, setActiveCompany } = useAppStore();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+  // Get selected plan from URL
+  const selectedPlan = searchParams.get('plan') || 'starter';
+  const planInfo = PLANS[selectedPlan] || PLANS.starter;
 
   const [formData, setFormData] = useState({
     // Step 1: Personal Info
@@ -137,6 +150,7 @@ export default function SignupPage() {
     }
 
     try {
+      // Step 1: Create account
       const data = await api.post<RegisterResponse>('/api/auth/register', {
         email: formData.email,
         password: formData.password,
@@ -178,8 +192,23 @@ export default function SignupPage() {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
+
+        // Step 2: Redirect to Stripe Checkout
+        const checkoutRes = await api.post<{ url: string }>('/api/billing/checkout', {
+          planId: selectedPlan,
+          companyId: data.company.id,
+          userId: data.user.id,
+          email: data.user.email,
+        });
+
+        if (checkoutRes.url) {
+          // Redirect to Stripe
+          window.location.href = checkoutRes.url;
+          return;
+        }
       }
 
+      // Fallback: go to dashboard if checkout fails
       router.push('/dashboard');
     } catch (err) {
       if (err instanceof ApiRequestError) {
@@ -210,6 +239,10 @@ export default function SignupPage() {
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-600 to-emerald-800 p-12 flex-col justify-between">
         <div>
+          <Link href="/" className="inline-flex items-center gap-2 text-emerald-200 hover:text-white transition-colors mb-8">
+            <ArrowLeftIcon className="w-4 h-4" />
+            Back to Pricing
+          </Link>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-emerald-600 font-bold text-xl">
               YB
@@ -225,10 +258,20 @@ export default function SignupPage() {
           <p className="text-emerald-100 text-lg mb-8">
             Join thousands of Jamaican businesses using YaadBooks to streamline their operations.
           </p>
+          
+          {/* Selected Plan Display */}
+          <div className="bg-emerald-700/50 rounded-xl p-4 mb-8">
+            <p className="text-emerald-200 text-sm mb-1">Selected Plan</p>
+            <p className="text-white text-xl font-bold">{planInfo.name} — {planInfo.price}</p>
+            <Link href="/#pricing" className="text-emerald-300 text-sm hover:text-white">
+              Change plan →
+            </Link>
+          </div>
+
           <div className="space-y-4">
             {[
-              'Free to get started',
-              'No credit card required',
+              'Instant access after payment',
+              'Cancel anytime',
               'Jamaica-specific features',
               'GCT & tax compliance built-in',
             ].map((item, i) => (
@@ -252,11 +295,26 @@ export default function SignupPage() {
       {/* Right Panel - Signup Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
+          {/* Mobile: Back to Pricing */}
+          <Link href="/" className="lg:hidden inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors mb-6">
+            <ArrowLeftIcon className="w-4 h-4" />
+            Back to Pricing
+          </Link>
+
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
               YB
             </div>
             <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+          </div>
+
+          {/* Mobile: Selected Plan */}
+          <div className="lg:hidden bg-emerald-50 rounded-xl p-4 mb-6">
+            <p className="text-emerald-600 text-sm mb-1">Selected Plan</p>
+            <p className="text-gray-900 text-lg font-bold">{planInfo.name} — {planInfo.price}</p>
+            <Link href="/#pricing" className="text-emerald-600 text-sm hover:underline">
+              Change plan →
+            </Link>
           </div>
 
           {/* Progress Indicator */}
@@ -544,7 +602,7 @@ export default function SignupPage() {
                     disabled={isLoading}
                     className="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
                   >
-                    {isLoading ? 'Creating account...' : 'Create Account'}
+                    {isLoading ? 'Processing...' : 'Continue to Payment'}
                   </button>
                 </div>
               </>
@@ -569,5 +627,17 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-emerald-600">Loading...</div>
+      </div>
+    }>
+      <SignupContent />
+    </Suspense>
   );
 }
