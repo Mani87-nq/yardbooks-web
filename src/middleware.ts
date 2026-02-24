@@ -1,9 +1,15 @@
 /**
  * Next.js Middleware — runs on every request.
- * Handles authentication checks and security headers.
+ * Handles authentication checks, transparent token refresh, and security headers.
+ *
+ * Single-session enforcement:
+ *   When a user logs in from a new device, the server deletes all previous
+ *   sessions. The old browser's 15-min access token eventually expires;
+ *   this middleware detects the expiry, tries to refresh (which fails because
+ *   the session was deleted), and redirects to /login.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAccessToken } from '@/lib/auth/jwt';
+import { verifyAccessToken, REFRESH_TOKEN_COOKIE } from '@/lib/auth/jwt';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -48,7 +54,7 @@ export async function middleware(request: NextRequest) {
   // Get access token from Authorization header or cookie
   let accessToken: string | null = null;
   const authHeader = request.headers.get('Authorization');
-  
+
   if (authHeader?.startsWith('Bearer ')) {
     accessToken = authHeader.slice(7);
   } else {
@@ -63,8 +69,62 @@ export async function middleware(request: NextRequest) {
       await verifyAccessToken(accessToken);
       isAuthenticated = true;
     } catch {
-      // Token invalid or expired
+      // Token invalid or expired — try transparent refresh below
       isAuthenticated = false;
+    }
+  }
+
+  // ============================================
+  // TRANSPARENT TOKEN REFRESH
+  // ============================================
+  // If the access token expired but the refresh cookie exists,
+  // attempt a server-side refresh. This keeps the session alive
+  // when the 15-min access token expires. If the session was
+  // deleted (single-session enforcement), the refresh will fail
+  // and the user will be redirected to /login.
+  if (!isAuthenticated && !isPublicRoute) {
+    const refreshCookie = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
+    if (refreshCookie) {
+      try {
+        const origin = request.nextUrl.origin;
+        const refreshRes = await fetch(`${origin}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Cookie': `${REFRESH_TOKEN_COOKIE}=${refreshCookie}`,
+          },
+        });
+
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          isAuthenticated = true;
+
+          // Forward the response and set the new cookies from the refresh endpoint
+          const response = NextResponse.next();
+
+          // Set the new access token cookie
+          if (data.accessToken) {
+            response.cookies.set('accessToken', data.accessToken, {
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              path: '/',
+              maxAge: 7 * 24 * 60 * 60,
+            });
+          }
+
+          // Forward Set-Cookie headers from the refresh response (refresh token rotation)
+          const setCookieHeaders = refreshRes.headers.getSetCookie?.() ?? [];
+          for (const cookie of setCookieHeaders) {
+            response.headers.append('Set-Cookie', cookie);
+          }
+
+          // Add security headers to this response
+          addSecurityHeaders(response);
+          return response;
+        }
+        // Refresh failed (session deleted or expired) → fall through to redirect
+      } catch {
+        // Network error during refresh — fall through to redirect
+      }
     }
   }
 
@@ -72,7 +132,12 @@ export async function middleware(request: NextRequest) {
   if (!isPublicRoute && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', pathname);
-    return NextResponse.redirect(loginUrl);
+
+    // Clear stale cookies so the login page starts clean
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete('accessToken');
+    response.cookies.delete(REFRESH_TOKEN_COOKIE);
+    return response;
   }
 
   // Redirect authenticated users away from auth pages
@@ -82,11 +147,15 @@ export async function middleware(request: NextRequest) {
 
   // Continue with request and add security headers
   const response = NextResponse.next();
+  addSecurityHeaders(response);
+  return response;
+}
 
-  // ============================================
-  // SECURITY HEADERS
-  // ============================================
+// ============================================
+// SECURITY HEADERS (extracted to avoid duplication)
+// ============================================
 
+function addSecurityHeaders(response: NextResponse) {
   // Prevent clickjacking
   response.headers.set('X-Frame-Options', 'DENY');
 
@@ -126,8 +195,6 @@ export async function middleware(request: NextRequest) {
   ].join('; ');
 
   response.headers.set('Content-Security-Policy', csp);
-
-  return response;
 }
 
 // Apply to all routes except static assets
