@@ -2,9 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
-import { usePosStore } from '@/store/posStore';
-import { formatJMD } from '@/lib/utils';
+import { api } from '@/lib/api-client';
 import {
   SparklesIcon,
   PaperAirplaneIcon,
@@ -36,9 +34,6 @@ export default function AIAssistantPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { invoices, expenses, customers, products, employees } = useAppStore();
-  const { orders } = usePosStore();
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -46,195 +41,6 @@ export default function AIAssistantPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const generateAIResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-
-    // Calculate real-time business metrics
-    const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const monthlyInvoices = invoices.filter(i => new Date(i.createdAt) >= thisMonth);
-    const monthlyRevenue = monthlyInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0);
-    const monthlyOrders = orders.filter(o => new Date(o.createdAt) >= thisMonth && o.status === 'completed');
-    const posRevenue = monthlyOrders.reduce((sum, o) => sum + o.total, 0);
-    const totalMonthlyRevenue = monthlyRevenue + posRevenue;
-
-    const monthlyExpenses = expenses.filter(e => new Date(e.date) >= thisMonth);
-    const totalMonthlyExpenses = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-    const lowStockItems = products.filter(p => p.quantity <= (p.reorderLevel || 0) && p.quantity > 0);
-    const outOfStockItems = products.filter(p => p.quantity === 0);
-
-    const pendingInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'overdue');
-    const totalReceivables = pendingInvoices.reduce((sum, i) => sum + i.total, 0);
-
-    // Sales related queries
-    if (lowerMessage.includes('sales') || lowerMessage.includes('revenue')) {
-      return `Here's your sales summary for this month:
-
-**Total Revenue:** ${formatJMD(totalMonthlyRevenue)}
-- Invoice Revenue: ${formatJMD(monthlyRevenue)}
-- POS Sales: ${formatJMD(posRevenue)}
-
-**Transactions:**
-- ${monthlyInvoices.length} invoices created
-- ${monthlyOrders.length} POS orders completed
-
-**Outstanding:**
-- ${pendingInvoices.length} unpaid invoices
-- ${formatJMD(totalReceivables)} in receivables
-
-${totalMonthlyRevenue > totalMonthlyExpenses
-  ? `Great news! You're profitable this month with a net of ${formatJMD(totalMonthlyRevenue - totalMonthlyExpenses)}.`
-  : `Heads up: Your expenses (${formatJMD(totalMonthlyExpenses)}) exceed revenue this month.`}`;
-    }
-
-    // Expense related queries
-    if (lowerMessage.includes('expense') || lowerMessage.includes('spending') || lowerMessage.includes('cost')) {
-      const expensesByCategory = monthlyExpenses.reduce((acc, e) => {
-        acc[e.category] = (acc[e.category] || 0) + e.amount;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const sortedCategories = Object.entries(expensesByCategory)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-
-      return `Here's your expense breakdown this month:
-
-**Total Expenses:** ${formatJMD(totalMonthlyExpenses)}
-
-**Top Categories:**
-${sortedCategories.map(([cat, amount], i) =>
-  `${i + 1}. ${cat}: ${formatJMD(amount)}`
-).join('\n')}
-
-**Tip:** ${sortedCategories[0]
-  ? `Your highest expense category is ${sortedCategories[0][0]}. Consider reviewing if there are opportunities to optimize.`
-  : 'Start tracking expenses to get insights on your spending patterns.'}`;
-    }
-
-    // Inventory related queries
-    if (lowerMessage.includes('stock') || lowerMessage.includes('inventory') || lowerMessage.includes('reorder')) {
-      return `Here's your inventory status:
-
-**Overview:**
-- Total Products: ${products.length}
-- Low Stock Items: ${lowStockItems.length}
-- Out of Stock: ${outOfStockItems.length}
-
-${lowStockItems.length > 0 ? `**Items to Reorder:**
-${lowStockItems.slice(0, 5).map(p =>
-  `- ${p.name}: ${p.quantity} remaining (reorder at ${p.reorderLevel})`
-).join('\n')}` : '**All items are well-stocked!**'}
-
-${outOfStockItems.length > 0 ? `\n**Out of Stock (Urgent):**
-${outOfStockItems.slice(0, 5).map(p => `- ${p.name}`).join('\n')}` : ''}`;
-    }
-
-    // Customer related queries
-    if (lowerMessage.includes('customer') || lowerMessage.includes('client')) {
-      const customersWithBalance = customers.filter(c => c.balance > 0);
-      const totalCustomerBalance = customers.reduce((sum, c) => sum + c.balance, 0);
-
-      return `Here's your customer overview:
-
-**Customer Base:**
-- Total Contacts: ${customers.length}
-- Customers: ${customers.filter(c => c.type === 'customer' || c.type === 'both').length}
-- Vendors: ${customers.filter(c => c.type === 'vendor' || c.type === 'both').length}
-
-**Receivables:**
-- ${customersWithBalance.length} customers with outstanding balance
-- Total Receivables: ${formatJMD(totalCustomerBalance)}
-
-${customersWithBalance.length > 0 ? `**Top Outstanding:**
-${customersWithBalance.sort((a, b) => b.balance - a.balance).slice(0, 3).map(c =>
-  `- ${c.name}: ${formatJMD(c.balance)}`
-).join('\n')}` : '**All accounts are current!**'}`;
-    }
-
-    // Business health / summary queries
-    if (lowerMessage.includes('health') || lowerMessage.includes('summary') || lowerMessage.includes('overview') || lowerMessage.includes('how am i doing')) {
-      const profitMargin = totalMonthlyRevenue > 0
-        ? ((totalMonthlyRevenue - totalMonthlyExpenses) / totalMonthlyRevenue * 100).toFixed(1)
-        : 0;
-
-      return `Here's your business health summary:
-
-**Financial Performance (This Month):**
-- Revenue: ${formatJMD(totalMonthlyRevenue)}
-- Expenses: ${formatJMD(totalMonthlyExpenses)}
-- Net Profit: ${formatJMD(totalMonthlyRevenue - totalMonthlyExpenses)}
-- Profit Margin: ${profitMargin}%
-
-**Operations:**
-- ${products.length} products in inventory
-- ${employees.length} employees on payroll
-- ${customers.length} customer/vendor contacts
-
-**Action Items:**
-${lowStockItems.length > 0 ? `- ${lowStockItems.length} items need reordering` : '- Inventory levels are healthy'}
-${pendingInvoices.length > 0 ? `- ${pendingInvoices.length} invoices pending payment` : '- All invoices collected'}
-${outOfStockItems.length > 0 ? `- ${outOfStockItems.length} items out of stock` : ''}
-
-**Overall:** ${
-  totalMonthlyRevenue > totalMonthlyExpenses
-    ? 'Your business is performing well! Keep up the great work.'
-    : 'There are some areas to focus on. Consider following up on receivables and reviewing expenses.'
-}`;
-    }
-
-    // GCT related queries
-    if (lowerMessage.includes('gct') || lowerMessage.includes('tax')) {
-      const invoiceGCT = monthlyInvoices.reduce((sum, i) => sum + (i.gctAmount || 0), 0);
-      const posGCT = monthlyOrders.reduce((sum, o) => sum + (o.gctAmount || 0), 0);
-
-      return `Here's your GCT summary for this month:
-
-**GCT Collected:**
-- From Invoices: ${formatJMD(invoiceGCT)}
-- From POS Sales: ${formatJMD(posGCT)}
-- **Total GCT:** ${formatJMD(invoiceGCT + posGCT)}
-
-**Note:** Jamaica's standard GCT rate is 15%. Make sure to file your GCT returns by the 15th of the following month.`;
-    }
-
-    // Payroll related queries
-    if (lowerMessage.includes('payroll') || lowerMessage.includes('employee') || lowerMessage.includes('staff')) {
-      const activeEmployees = employees.filter(e => e.isActive);
-      const monthlyPayroll = activeEmployees.reduce((sum, e) => sum + (e.baseSalary || 0), 0);
-
-      return `Here's your payroll summary:
-
-**Team:**
-- Total Employees: ${employees.length}
-- Active: ${activeEmployees.length}
-
-**Monthly Payroll Expense:** ${formatJMD(monthlyPayroll)}
-
-**Statutory Contributions (Estimated):**
-- NIS (3%): ${formatJMD(monthlyPayroll * 0.03)}
-- NHT (2%): ${formatJMD(monthlyPayroll * 0.02)}
-- Education Tax (2.25%): ${formatJMD(monthlyPayroll * 0.0225)}
-
-**Tip:** Don't forget employer contributions for NIS (3%) and NHT (3%).`;
-    }
-
-    // Default response
-    return `I can help you with insights about your business! Try asking me:
-
-- "How are my sales this month?"
-- "What are my top expenses?"
-- "Any low stock items I should reorder?"
-- "Give me a business health summary"
-- "What's my GCT this month?"
-- "How's my customer receivables?"
-- "What's my payroll looking like?"
-
-I analyze your real business data to give you actionable insights!`;
-  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -250,10 +56,17 @@ I analyze your real business data to give you actionable insights!`;
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI thinking
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const aiResponse = generateAIResponse(input);
+    let aiResponse: string;
+    try {
+      const history = messages.map(m => ({ role: m.role, content: m.content }));
+      const res = await api.post<{ response: string }>('/api/v1/ai/chat', {
+        message: input,
+        conversationHistory: history,
+      });
+      aiResponse = res.response;
+    } catch (err) {
+      aiResponse = 'Sorry, I encountered an error. Please try again.';
+    }
 
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
