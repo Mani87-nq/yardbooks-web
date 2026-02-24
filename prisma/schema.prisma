@@ -988,6 +988,7 @@ model Invoice {
   @@unique([companyId, invoiceNumber])
   @@index([companyId])
   @@index([companyId, status])
+  @@index([companyId, status, createdAt])
   @@index([companyId, customerId])
   @@index([dueDate])
 }

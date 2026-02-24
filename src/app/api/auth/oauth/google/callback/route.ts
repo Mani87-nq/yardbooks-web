@@ -20,6 +20,7 @@ import {
 } from '@/lib/auth';
 import { sendEmail } from '@/lib/email/service';
 import { welcomeEmail } from '@/lib/email/templates';
+import { encryptIfPresent } from '@/lib/encryption';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -145,12 +146,14 @@ export async function GET(request: NextRequest) {
     });
 
     if (existingOAuth) {
-      // Returning user — update tokens
+      // Returning user — update tokens (encrypted at rest)
       await prisma.oAuthAccount.update({
         where: { id: existingOAuth.id },
         data: {
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token ?? existingOAuth.refreshToken,
+          accessToken: encryptIfPresent(tokens.access_token),
+          refreshToken: tokens.refresh_token
+            ? encryptIfPresent(tokens.refresh_token)
+            : existingOAuth.refreshToken, // keep existing encrypted value
           expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
         },
       });
@@ -173,14 +176,14 @@ export async function GET(request: NextRequest) {
       });
 
       if (existingUser) {
-        // Link Google account to existing user
+        // Link Google account to existing user (tokens encrypted at rest)
         await prisma.oAuthAccount.create({
           data: {
             userId: existingUser.id,
             provider: 'google',
             providerAccountId: googleUser.sub,
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
+            accessToken: encryptIfPresent(tokens.access_token),
+            refreshToken: encryptIfPresent(tokens.refresh_token),
             expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
           },
         });
@@ -252,8 +255,8 @@ export async function GET(request: NextRequest) {
               userId: newUser.id,
               provider: 'google',
               providerAccountId: googleUser.sub,
-              accessToken: tokens.access_token,
-              refreshToken: tokens.refresh_token,
+              accessToken: encryptIfPresent(tokens.access_token),
+              refreshToken: encryptIfPresent(tokens.refresh_token),
               expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
             },
           });
@@ -327,10 +330,11 @@ export async function GET(request: NextRequest) {
 
     // Set access token cookie for middleware
     response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 15 * 60, // 15 minutes — matches JWT expiry
     });
 
     // Clear the CSRF state cookie

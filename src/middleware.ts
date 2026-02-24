@@ -35,6 +35,7 @@ const PUBLIC_ROUTES = [
   '/api/v1/billing/plans',
   '/api/billing/checkout',
   '/api/billing/webhook',
+  '/api/health',
 ];
 
 // Routes that should redirect to dashboard if already authenticated
@@ -109,10 +110,11 @@ export async function middleware(request: NextRequest) {
           // Set the new access token cookie
           if (data.accessToken) {
             response.cookies.set('accessToken', data.accessToken, {
+              httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               path: '/',
-              maxAge: 7 * 24 * 60 * 60,
+              maxAge: 15 * 60, // 15 minutes — matches JWT expiry
             });
           }
 

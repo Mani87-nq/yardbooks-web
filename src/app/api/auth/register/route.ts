@@ -67,6 +67,19 @@ export async function POST(request: NextRequest) {
       return conflict('An account with this email already exists');
     }
 
+    // Prevent trial abuse: only one active trialing company per email
+    if (companyName) {
+      const existingTrialing = await prisma.company.findFirst({
+        where: {
+          subscriptionStatus: 'TRIALING',
+          members: { some: { user: { email } } },
+        },
+      });
+      if (existingTrialing) {
+        return conflict('A free trial is already active for this email address.');
+      }
+    }
+
     // Hash password
     const passwordHash = await hashPassword(password);
 
@@ -209,10 +222,11 @@ export async function POST(request: NextRequest) {
     
     // Set access token cookie for middleware
     response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      maxAge: 15 * 60, // 15 minutes — matches JWT expiry
     });
 
     return response;
