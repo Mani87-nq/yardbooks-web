@@ -735,6 +735,9 @@ model Company {
   primaryColor     String        @default("#1976D2")
   accentColor      String        @default("#FF9800")
   
+  // Onboarding
+  onboardingCompleted Boolean    @default(false)
+
   // Audit
   isActive         Boolean       @default(true)
   createdAt        DateTime      @default(now())

@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { useDataHydration } from '@/hooks/useDataHydration';
+import { useAppStore } from '@/store/appStore';
 
 export function DashboardLayoutClient({
   children,
@@ -10,6 +13,18 @@ export function DashboardLayoutClient({
   children: React.ReactNode;
 }) {
   const { isLoading, error, isHydrated } = useDataHydration();
+  const router = useRouter();
+  const pathname = usePathname();
+  const isOnboarded = useAppStore((s) => s.isOnboarded);
+
+  // ── Onboarding enforcement ─────────────────────────────────────────
+  // If the user has not completed onboarding and is NOT already on the
+  // onboarding page, redirect them there.
+  useEffect(() => {
+    if (isHydrated && !isOnboarded && !pathname.startsWith('/dashboard/onboarding')) {
+      router.replace('/dashboard/onboarding');
+    }
+  }, [isHydrated, isOnboarded, pathname, router]);
 
   // ── Loading state ──────────────────────────────────────────────────
   if (isLoading && !isHydrated) {

@@ -206,8 +206,8 @@ export default function SignupContent() {
         });
       }
 
-      // 14-day free trial — go straight to dashboard (no Stripe checkout)
-      router.push('/dashboard');
+      // 14-day free trial — send to onboarding to complete company setup
+      router.push('/dashboard/onboarding');
     } catch (err) {
       if (err instanceof ApiRequestError) {
         if (err.status === 409) {
