@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
@@ -653,13 +653,5 @@ function SignupContent() {
 }
 
 export default function SignupPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-emerald-600">Loading...</div>
-      </div>
-    }>
-      <SignupContent />
-    </Suspense>
-  );
+  return <SignupContent />;
 }
