@@ -712,6 +712,15 @@ export default function SettingsPage() {
     taxIncludedInPrice: activeCompany?.taxSettings?.taxIncludedInPrice ?? false,
   });
 
+  const [printerSettings, setPrinterSettings] = useState({
+    receiptPaperWidth: (activeCompany?.printerSettings?.receiptPaperWidth as '58' | '80') || '80',
+    receiptPrinterName: activeCompany?.printerSettings?.receiptPrinterName || '',
+    autoPrintReceipts: activeCompany?.printerSettings?.autoPrintReceipts ?? true,
+    documentPaperSize: (activeCompany?.printerSettings?.documentPaperSize as 'letter' | 'a4') || 'letter',
+    documentPrinterName: activeCompany?.printerSettings?.documentPrinterName || '',
+    defaultCopies: activeCompany?.printerSettings?.defaultCopies || 1,
+  });
+
   const handleSaveCompany = () => {
     if (activeCompany) {
       setActiveCompany({
@@ -755,6 +764,72 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSavePrinterSettings = () => {
+    if (activeCompany) {
+      setActiveCompany({
+        ...activeCompany,
+        printerSettings: {
+          receiptPaperWidth: printerSettings.receiptPaperWidth,
+          receiptPrinterName: printerSettings.receiptPrinterName,
+          autoPrintReceipts: printerSettings.autoPrintReceipts,
+          documentPaperSize: printerSettings.documentPaperSize,
+          documentPrinterName: printerSettings.documentPrinterName,
+          defaultCopies: printerSettings.defaultCopies,
+        },
+        updatedAt: new Date(),
+      });
+      alert('Printer settings saved!');
+    }
+  };
+
+  const handleTestPrint = () => {
+    const testContent = `
+      <html>
+        <head>
+          <title>Test Print</title>
+          <style>
+            @page {
+              size: ${printerSettings.receiptPaperWidth === '58' ? '58mm' : '80mm'} auto;
+              margin: 0;
+            }
+            body {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              width: ${printerSettings.receiptPaperWidth === '58' ? '48mm' : '72mm'};
+              padding: 5mm;
+              margin: 0 auto;
+            }
+            .center { text-align: center; }
+            .divider { border-top: 1px dashed #000; margin: 8px 0; }
+            h2 { margin: 0; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="center">
+            <h2>TEST PRINT</h2>
+            <p>${activeCompany?.businessName || 'YaadBooks POS'}</p>
+          </div>
+          <div class="divider"></div>
+          <p>Paper Width: ${printerSettings.receiptPaperWidth}mm</p>
+          <p>Printer: ${printerSettings.receiptPrinterName || 'Default'}</p>
+          <p>Date: ${new Date().toLocaleString()}</p>
+          <div class="divider"></div>
+          <p class="center">If you can read this, your printer is working correctly!</p>
+          <div class="divider"></div>
+          <p class="center">*** END TEST ***</p>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    if (printWindow) {
+      printWindow.document.write(testContent);
+      printWindow.document.close();
+      printWindow.print();
+      printWindow.close();
+    }
+  };
+
   const handleSaveUser = () => {
     if (user) {
       updateUser({
@@ -787,6 +862,7 @@ export default function SettingsPage() {
     { id: 'company', name: 'Company', icon: BuildingOfficeIcon },
     { id: 'invoices', name: 'Invoices', icon: DocumentTextIcon },
     { id: 'tax', name: 'Tax / GCT', icon: CalculatorIcon },
+    { id: 'printers', name: 'Printers', icon: PrinterIcon },
     { id: 'profile', name: 'Profile', icon: UserCircleIcon },
     { id: 'team', name: 'Team', icon: UsersIcon },
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
@@ -1218,6 +1294,130 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {activeTab === 'printers' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Printer Settings</CardTitle>
+                <p className="text-sm text-gray-500 mt-2">
+                  Configure your receipt and document printers. Your browser will show a print dialog when printing.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Browser Print Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Browser-Based Printing:</strong> Your browser handles printer selection through the print dialog. 
+                    Most browsers remember the last printer you selected, so after choosing your receipt printer once, 
+                    it should remain selected for future prints. The printer name fields below are for your reference to help staff identify which printer to choose.
+                  </p>
+                </div>
+
+                {/* Receipt Printer */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Receipt Printer</h3>
+                  <p className="text-sm text-gray-500">
+                    Configure your receipt printer for POS transactions. Receipts are printed using your browser's print dialog.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paper Width</label>
+                      <select
+                        value={printerSettings?.receiptPaperWidth || '80'}
+                        onChange={(e) => setPrinterSettings({ ...printerSettings, receiptPaperWidth: e.target.value as '58' | '80' })}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="80">80mm (Standard)</option>
+                        <option value="58">58mm (Compact)</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Most receipt printers use 80mm paper. Select 58mm for smaller portable printers.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Printer Name (Reference)</label>
+                      <Input
+                        value={printerSettings?.receiptPrinterName || ''}
+                        onChange={(e) => setPrinterSettings({ ...printerSettings, receiptPrinterName: e.target.value })}
+                        placeholder="e.g., Epson TM-T20III"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter your printer name as a reminder. Select this printer in your browser's print dialog when printing receipts.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="autoPrintReceipts"
+                      checked={printerSettings?.autoPrintReceipts ?? true}
+                      onChange={(e) => setPrinterSettings({ ...printerSettings, autoPrintReceipts: e.target.checked })}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor="autoPrintReceipts" className="text-sm text-gray-700">
+                      Auto-print receipts after completing sale
+                    </label>
+                  </div>
+                </div>
+
+                {/* Document Printer */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Document Printer</h3>
+                  <p className="text-sm text-gray-500">
+                    Configure your document printer for invoices, quotations, and reports.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paper Size</label>
+                      <select
+                        value={printerSettings?.documentPaperSize || 'letter'}
+                        onChange={(e) => setPrinterSettings({ ...printerSettings, documentPaperSize: e.target.value as 'letter' | 'a4' })}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="letter">Letter (8.5" × 11")</option>
+                        <option value="a4">A4 (210mm × 297mm)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Printer Name (Reference)</label>
+                      <Input
+                        value={printerSettings?.documentPrinterName || ''}
+                        onChange={(e) => setPrinterSettings({ ...printerSettings, documentPrinterName: e.target.value })}
+                        placeholder="e.g., HP LaserJet Pro"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Copies</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={printerSettings?.defaultCopies || 1}
+                      onChange={(e) => setPrinterSettings({ ...printerSettings, defaultCopies: parseInt(e.target.value) || 1 })}
+                      className="w-32"
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-between pt-6 border-t border-gray-200">
+                  <Button variant="outline" onClick={handleTestPrint}>
+                    Test Receipt Print
+                  </Button>
+                  <Button onClick={handleSavePrinterSettings}>
+                    Save Printer Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {activeTab === 'profile' && (
