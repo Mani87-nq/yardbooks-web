@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '
 import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate } from '@/lib/utils';
 import { printContent, generateTable, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
+import { api } from '@/lib/api-client';
 import {
   PrinterIcon,
   ArrowDownTrayIcon,
@@ -334,20 +335,32 @@ export default function CustomerStatementsPage() {
   };
 
   // ============================================
-  // EMAIL STATEMENT (DEMO)
+  // EMAIL STATEMENT
   // ============================================
 
-  const handleEmailStatement = () => {
+  const [emailSending, setEmailSending] = useState(false);
+
+  const handleEmailStatement = async () => {
     if (!selectedCustomer) return;
 
-    if (selectedCustomer.email) {
-      alert(
-        `Statement would be emailed to ${selectedCustomer.email}.\n\nThis is a demo feature. In production, this would send a professional PDF statement via email.`
-      );
-    } else {
+    if (!selectedCustomer.email) {
       alert(
         `No email address on file for ${selectedCustomer.name}. Please update the customer record with an email address.`
       );
+      return;
+    }
+
+    setEmailSending(true);
+    try {
+      await api.post(`/api/v1/customers/${selectedCustomer.id}/statement/email`, {
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+      });
+      alert(`Statement emailed to ${selectedCustomer.email} successfully.`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to email statement. Please try again.');
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -355,7 +368,9 @@ export default function CustomerStatementsPage() {
   // GENERATE ALL STATEMENTS
   // ============================================
 
-  const handleGenerateAll = () => {
+  const [batchSending, setBatchSending] = useState(false);
+
+  const handleGenerateAll = async () => {
     const customersWithInvoices = companyCustomers.filter((c) =>
       invoices.some(
         (inv) =>
@@ -371,9 +386,47 @@ export default function CustomerStatementsPage() {
       return;
     }
 
-    alert(
-      `Batch statement generation would create ${customersWithInvoices.length} statement(s) for:\n\n${customersWithInvoices.map((c) => `- ${c.name}`).join('\n')}\n\nThis is a demo feature. In production, statements would be generated as PDFs and queued for email delivery.`
-    );
+    const customersWithEmail = customersWithInvoices.filter((c) => c.email);
+    const customersWithoutEmail = customersWithInvoices.filter((c) => !c.email);
+
+    if (customersWithEmail.length === 0) {
+      alert('No customers with email addresses found. Please update customer records with email addresses.');
+      return;
+    }
+
+    const confirmMessage = customersWithoutEmail.length > 0
+      ? `Send statements to ${customersWithEmail.length} customer(s) with email addresses?\n\n${customersWithoutEmail.length} customer(s) without email will be skipped.`
+      : `Send statements to ${customersWithEmail.length} customer(s)?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setBatchSending(true);
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const customer of customersWithEmail) {
+      try {
+        await api.post(`/api/v1/customers/${customer.id}/statement/email`, {
+          startDate: dateRange.start,
+          endDate: dateRange.end,
+        });
+        sentCount++;
+      } catch {
+        failedCount++;
+      }
+    }
+
+    setBatchSending(false);
+
+    const resultMessage = failedCount > 0
+      ? `Statements sent: ${sentCount}. Failed: ${failedCount}.`
+      : `All ${sentCount} statement(s) sent successfully.`;
+
+    if (customersWithoutEmail.length > 0) {
+      alert(`${resultMessage}\n\nSkipped ${customersWithoutEmail.length} customer(s) without email:\n${customersWithoutEmail.map((c) => `- ${c.name}`).join('\n')}`);
+    } else {
+      alert(resultMessage);
+    }
   };
 
   // ============================================
@@ -396,8 +449,10 @@ export default function CustomerStatementsPage() {
           icon={<UserGroupIcon className="w-4 h-4" />}
           onClick={handleGenerateAll}
           variant="outline"
+          loading={batchSending}
+          disabled={batchSending}
         >
-          Generate All Statements
+          {batchSending ? 'Sending Statements...' : 'Generate All Statements'}
         </Button>
       </div>
 
@@ -617,8 +672,10 @@ export default function CustomerStatementsPage() {
               variant="outline"
               icon={<EnvelopeIcon className="w-4 h-4" />}
               onClick={handleEmailStatement}
+              loading={emailSending}
+              disabled={emailSending}
             >
-              Email Statement
+              {emailSending ? 'Sending...' : 'Email Statement'}
             </Button>
           </div>
 

@@ -517,3 +517,91 @@ export function taxDeadlineEmail(params: TaxDeadlineEmailParams) {
 
   return { subject, html: layout(subject, body), text };
 }
+
+// --- Template: Customer Statement ----------------------------------------
+
+export interface CustomerStatementEmailParams {
+  customerName: string;
+  companyName: string;
+  periodStart: string;
+  periodEnd: string;
+  openingBalance: string | number;
+  closingBalance: string | number;
+  totalInvoiced: string | number;
+  totalPayments: string | number;
+  currency: string;
+  transactionCount: number;
+}
+
+export function customerStatementEmail(params: CustomerStatementEmailParams) {
+  const {
+    customerName,
+    companyName,
+    periodStart,
+    periodEnd,
+    openingBalance,
+    closingBalance,
+    totalInvoiced,
+    totalPayments,
+    currency,
+    transactionCount,
+  } = params;
+
+  const fmtOpening = formatCurrency(openingBalance, currency);
+  const fmtClosing = formatCurrency(closingBalance, currency);
+  const fmtInvoiced = formatCurrency(totalInvoiced, currency);
+  const fmtPayments = formatCurrency(totalPayments, currency);
+
+  const subject = `Account Statement from ${companyName} (${periodStart} - ${periodEnd})`;
+
+  const body = `
+    <p>Dear ${escapeHtml(customerName)},</p>
+    <p>Please find below a summary of your account statement from <strong>${escapeHtml(companyName)}</strong> for the period <strong>${escapeHtml(periodStart)}</strong> to <strong>${escapeHtml(periodEnd)}</strong>.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:20px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+      <tr style="background-color:#f9fafb;">
+        <td style="padding:12px 16px;font-weight:600;border-bottom:1px solid #e5e7eb;">Opening Balance</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;">${fmtOpening}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-weight:600;border-bottom:1px solid #e5e7eb;">Total Invoiced</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#dc2626;">${fmtInvoiced}</td>
+      </tr>
+      <tr style="background-color:#f9fafb;">
+        <td style="padding:12px 16px;font-weight:600;border-bottom:1px solid #e5e7eb;">Total Payments</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#059669;">${fmtPayments}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-weight:600;border-bottom:1px solid #e5e7eb;">Transactions</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;">${transactionCount}</td>
+      </tr>
+      <tr style="background-color:#f0fdf4;">
+        <td style="padding:12px 16px;font-weight:700;font-size:16px;">Amount Due</td>
+        <td style="padding:12px 16px;font-weight:700;font-size:16px;color:${BRAND_COLOR};">${fmtClosing}</td>
+      </tr>
+    </table>
+    <p>If the balance shown above is greater than zero, please arrange payment at your earliest convenience.</p>
+    <p>If you have any questions regarding this statement, please do not hesitate to contact us.</p>
+    <p style="color:${MUTED_COLOR};font-size:13px;">Regards,<br />${escapeHtml(companyName)}</p>
+  `;
+
+  const text = [
+    `Dear ${customerName},`,
+    '',
+    `Please find below a summary of your account statement from ${companyName} for the period ${periodStart} to ${periodEnd}.`,
+    '',
+    `Opening Balance: ${fmtOpening}`,
+    `Total Invoiced: ${fmtInvoiced}`,
+    `Total Payments: ${fmtPayments}`,
+    `Transactions: ${transactionCount}`,
+    `Amount Due: ${fmtClosing}`,
+    '',
+    'If the balance shown above is greater than zero, please arrange payment at your earliest convenience.',
+    '',
+    'If you have any questions regarding this statement, please do not hesitate to contact us.',
+    '',
+    `Regards,`,
+    companyName,
+  ].join('\n');
+
+  return { subject, html: layout(subject, body), text };
+}

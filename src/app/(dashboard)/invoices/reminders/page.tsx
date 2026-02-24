@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate } from '@/lib/utils';
+import { api } from '@/lib/api-client';
 import {
   BellAlertIcon,
   BellSnoozeIcon,
@@ -229,25 +230,40 @@ export default function PaymentRemindersPage() {
     return reminderHistory[invoiceId]?.length || 0;
   }
 
-  // Simulate sending a reminder
+  // Send a real payment reminder via the API
   async function handleSendReminder(invoiceId: string) {
     setSendingIds((prev) => new Set(prev).add(invoiceId));
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
 
     const inv = invoices.find((i) => i.id === invoiceId);
     const customer = inv?.customer || customers.find((c) => c.id === inv?.customerId);
 
-    const newLogEntry: ActivityLogEntry = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date(),
-      action: 'Payment reminder sent',
-      invoiceNumber: inv?.invoiceNumber || 'Unknown',
-      customerName: customer?.name || 'Unknown Customer',
-      method: 'email',
-      status: 'success',
-    };
-    setActivityLog((prev) => [newLogEntry, ...prev]);
+    try {
+      await api.post('/api/v1/invoices/reminders', {
+        invoiceIds: [invoiceId],
+      });
+
+      const newLogEntry: ActivityLogEntry = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date(),
+        action: 'Payment reminder sent',
+        invoiceNumber: inv?.invoiceNumber || 'Unknown',
+        customerName: customer?.name || 'Unknown Customer',
+        method: 'email',
+        status: 'success',
+      };
+      setActivityLog((prev) => [newLogEntry, ...prev]);
+    } catch (err: any) {
+      const newLogEntry: ActivityLogEntry = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date(),
+        action: 'Reminder email failed',
+        invoiceNumber: inv?.invoiceNumber || 'Unknown',
+        customerName: customer?.name || 'Unknown Customer',
+        method: 'email',
+        status: 'failed',
+      };
+      setActivityLog((prev) => [newLogEntry, ...prev]);
+    }
 
     setSendingIds((prev) => {
       const next = new Set(prev);
