@@ -1,45 +1,43 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
+import { PermissionGate } from '@/components/PermissionGate';
+import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate } from '@/lib/utils';
-import {
-  useExpenses,
-  useCreateExpense,
-  useUpdateExpense,
-  useDeleteExpense,
-  useCustomers,
-} from '@/hooks/api';
+import { v4 as uuidv4 } from 'uuid';
+import type { Expense } from '@/types';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
-  ArrowPathIcon,
-  ExclamationCircleIcon,
-  CameraIcon,
+  DocumentArrowUpIcon,
+  FunnelIcon,
+  CalendarIcon,
   PhotoIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { PermissionGate } from '@/components/PermissionGate';
-import { getAccessToken } from '@/lib/api-client';
 
-interface ExpenseAPI {
-  id: string;
-  vendorId: string | null;
-  vendor: { id: string; name: string } | null;
-  category: string;
-  description: string;
-  amount: number;
-  gctAmount: number;
-  gctClaimable: boolean;
-  date: string;
-  paymentMethod: string;
-  reference: string | null;
-  notes: string | null;
-  isRecurring?: boolean;
-  receiptImageUri?: string | null;
-  createdAt: string;
+// Component to handle query params (needs Suspense boundary)
+function AddModalTrigger({ onTrigger }: { onTrigger: () => void }) {
+  const searchParams = useSearchParams();
+  const hasTriggered = React.useRef(false);
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true' && !hasTriggered.current) {
+      hasTriggered.current = true;
+      // Small delay to ensure component is fully mounted before opening modal
+      setTimeout(() => {
+        onTrigger();
+        // Clean up URL after triggering
+        window.history.replaceState({}, '', '/expenses');
+      }, 100);
+    }
+  }, [searchParams, onTrigger]);
+
+  return null;
 }
 
 const EXPENSE_CATEGORIES = [
@@ -74,39 +72,12 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showModal, setShowModal] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<ExpenseAPI | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [saveError, setSaveError] = useState('');
-  const [showScanModal, setShowScanModal] = useState(false);
-  const [scanFile, setScanFile] = useState<File | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState('');
 
-  // API hooks
-  const { data: expensesResponse, isLoading, error: fetchError, refetch } = useExpenses({
-    category: categoryFilter !== 'all' ? categoryFilter : undefined,
-    limit: 200,
-  });
-  const createExpense = useCreateExpense();
-  const updateExpense = useUpdateExpense();
-  const deleteExpense = useDeleteExpense();
+  const { expenses, addExpense, updateExpense, deleteExpense, customers, activeCompany } = useAppStore();
 
-  // Fetch vendors (customers with type vendor/both) for the dropdown
-  const { data: vendorsResponse } = useCustomers({ type: 'vendor', limit: 200 });
-  const vendors = (vendorsResponse as any)?.data ?? [];
-
-  const allExpenses: ExpenseAPI[] = (expensesResponse as any)?.data ?? [];
-
-  // Client-side filtering for search and date range
-  const expenses = allExpenses.filter((expense) => {
-    const matchesSearch = !searchQuery ||
-      expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expense.vendor?.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesDate = (!dateRange.start || new Date(expense.date) >= new Date(dateRange.start)) &&
-      (!dateRange.end || new Date(expense.date) <= new Date(dateRange.end));
-
-    return matchesSearch && matchesDate;
-  });
+  const vendors = customers.filter(c => c.type === 'vendor' || c.type === 'both');
 
   const [formData, setFormData] = useState({
     description: '',
@@ -114,7 +85,7 @@ export default function ExpensesPage() {
     category: '',
     date: new Date().toISOString().split('T')[0],
     vendorId: '',
-    paymentMethod: 'cash',
+    paymentMethod: 'cash' as Expense['paymentMethod'],
     reference: '',
     notes: '',
     isRecurring: false,
@@ -122,8 +93,20 @@ export default function ExpensesPage() {
     receiptImageUri: '' as string,
   });
 
-  const handleOpenModal = (expense?: ExpenseAPI) => {
-    setSaveError('');
+  const filteredExpenses = expenses.filter((expense) => {
+    const matchesSearch = !searchQuery ||
+      expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      expense.vendor?.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
+
+    const matchesDate = (!dateRange.start || new Date(expense.date) >= new Date(dateRange.start)) &&
+      (!dateRange.end || new Date(expense.date) <= new Date(dateRange.end));
+
+    return matchesSearch && matchesCategory && matchesDate;
+  });
+
+  const handleOpenModal = (expense?: Expense) => {
     if (expense) {
       setEditingExpense(expense);
       setFormData({
@@ -158,7 +141,7 @@ export default function ExpensesPage() {
     setShowModal(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     setSaveError('');
     if (!formData.description.trim()) {
       setSaveError('Please enter a description');
@@ -173,12 +156,14 @@ export default function ExpensesPage() {
       return;
     }
 
-    const payload: Record<string, unknown> = {
+    const vendor = vendors.find(v => v.id === formData.vendorId);
+    const expenseData = {
       description: formData.description,
       amount: parseFloat(formData.amount),
-      category: formData.category,
-      date: formData.date,
+      category: formData.category as Expense['category'],
+      date: new Date(formData.date),
       vendorId: formData.vendorId || undefined,
+      vendor: vendor,
       paymentMethod: formData.paymentMethod,
       reference: formData.reference || undefined,
       notes: formData.notes || undefined,
@@ -186,90 +171,37 @@ export default function ExpensesPage() {
       receiptImageUri: formData.receiptImageUri || undefined,
       gctAmount: 0,
       gctClaimable: false,
+      updatedAt: new Date(),
     };
 
-    try {
-      if (editingExpense) {
-        await updateExpense.mutateAsync({ id: editingExpense.id, data: payload });
-      } else {
-        await createExpense.mutateAsync(payload);
-      }
-      setShowModal(false);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save expense';
-      setSaveError(message);
+    if (editingExpense) {
+      updateExpense(editingExpense.id, expenseData);
+    } else {
+      addExpense({
+        id: uuidv4(),
+        companyId: activeCompany?.id || '',
+        ...expenseData,
+        createdAt: new Date(),
+      });
     }
+    setShowModal(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await deleteExpense.mutateAsync(id);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to delete expense';
-        alert(message);
-      }
+      deleteExpense(id);
     }
   };
 
-  const handleScanReceipt = async () => {
-    if (!scanFile) return;
-    setScanning(true);
-    setScanError('');
-    try {
-      const formData = new FormData();
-      formData.append('image', scanFile);
-      const token = getAccessToken();
-      const res = await fetch('/api/v1/expenses/scan-receipt', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => null);
-        throw new Error(errBody?.error || `Scan failed (${res.status})`);
-      }
-      const { data } = await res.json();
-      const extracted = data.extracted;
-      let parsedDate = new Date().toISOString().split('T')[0];
-      if (extracted.date) {
-        const d = new Date(extracted.date);
-        if (!isNaN(d.getTime())) {
-          parsedDate = d.toISOString().split('T')[0];
-        }
-      }
-      setFormData({
-        description: extracted.vendor || '',
-        amount: String(extracted.total || ''),
-        category: EXPENSE_CATEGORIES[0],
-        date: parsedDate,
-        vendorId: '',
-        paymentMethod: extracted.paymentMethod || 'cash',
-        reference: '',
-        notes: `Scanned from receipt (confidence: ${extracted.confidence})`,
-        isRecurring: false,
-        recurringFrequency: 'monthly',
-      });
-      setShowScanModal(false);
-      setScanFile(null);
-      setEditingExpense(null);
-      setShowModal(true);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to scan receipt';
-      setScanError(message);
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const thisMonthExpenses = allExpenses.filter(e => {
+  // Calculate stats
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const thisMonthExpenses = expenses.filter(e => {
     const expDate = new Date(e.date);
     const now = new Date();
     return expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
   }).reduce((sum, e) => sum + e.amount, 0);
 
-  const categoryTotals = allExpenses.reduce((acc, e) => {
+  const categoryTotals = expenses.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount;
     return acc;
   }, {} as Record<string, number>);
@@ -278,67 +210,49 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Handle ?add=true query param */}
+      <Suspense fallback={null}>
+        <AddModalTrigger onTrigger={() => handleOpenModal()} />
+      </Suspense>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
           <p className="text-gray-500">Track and manage business expenses</p>
         </div>
-        <div className="flex gap-2">
-          <PermissionGate permission="expenses:create">
-            <Button variant="outline" onClick={() => setShowScanModal(true)}>
-              <CameraIcon className="w-4 h-4 mr-2" />
-              Scan Receipt
-            </Button>
-          </PermissionGate>
-          <PermissionGate permission="expenses:create">
-            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
-              Add Expense
-            </Button>
-          </PermissionGate>
-        </div>
-      </div>
-
-      {/* Error State */}
-      {fetchError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm text-red-800">Failed to load expenses. {fetchError instanceof Error ? fetchError.message : ''}</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <ArrowPathIcon className="w-4 h-4 mr-1" />
-            Retry
+        <PermissionGate permission="expenses:create">
+          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+            Add Expense
           </Button>
-        </div>
-      )}
+        </PermissionGate>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Expenses</p>
-            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : formatJMD(totalExpenses)}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatJMD(totalExpenses)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">This Month</p>
-            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(thisMonthExpenses)}</p>
+            <p className="text-2xl font-bold text-blue-600">{formatJMD(thisMonthExpenses)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Top Category</p>
             <p className="text-lg font-bold text-emerald-600 truncate">
-              {isLoading ? '-' : topCategory ? topCategory[0] : 'N/A'}
+              {topCategory ? topCategory[0] : 'N/A'}
             </p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Records</p>
-            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : allExpenses.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{expenses.length}</p>
           </div>
         </Card>
       </div>
@@ -379,18 +293,7 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <Card>
-          <div className="p-12 text-center">
-            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Loading expenses...</p>
-          </div>
-        </Card>
-      )}
-
       {/* Table */}
-      {!isLoading && (
       <Card padding="none">
         <Table>
           <TableHeader>
@@ -406,7 +309,7 @@ export default function ExpensesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {expenses.length === 0 ? (
+            {filteredExpenses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-12 text-gray-500">
                   <p className="mb-4">No expenses found</p>
@@ -416,7 +319,7 @@ export default function ExpensesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              expenses.map((expense) => (
+              filteredExpenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell className="text-gray-500">{formatDate(expense.date)}</TableCell>
                   <TableCell>
@@ -440,7 +343,7 @@ export default function ExpensesPage() {
                   <TableCell>
                     {expense.receiptImageUri ? (
                       <button
-                        onClick={() => window.open(expense.receiptImageUri!, '_blank')}
+                        onClick={() => window.open(expense.receiptImageUri, '_blank')}
                         className="group relative"
                       >
                         <img
@@ -461,18 +364,13 @@ export default function ExpensesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <PermissionGate permission="expenses:update">
+                      <PermissionGate permission="expenses:edit">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenModal(expense)}>
                           <PencilIcon className="w-4 h-4" />
                         </Button>
                       </PermissionGate>
                       <PermissionGate permission="expenses:delete">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(expense.id)}
-                          disabled={deleteExpense.isPending}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(expense.id)}>
                           <TrashIcon className="w-4 h-4 text-red-500" />
                         </Button>
                       </PermissionGate>
@@ -484,7 +382,6 @@ export default function ExpensesPage() {
           </TableBody>
         </Table>
       </Card>
-      )}
 
       {/* Add/Edit Modal */}
       <Modal
@@ -539,7 +436,7 @@ export default function ExpensesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                 <select
                   value={formData.paymentMethod}
-                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as Expense['paymentMethod'] })}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   {PAYMENT_METHODS.map((pm) => (
@@ -557,7 +454,7 @@ export default function ExpensesPage() {
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                 >
                   <option value="">Select vendor (optional)</option>
-                  {vendors.map((v: any) => (
+                  {vendors.map((v) => (
                     <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
                 </select>
@@ -578,7 +475,7 @@ export default function ExpensesPage() {
                 rows={2}
               />
             </div>
-            {/* Receipt Image Upload */}
+            {/* Receipt/Expense Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Image</label>
               <div className="flex items-start gap-4">
@@ -654,63 +551,7 @@ export default function ExpensesPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            disabled={createExpense.isPending || updateExpense.isPending}
-          >
-            {(createExpense.isPending || updateExpense.isPending) ? 'Saving...' : editingExpense ? 'Update' : 'Create'}
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Scan Receipt Modal */}
-      <Modal
-        isOpen={showScanModal}
-        onClose={() => { setShowScanModal(false); setScanFile(null); setScanError(''); }}
-        title="Scan Receipt"
-      >
-        <ModalBody>
-          <div className="space-y-4">
-            {scanError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
-                {scanError}
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload Receipt Image
-              </label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => {
-                  setScanFile(e.target.files?.[0] || null);
-                  setScanError('');
-                }}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-              <p className="font-medium mb-1">What will be extracted:</p>
-              <ul className="list-disc list-inside space-y-0.5 text-blue-700">
-                <li>Vendor / store name</li>
-                <li>Total amount</li>
-                <li>Date of purchase</li>
-                <li>Payment method</li>
-              </ul>
-            </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="outline" onClick={() => { setShowScanModal(false); setScanFile(null); setScanError(''); }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleScanReceipt}
-            disabled={!scanFile || scanning}
-          >
-            {scanning ? 'Scanning...' : 'Scan'}
-          </Button>
+          <Button onClick={handleSave}>{editingExpense ? 'Update' : 'Create'}</Button>
         </ModalFooter>
       </Modal>
     </div>
