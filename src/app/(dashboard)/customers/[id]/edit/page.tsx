@@ -53,12 +53,30 @@ export default function EditCustomerPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Map Prisma enum parish values back to human-readable names
+  const PARISH_ENUM_TO_NAME: Record<string, JamaicanParish> = {
+    'KINGSTON': 'Kingston',
+    'ST_ANDREW': 'St. Andrew',
+    'ST_THOMAS': 'St. Thomas',
+    'PORTLAND': 'Portland',
+    'ST_MARY': 'St. Mary',
+    'ST_ANN': 'St. Ann',
+    'TRELAWNY': 'Trelawny',
+    'ST_JAMES': 'St. James',
+    'HANOVER': 'Hanover',
+    'WESTMORELAND': 'Westmoreland',
+    'ST_ELIZABETH': 'St. Elizabeth',
+    'MANCHESTER': 'Manchester',
+    'CLARENDON': 'Clarendon',
+    'ST_CATHERINE': 'St. Catherine',
+  };
+
   // Load customer data into form
   useEffect(() => {
     if (customer) {
-      const address = customer.address && typeof customer.address !== 'string'
-        ? customer.address
-        : null;
+      // API returns flat address fields (addressStreet, addressCity, etc.)
+      const parishRaw = customer.addressParish as string | null | undefined;
+      const parishName = parishRaw ? (PARISH_ENUM_TO_NAME[parishRaw] ?? parishRaw as JamaicanParish) : '';
 
       setFormData({
         name: customer.name || '',
@@ -67,12 +85,13 @@ export default function EditCustomerPage() {
         phone: customer.phone || '',
         type: customer.type || 'customer',
         trnNumber: customer.trnNumber || '',
-        street: address?.street || '',
-        city: address?.city || '',
-        parish: (address?.parish as JamaicanParish) || '',
+        street: customer.addressStreet || '',
+        city: customer.addressCity || '',
+        parish: parishName,
         notes: customer.notes || '',
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer]);
 
   // Permission check

@@ -37,16 +37,48 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
+// ---- Parish mapping (human-readable ↔ Prisma enum) ----
+
+const PARISH_NAME_TO_ENUM: Record<string, string> = {
+  'Kingston': 'KINGSTON',
+  'St. Andrew': 'ST_ANDREW',
+  'St. Thomas': 'ST_THOMAS',
+  'Portland': 'PORTLAND',
+  'St. Mary': 'ST_MARY',
+  'St. Ann': 'ST_ANN',
+  'Trelawny': 'TRELAWNY',
+  'St. James': 'ST_JAMES',
+  'Hanover': 'HANOVER',
+  'Westmoreland': 'WESTMORELAND',
+  'St. Elizabeth': 'ST_ELIZABETH',
+  'Manchester': 'MANCHESTER',
+  'Clarendon': 'CLARENDON',
+  'St. Catherine': 'ST_CATHERINE',
+};
+
+function toParishEnum(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  if (Object.values(PARISH_NAME_TO_ENUM).includes(value)) return value;
+  return PARISH_NAME_TO_ENUM[value] ?? undefined;
+}
+
 // ---- PUT ----
 
 const updateCustomerSchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  type: z.enum(['CUSTOMER', 'VENDOR', 'BOTH']).optional(),
-  companyName: z.string().max(200).optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().max(20).optional(),
-  trnNumber: z.string().max(20).optional(),
-  notes: z.string().max(2000).optional(),
+  type: z.enum(['customer', 'vendor', 'both']).optional(),
+  companyName: z.string().max(200).nullable().optional(),
+  email: z.string().email().nullable().optional().or(z.literal('')),
+  phone: z.string().max(20).nullable().optional(),
+  trnNumber: z.string().max(20).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  address: z.object({
+    street: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    parish: z.string().nullable().optional(),
+    country: z.string().default('Jamaica'),
+    postalCode: z.string().nullable().optional(),
+  }).nullable().optional(),
 });
 
 export async function PUT(request: NextRequest, context: RouteContext) {
@@ -70,11 +102,24 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return badRequest('Validation failed');
     }
 
+    const { address, ...rest } = parsed.data;
+
     const customer = await prisma.customer.update({
       where: { id },
       data: {
-        ...parsed.data,
-        email: parsed.data.email || null,
+        ...rest,
+        companyName: rest.companyName || null,
+        email: rest.email || null,
+        phone: rest.phone || null,
+        trnNumber: rest.trnNumber || null,
+        notes: rest.notes || null,
+        ...(address !== undefined ? {
+          addressStreet: address?.street || null,
+          addressCity: address?.city || null,
+          addressParish: toParishEnum(address?.parish) as any,
+          addressCountry: address?.country ?? 'Jamaica',
+          addressPostal: address?.postalCode || null,
+        } : {}),
       },
     });
 

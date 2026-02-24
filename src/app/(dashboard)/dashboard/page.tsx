@@ -131,7 +131,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
             <QuickAction icon={ShoppingCartIcon} title="Point of Sale" href="/pos" color="bg-emerald-600" />
             <QuickAction icon={DocumentTextIcon} title="New Invoice" href="/invoices/new" color="bg-blue-600" />
-            <QuickAction icon={UserGroupIcon} title="Add Customer" href="/customers" color="bg-purple-600" />
+            <QuickAction icon={UserGroupIcon} title="Add Customer" href="/customers/new" color="bg-purple-600" />
             <QuickAction icon={CubeIcon} title="Add Product" href="/inventory" color="bg-orange-600" />
             <QuickAction icon={BanknotesIcon} title="Add Expense" href="/expenses" color="bg-red-600" />
             <QuickAction icon={SparklesIcon} title="AI Assistant" href="/ai" color="bg-indigo-600" />

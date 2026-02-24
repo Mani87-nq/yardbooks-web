@@ -58,23 +58,50 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// ---- Parish mapping (human-readable ↔ Prisma enum) ----
+
+const PARISH_NAME_TO_ENUM: Record<string, string> = {
+  'Kingston': 'KINGSTON',
+  'St. Andrew': 'ST_ANDREW',
+  'St. Thomas': 'ST_THOMAS',
+  'Portland': 'PORTLAND',
+  'St. Mary': 'ST_MARY',
+  'St. Ann': 'ST_ANN',
+  'Trelawny': 'TRELAWNY',
+  'St. James': 'ST_JAMES',
+  'Hanover': 'HANOVER',
+  'Westmoreland': 'WESTMORELAND',
+  'St. Elizabeth': 'ST_ELIZABETH',
+  'Manchester': 'MANCHESTER',
+  'Clarendon': 'CLARENDON',
+  'St. Catherine': 'ST_CATHERINE',
+};
+
+function toParishEnum(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  // Already an enum value (e.g. KINGSTON) — return as-is
+  if (Object.values(PARISH_NAME_TO_ENUM).includes(value)) return value;
+  // Human-readable name (e.g. Kingston) — map it
+  return PARISH_NAME_TO_ENUM[value] ?? undefined;
+}
+
 // ---- POST (Create) ----
 
 const createCustomerSchema = z.object({
   name: z.string().min(1).max(200),
   type: z.enum(['customer', 'vendor', 'both']).default('customer'),
-  companyName: z.string().max(200).optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().max(20).optional(),
-  trnNumber: z.string().max(20).optional(),
-  notes: z.string().max(2000).optional(),
+  companyName: z.string().max(200).nullable().optional(),
+  email: z.string().email().nullable().optional().or(z.literal('')),
+  phone: z.string().max(20).nullable().optional(),
+  trnNumber: z.string().max(20).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
   address: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    parish: z.string().optional(),
+    street: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    parish: z.string().nullable().optional(),
     country: z.string().default('Jamaica'),
-    postalCode: z.string().optional(),
-  }).optional(),
+    postalCode: z.string().nullable().optional(),
+  }).nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -103,15 +130,19 @@ export async function POST(request: NextRequest) {
     const customer = await prisma.customer.create({
       data: {
         ...rest,
+        companyName: rest.companyName || null,
         email: rest.email || null,
+        phone: rest.phone || null,
+        trnNumber: rest.trnNumber || null,
+        notes: rest.notes || null,
         companyId: companyId!,
         createdBy: user!.sub,
         ...(address ? {
-          addressStreet: address.street,
-          addressCity: address.city,
-          addressParish: address.parish as any,
+          addressStreet: address.street || null,
+          addressCity: address.city || null,
+          addressParish: toParishEnum(address.parish) as any,
           addressCountry: address.country,
-          addressPostal: address.postalCode,
+          addressPostal: address.postalCode || null,
         } : {}),
       },
     });
