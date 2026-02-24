@@ -9,6 +9,7 @@ import { formatJMD } from '@/lib/utils';
 import { api } from '@/lib/api-client';
 import { useInvoice, useUpdateInvoice, useDeleteInvoice } from '@/hooks/api/useInvoices';
 import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
+import { PermissionGate } from '@/components/PermissionGate';
 import {
   ArrowLeftIcon,
   PencilIcon,
@@ -279,24 +280,30 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
             <PrinterIcon className="w-4 h-4 mr-2" />
             Print
           </Button>
-          <Button variant="outline" onClick={handleOpenEmailModal}>
-            <EnvelopeIcon className="w-4 h-4 mr-2" />
-            Email
-          </Button>
-          <Link href={`/invoices/${invoice.id}/edit`}>
-            <Button variant="outline">
-              <PencilIcon className="w-4 h-4 mr-2" />
-              Edit
+          <PermissionGate permission="invoices:update">
+            <Button variant="outline" onClick={handleOpenEmailModal}>
+              <EnvelopeIcon className="w-4 h-4 mr-2" />
+              Email
             </Button>
-          </Link>
+          </PermissionGate>
+          <PermissionGate permission="invoices:update">
+            <Link href={`/invoices/${invoice.id}/edit`}>
+              <Button variant="outline">
+                <PencilIcon className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </Link>
+          </PermissionGate>
           {invoice.balance > 0 && (
-            <Button onClick={() => {
-              setPaymentAmount(invoice.balance.toString());
-              setShowPaymentModal(true);
-            }}>
-              <BanknotesIcon className="w-4 h-4 mr-2" />
-              Record Payment
-            </Button>
+            <PermissionGate permission="invoices:update">
+              <Button onClick={() => {
+                setPaymentAmount(invoice.balance.toString());
+                setShowPaymentModal(true);
+              }}>
+                <BanknotesIcon className="w-4 h-4 mr-2" />
+                Record Payment
+              </Button>
+            </PermissionGate>
           )}
         </div>
       </div>
@@ -462,17 +469,21 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
 
       {/* Actions */}
       <div className="flex justify-between">
-        <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => setShowDeleteModal(true)}>
-          <TrashIcon className="w-4 h-4 mr-2" />
-          Delete Invoice
-        </Button>
+        <PermissionGate permission="invoices:delete">
+          <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => setShowDeleteModal(true)}>
+            <TrashIcon className="w-4 h-4 mr-2" />
+            Delete Invoice
+          </Button>
+        </PermissionGate>
         <div className="flex gap-2">
-          <Link href={`/invoices/${invoice.id}/edit`}>
-            <Button variant="outline">
-              <PencilIcon className="w-4 h-4 mr-2" />
-              Edit Invoice
-            </Button>
-          </Link>
+          <PermissionGate permission="invoices:update">
+            <Link href={`/invoices/${invoice.id}/edit`}>
+              <Button variant="outline">
+                <PencilIcon className="w-4 h-4 mr-2" />
+                Edit Invoice
+              </Button>
+            </Link>
+          </PermissionGate>
         </div>
       </div>
 

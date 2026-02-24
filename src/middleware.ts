@@ -32,6 +32,7 @@ const PUBLIC_ROUTES = [
   '/api/auth/reset-password',
   '/api/auth/verify-email',
   '/api/auth/oauth/google',
+  '/api/auth/oauth/google/callback',
   '/api/v1/billing/plans',
   '/api/billing/checkout',
   '/api/billing/webhook',

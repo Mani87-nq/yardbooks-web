@@ -12,6 +12,7 @@ import {
   useCreateBankTransaction,
 } from '@/hooks/api';
 import type { BankAccount, BankTransaction, BankReconciliation } from '@/types/banking';
+import { PermissionGate } from '@/components/PermissionGate';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -284,14 +285,18 @@ export default function BankingPage() {
         </div>
         <div className="flex gap-2">
           {activeTab === 'accounts' && (
-            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenAccountModal()}>
-              Add Account
-            </Button>
+            <PermissionGate permission="banking:create">
+              <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenAccountModal()}>
+                Add Account
+              </Button>
+            </PermissionGate>
           )}
           {activeTab === 'transactions' && (
-            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={handleOpenTransactionModal}>
-              Add Transaction
-            </Button>
+            <PermissionGate permission="banking:create">
+              <Button icon={<PlusIcon className="w-4 h-4" />} onClick={handleOpenTransactionModal}>
+                Add Transaction
+              </Button>
+            </PermissionGate>
           )}
         </div>
       </div>
@@ -433,20 +438,24 @@ export default function BankingPage() {
                       >
                         Transactions
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenAccountModal(account)}
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteAccount(account.id)}
-                      >
-                        <TrashIcon className="w-4 h-4 text-red-500" />
-                      </Button>
+                      <PermissionGate permission="banking:update">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenAccountModal(account)}
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </Button>
+                      </PermissionGate>
+                      <PermissionGate permission="banking:delete">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteAccount(account.id)}
+                        >
+                          <TrashIcon className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </PermissionGate>
                     </div>
                   </CardContent>
                 </Card>
