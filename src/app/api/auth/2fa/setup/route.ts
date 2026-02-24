@@ -12,7 +12,7 @@ import { badRequest, internalError } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, error: authError } = await requirePermission(request, 'settings:read');
+    const { user, error: authError } = await requirePermission(request, 'settings:update');
     if (authError) return authError;
 
     const userId = user!.sub;

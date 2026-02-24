@@ -42,7 +42,7 @@ function VerifyEmailContent() {
       try {
         await api.post('/api/auth/verify-email', { token }, { skipAuth: true });
         setStatus('success');
-        // Redirect to dashboard after 3 seconds
+        // Redirect to login page after 3 seconds
         setTimeout(() => {
           router.push('/login');
         }, 3000);

@@ -167,6 +167,13 @@ export async function GET(request: NextRequest) {
       companyIds = user.companyMemberships.map((m) => m.companyId);
       memberRole = user.companyMemberships[0]?.role ?? 'OWNER';
     } else {
+      // Reject Google accounts with unverified email to prevent account takeover
+      if (!googleUser.email_verified) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('error', 'google_oauth_error');
+        return NextResponse.redirect(loginUrl);
+      }
+
       // Check if email matches an existing user (link accounts)
       const existingUser = await prisma.user.findUnique({
         where: { email: googleUser.email },
