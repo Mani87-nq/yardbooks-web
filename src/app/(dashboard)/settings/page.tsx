@@ -721,6 +721,53 @@ export default function SettingsPage() {
     defaultCopies: activeCompany?.printerSettings?.defaultCopies || 1,
   });
 
+  const [receiptSettings, setReceiptSettings] = useState({
+    // Branding
+    showLogo: activeCompany?.receiptSettings?.showLogo ?? true,
+    primaryColor: activeCompany?.receiptSettings?.primaryColor || '#EA580C',
+    accentColor: activeCompany?.receiptSettings?.accentColor || '#FFF7ED',
+    
+    // Paper & Format
+    paperSize: activeCompany?.receiptSettings?.paperSize || 'thermal-80' as 'thermal-58' | 'thermal-80' | 'letter',
+    fontSize: activeCompany?.receiptSettings?.fontSize || 'medium' as 'small' | 'medium' | 'large',
+    
+    // Header Section
+    showCompanyName: activeCompany?.receiptSettings?.showCompanyName ?? true,
+    showAddress: activeCompany?.receiptSettings?.showAddress ?? true,
+    showPhone: activeCompany?.receiptSettings?.showPhone ?? true,
+    showEmail: activeCompany?.receiptSettings?.showEmail ?? false,
+    showGctNumber: activeCompany?.receiptSettings?.showGctNumber ?? true,
+    showTrnNumber: activeCompany?.receiptSettings?.showTrnNumber ?? true,
+    headerText: activeCompany?.receiptSettings?.headerText || '',
+    
+    // Transaction Section
+    showCashierName: activeCompany?.receiptSettings?.showCashierName ?? true,
+    showTerminalId: activeCompany?.receiptSettings?.showTerminalId ?? false,
+    showDateTime: activeCompany?.receiptSettings?.showDateTime ?? true,
+    dateFormat: activeCompany?.receiptSettings?.dateFormat || '12h' as '12h' | '24h',
+    showCustomerName: activeCompany?.receiptSettings?.showCustomerName ?? true,
+    
+    // Items Section
+    showSku: activeCompany?.receiptSettings?.showSku ?? false,
+    showItemBarcode: activeCompany?.receiptSettings?.showItemBarcode ?? false,
+    showUnitPrice: activeCompany?.receiptSettings?.showUnitPrice ?? true,
+    showQuantity: activeCompany?.receiptSettings?.showQuantity ?? true,
+    
+    // Payment Section
+    showPaymentMethod: activeCompany?.receiptSettings?.showPaymentMethod ?? true,
+    showAmountTendered: activeCompany?.receiptSettings?.showAmountTendered ?? true,
+    showChange: activeCompany?.receiptSettings?.showChange ?? true,
+    showTaxBreakdown: activeCompany?.receiptSettings?.showTaxBreakdown ?? true,
+    
+    // Footer Section
+    footerMessage: activeCompany?.receiptSettings?.footerMessage ?? 'Thank you for your business!',
+    returnPolicy: activeCompany?.receiptSettings?.returnPolicy ?? 'All sales are final. No returns or exchanges after 7 days. Store credit only with valid receipt.',
+    termsAndConditions: activeCompany?.receiptSettings?.termsAndConditions ?? '',
+    showBarcode: activeCompany?.receiptSettings?.showBarcode ?? true,
+    showSocialMedia: activeCompany?.receiptSettings?.showSocialMedia ?? '',
+    autoPrint: activeCompany?.receiptSettings?.autoPrint ?? false,
+  });
+
   const handleSaveCompany = () => {
     if (activeCompany) {
       setActiveCompany({
@@ -830,6 +877,17 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveReceiptSettings = () => {
+    if (activeCompany) {
+      setActiveCompany({
+        ...activeCompany,
+        receiptSettings: receiptSettings,
+        updatedAt: new Date(),
+      });
+      alert('Receipt settings saved!');
+    }
+  };
+
   const handleSaveUser = () => {
     if (user) {
       updateUser({
@@ -861,6 +919,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'company', name: 'Company', icon: BuildingOfficeIcon },
     { id: 'invoices', name: 'Invoices', icon: DocumentTextIcon },
+    { id: 'receipts', name: 'Receipts', icon: DocumentTextIcon },
     { id: 'tax', name: 'Tax / GCT', icon: CalculatorIcon },
     { id: 'printers', name: 'Printers', icon: PrinterIcon },
     { id: 'profile', name: 'Profile', icon: UserCircleIcon },
@@ -1414,6 +1473,325 @@ export default function SettingsPage() {
                   </Button>
                   <Button onClick={handleSavePrinterSettings}>
                     Save Printer Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'receipts' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Receipt Customization</CardTitle>
+                <p className="text-sm text-gray-500 mt-2">
+                  Customize how your POS receipts look and what information they display
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Branding */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Branding</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+                      <input
+                        type="color"
+                        value={receiptSettings.primaryColor}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, primaryColor: e.target.value })}
+                        className="h-10 w-full rounded border border-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Accent Color</label>
+                      <input
+                        type="color"
+                        value={receiptSettings.accentColor}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, accentColor: e.target.value })}
+                        className="h-10 w-full rounded border border-gray-300"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="showLogo"
+                      checked={receiptSettings.showLogo}
+                      onChange={(e) => setReceiptSettings({ ...receiptSettings, showLogo: e.target.checked })}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor="showLogo" className="text-sm text-gray-700">Show company logo on receipts</label>
+                  </div>
+                </div>
+
+                {/* Paper & Format */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Paper & Format</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paper Size</label>
+                      <select
+                        value={receiptSettings.paperSize}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, paperSize: e.target.value as any })}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="thermal-58">58mm Thermal</option>
+                        <option value="thermal-80">80mm Thermal</option>
+                        <option value="letter">Letter (8.5" × 11")</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Font Size</label>
+                      <select
+                        value={receiptSettings.fontSize}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, fontSize: e.target.value as any })}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Header Information */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Header Information</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Company Name</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showCompanyName}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showCompanyName: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Address</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showAddress}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showAddress: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Phone</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showPhone}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showPhone: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Email</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showEmail}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showEmail: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show GCT Number</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showGctNumber}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showGctNumber: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show TRN Number</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showTrnNumber}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showTrnNumber: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Custom Header Text</label>
+                    <Input
+                      value={receiptSettings.headerText}
+                      onChange={(e) => setReceiptSettings({ ...receiptSettings, headerText: e.target.value })}
+                      placeholder="e.g., Welcome! Serving you since 1995"
+                    />
+                  </div>
+                </div>
+
+                {/* Transaction Details */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Transaction Details</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Cashier Name</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showCashierName}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showCashierName: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Date/Time</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showDateTime}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showDateTime: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Customer Name</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showCustomerName}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showCustomerName: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Time Format</label>
+                    <select
+                      value={receiptSettings.dateFormat}
+                      onChange={(e) => setReceiptSettings({ ...receiptSettings, dateFormat: e.target.value as any })}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="12h">12-hour (2:30 PM)</option>
+                      <option value="24h">24-hour (14:30)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Item Details */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Item Details</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show SKU</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showSku}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showSku: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Unit Price</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showUnitPrice}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showUnitPrice: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Quantity</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showQuantity}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showQuantity: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Payment Details</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Payment Method</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showPaymentMethod}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showPaymentMethod: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Amount Tendered</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showAmountTendered}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showAmountTendered: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Change</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showChange}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showChange: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Show Tax Breakdown</label>
+                      <input
+                        type="checkbox"
+                        checked={receiptSettings.showTaxBreakdown}
+                        onChange={(e) => setReceiptSettings({ ...receiptSettings, showTaxBreakdown: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Messages */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Footer Messages</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thank You Message</label>
+                    <Input
+                      value={receiptSettings.footerMessage}
+                      onChange={(e) => setReceiptSettings({ ...receiptSettings, footerMessage: e.target.value })}
+                      placeholder="Thank you for your business!"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Return Policy</label>
+                    <textarea
+                      value={receiptSettings.returnPolicy}
+                      onChange={(e) => setReceiptSettings({ ...receiptSettings, returnPolicy: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                      rows={3}
+                      placeholder="All sales are final. No returns or exchanges after 7 days."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
+                    <textarea
+                      value={receiptSettings.termsAndConditions}
+                      onChange={(e) => setReceiptSettings({ ...receiptSettings, termsAndConditions: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                      rows={2}
+                      placeholder="Terms and conditions (optional)"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="showBarcode"
+                      checked={receiptSettings.showBarcode}
+                      onChange={(e) => setReceiptSettings({ ...receiptSettings, showBarcode: e.target.checked })}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor="showBarcode" className="text-sm text-gray-700">Show receipt barcode for returns</label>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end pt-6 border-t border-gray-200">
+                  <Button onClick={handleSaveReceiptSettings}>
+                    Save Receipt Settings
                   </Button>
                 </div>
               </CardContent>
