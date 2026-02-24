@@ -113,6 +113,7 @@ export default function OnboardingPage() {
           parish: data.parish || undefined,
           phone: data.phone || undefined,
           fiscalYearEnd: parseInt(data.fiscalYearStart),
+          currency: data.currency || 'JMD',
           onboardingCompleted: true,
         });
 
@@ -478,7 +479,21 @@ export default function OnboardingPage() {
         {/* Skip link */}
         <div className="text-center mt-4">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={async () => {
+              // Mark onboarding complete so user isn't redirected back
+              if (activeCompany) {
+                try {
+                  const updated = await api.put<Company>(`/api/v1/companies/${activeCompany.id}`, {
+                    onboardingCompleted: true,
+                  });
+                  useAppStore.getState().setActiveCompany(updated);
+                  useAppStore.getState().setOnboarded(true);
+                } catch {
+                  // Proceed to dashboard even if the API call fails
+                }
+              }
+              router.push('/dashboard');
+            }}
             className="text-sm text-gray-400 hover:text-gray-600"
           >
             Skip for now — I&apos;ll set this up later

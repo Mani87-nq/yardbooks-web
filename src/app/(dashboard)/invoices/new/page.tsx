@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Select, Textarea } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Select, Textarea, Modal, ModalBody, ModalFooter } from '@/components/ui';
 import { useAppStore, useActiveCustomers, useActiveProducts } from '@/store/appStore';
 import { formatJMD, GCT_RATES } from '@/lib/utils';
 import { useCreateInvoice } from '@/hooks/api/useInvoices';
+import { useCreateCustomer } from '@/hooks/api/useCustomers';
 import { v4 as uuidv4 } from 'uuid';
 import type { Invoice, InvoiceItem, GCTRate } from '@/types';
 import {
@@ -14,17 +15,93 @@ import {
   PlusIcon,
   TrashIcon,
   MagnifyingGlassIcon,
+  UserPlusIcon,
 } from '@heroicons/react/24/outline';
 
 export default function NewInvoicePage() {
   const router = useRouter();
-  const { activeCompany, settings } = useAppStore();
+  const { activeCompany, settings, addCustomer } = useAppStore();
   const customers = useActiveCustomers();
   const products = useActiveProducts();
   const createInvoice = useCreateInvoice();
+  const createCustomer = useCreateCustomer();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [customerId, setCustomerId] = useState('');
+
+  // Inline customer creation state
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+  });
+  const [newCustomerErrors, setNewCustomerErrors] = useState<Record<string, string>>({});
+
+  const handleNewCustomerPhoneChange = (value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length <= 3) {
+      setNewCustomerForm((f) => ({ ...f, phone: cleaned }));
+    } else if (cleaned.length <= 6) {
+      setNewCustomerForm((f) => ({ ...f, phone: `${cleaned.slice(0, 3)}-${cleaned.slice(3)}` }));
+    } else if (cleaned.length <= 10) {
+      setNewCustomerForm((f) => ({ ...f, phone: `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}` }));
+    }
+  };
+
+  const handleCreateCustomer = async () => {
+    // Validate
+    const errors: Record<string, string> = {};
+    if (!newCustomerForm.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    if (newCustomerForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomerForm.email)) {
+      errors.email = 'Invalid email format';
+    }
+    if (newCustomerForm.phone) {
+      const phonePattern = /^876-?\d{3}-?\d{4}$/;
+      if (!phonePattern.test(newCustomerForm.phone.replace(/\s/g, ''))) {
+        errors.phone = 'Phone must be in 876-XXX-XXXX format';
+      }
+    }
+    setNewCustomerErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const result = await createCustomer.mutateAsync({
+        name: newCustomerForm.name.trim(),
+        email: newCustomerForm.email.trim() || null,
+        phone: newCustomerForm.phone.trim() || null,
+        type: 'customer',
+      });
+
+      // Add to local store so the dropdown updates immediately
+      const created = result as any;
+      addCustomer({
+        id: created.id,
+        companyId: activeCompany?.id || '',
+        type: created.type?.toLowerCase() || 'customer',
+        name: created.name,
+        companyName: created.companyName || undefined,
+        email: created.email || undefined,
+        phone: created.phone || undefined,
+        trnNumber: created.trnNumber || undefined,
+        balance: 0,
+        createdAt: new Date(created.createdAt),
+        updatedAt: new Date(created.updatedAt || created.createdAt),
+      });
+
+      // Auto-select the newly created customer
+      setCustomerId(created.id);
+
+      // Reset and close modal
+      setNewCustomerForm({ name: '', email: '', phone: '' });
+      setNewCustomerErrors({});
+      setShowNewCustomerModal(false);
+    } catch {
+      setNewCustomerErrors({ form: 'Failed to create customer. Please try again.' });
+    }
+  };
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState(() => {
     const date = new Date();
@@ -85,8 +162,31 @@ export default function NewInvoicePage() {
   const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
 
   const handleSubmit = async (status: 'draft' | 'sent') => {
+    // Client-side validation with specific messages
     if (!customerId) {
       alert('Please select a customer');
+      return;
+    }
+
+    // Validate line items
+    const emptyItems = items.filter((item) => !item.description?.trim());
+    if (emptyItems.length > 0) {
+      alert('Each line item must have a description. Please fill in all descriptions or remove empty items.');
+      return;
+    }
+
+    const zeroQtyItems = items.filter((item) => !item.quantity || item.quantity <= 0);
+    if (zeroQtyItems.length > 0) {
+      alert('Each line item must have a quantity greater than zero.');
+      return;
+    }
+
+    if (!issueDate) {
+      alert('Please set an issue date.');
+      return;
+    }
+    if (!dueDate) {
+      alert('Please set a due date.');
       return;
     }
 
@@ -114,7 +214,10 @@ export default function NewInvoicePage() {
       await createInvoice.mutateAsync(invoiceData);
       router.push('/invoices');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create invoice');
+      const message = err instanceof Error ? err.message : 'Failed to create invoice';
+      alert(message.includes('Validation failed')
+        ? 'Please check that all fields are filled in correctly: customer selected, items have descriptions and quantities, and dates are valid.'
+        : message);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,15 +245,29 @@ export default function NewInvoicePage() {
           <CardTitle>Invoice Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Select
-            label="Customer"
-            value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
-            options={[
-              { value: '', label: 'Select a customer...' },
-              ...customers.map((c) => ({ value: c.id, label: c.name })),
-            ]}
-          />
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Select
+                label="Customer"
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                options={[
+                  { value: '', label: 'Select a customer...' },
+                  ...customers.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowNewCustomerModal(true)}
+              className="mb-[1px] shrink-0"
+            >
+              <UserPlusIcon className="w-4 h-4 mr-1" />
+              New Customer
+            </Button>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Issue Date"
@@ -300,6 +417,67 @@ export default function NewInvoicePage() {
           {isSubmitting ? 'Creating...' : 'Create & Send'}
         </Button>
       </div>
+
+      {/* Inline New Customer Modal */}
+      <Modal
+        isOpen={showNewCustomerModal}
+        onClose={() => {
+          setShowNewCustomerModal(false);
+          setNewCustomerForm({ name: '', email: '', phone: '' });
+          setNewCustomerErrors({});
+        }}
+        title="Quick Add Customer"
+        description="Create a new customer without leaving the invoice form."
+        size="sm"
+      >
+        <ModalBody className="space-y-4">
+          {newCustomerErrors.form && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{newCustomerErrors.form}</p>
+          )}
+          <Input
+            label="Name *"
+            placeholder="Full name or business name"
+            value={newCustomerForm.name}
+            onChange={(e) => setNewCustomerForm((f) => ({ ...f, name: e.target.value }))}
+            error={newCustomerErrors.name}
+            autoFocus
+          />
+          <Input
+            label="Email"
+            type="email"
+            placeholder="email@example.com"
+            value={newCustomerForm.email}
+            onChange={(e) => setNewCustomerForm((f) => ({ ...f, email: e.target.value }))}
+            error={newCustomerErrors.email}
+          />
+          <Input
+            label="Phone"
+            type="tel"
+            placeholder="876-XXX-XXXX"
+            value={newCustomerForm.phone}
+            onChange={(e) => handleNewCustomerPhoneChange(e.target.value)}
+            error={newCustomerErrors.phone}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowNewCustomerModal(false);
+              setNewCustomerForm({ name: '', email: '', phone: '' });
+              setNewCustomerErrors({});
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreateCustomer}
+            disabled={createCustomer.isPending}
+          >
+            {createCustomer.isPending ? 'Creating...' : 'Create Customer'}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

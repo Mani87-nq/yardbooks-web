@@ -21,6 +21,8 @@ const registerSchema = z.object({
   // Optional company creation
   companyName: z.string().min(1).max(200).optional(),
   businessType: z.enum(['SOLE_PROPRIETOR', 'PARTNERSHIP', 'LIMITED_COMPANY', 'NGO', 'OTHER']).optional(),
+  // Optional referral code
+  referralCode: z.string().max(20).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
-    const { email, password, firstName, lastName, phone, companyName, businessType } = parsed.data;
+    const { email, password, firstName, lastName, phone, companyName, businessType, referralCode } = parsed.data;
 
     // Check password strength
     const passwordIssues = validatePasswordStrength(password);
@@ -83,6 +85,41 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await hashPassword(password);
 
+    // Validate referral code before transaction (if provided)
+    let validReferral: {
+      id: string;
+      code: string;
+      discountValue: number;
+      discountType: string;
+      trialExtendDays: number;
+    } | null = null;
+
+    if (referralCode) {
+      const normalizedCode = referralCode.toUpperCase().trim();
+      if (normalizedCode) {
+        const refCode = await prisma.referralCode.findUnique({
+          where: { code: normalizedCode },
+        });
+
+        if (refCode && refCode.isActive) {
+          const notExpired = !refCode.expiresAt || refCode.expiresAt > new Date();
+          const notMaxedOut = refCode.maxUses === null || refCode.currentUses < refCode.maxUses;
+
+          if (notExpired && notMaxedOut) {
+            validReferral = {
+              id: refCode.id,
+              code: refCode.code,
+              discountValue: Number(refCode.discountValue),
+              discountType: refCode.discountType,
+              trialExtendDays: refCode.trialExtendDays,
+            };
+          }
+        }
+        // If referral code is invalid we silently ignore it during registration
+        // (the frontend already validated it — this is a graceful fallback)
+      }
+    }
+
     // Create user (and optionally company) in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -101,7 +138,10 @@ export async function POST(request: NextRequest) {
       if (companyName) {
         // 14-day free trial: new companies start on BUSINESS plan with TRIALING status
         const now = new Date();
-        const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        const baseTrial = 14; // days
+        const bonusDays = validReferral?.trialExtendDays ?? 0;
+        const totalTrialDays = baseTrial + bonusDays;
+        const trialEnd = new Date(now.getTime() + totalTrialDays * 24 * 60 * 60 * 1000);
 
         company = await tx.company.create({
           data: {
@@ -112,6 +152,7 @@ export async function POST(request: NextRequest) {
             subscriptionStatus: 'TRIALING',
             subscriptionStartDate: now,
             subscriptionEndDate: trialEnd,
+            referredByCode: validReferral?.code ?? null,
           },
         });
 
@@ -128,6 +169,24 @@ export async function POST(request: NextRequest) {
           where: { id: user.id },
           data: { activeCompanyId: company.id },
         });
+
+        // Record referral redemption if a valid code was used
+        if (validReferral) {
+          await tx.referralCode.update({
+            where: { id: validReferral.id },
+            data: { currentUses: { increment: 1 } },
+          });
+
+          await tx.referralRedemption.create({
+            data: {
+              referralCodeId: validReferral.id,
+              redeemedByUserId: user.id,
+              redeemedByCompanyId: company.id,
+              discountApplied: validReferral.discountValue,
+              trialDaysAdded: validReferral.trialExtendDays,
+            },
+          });
+        }
       }
 
       return { user, company, membership };

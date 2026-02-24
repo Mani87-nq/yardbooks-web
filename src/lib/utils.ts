@@ -122,7 +122,7 @@ export function calculateTotalWithGCT(amount: number, rate: keyof typeof GCT_RAT
 export type InvoiceStatusColor = 'green' | 'yellow' | 'red' | 'gray' | 'blue';
 
 export function getInvoiceStatusColor(status: string): InvoiceStatusColor {
-  switch (status) {
+  switch (status.toLowerCase()) {
     case 'paid':
       return 'green';
     case 'partial':
@@ -150,7 +150,7 @@ export function getInvoiceStatusLabel(status: string): string {
     overdue: 'Overdue',
     cancelled: 'Cancelled',
   };
-  return labels[status] || status;
+  return labels[status.toLowerCase()] || status;
 }
 
 // ============================================

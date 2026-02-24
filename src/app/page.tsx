@@ -3,6 +3,18 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import PricingSection from '@/components/PricingSection';
 import ChatWidget from '@/components/ChatWidget';
+import {
+  SparklesIcon,
+  ChatBubbleLeftRightIcon,
+  LightBulbIcon,
+  ShieldCheckIcon,
+  BookOpenIcon,
+  PencilSquareIcon,
+  ClipboardDocumentCheckIcon,
+  ListBulletIcon,
+  ScaleIcon,
+  DocumentChartBarIcon,
+} from '@heroicons/react/24/outline';
 
 export default async function LandingPage() {
   const cookieStore = await cookies();
@@ -350,6 +362,153 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* AI Assistant Highlight */}
+      <section className="py-20 px-4 bg-gradient-to-br from-emerald-50 via-white to-yellow-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">
+                <SparklesIcon className="w-5 h-5" />
+                AI-Powered
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
+                Your AI-Powered Business Assistant
+              </h2>
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                Get instant answers to your bookkeeping questions, tax guidance tailored to Jamaica, and financial insights — all from an intelligent assistant that understands your business.
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <ChatBubbleLeftRightIcon className="w-6 h-6 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Ask Anything About Your Books</p>
+                    <p className="text-gray-600 text-sm">From GCT calculations to payroll questions — get clear, accurate answers instantly.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <LightBulbIcon className="w-6 h-6 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Smart Financial Insights</p>
+                    <p className="text-gray-600 text-sm">Spot trends, identify cost-saving opportunities, and make data-driven decisions.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <ShieldCheckIcon className="w-6 h-6 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Tax Compliance Guidance</p>
+                    <p className="text-gray-600 text-sm">Stay on top of TAJ deadlines, GCT filing requirements, and statutory obligations.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            {/* AI Chat Preview */}
+            <div className="relative">
+              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+                <div className="bg-emerald-600 px-6 py-4 flex items-center gap-3">
+                  <SparklesIcon className="w-6 h-6 text-white" />
+                  <span className="text-white font-semibold">YaadBooks AI Assistant</span>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-end">
+                    <div className="bg-emerald-50 text-gray-800 rounded-2xl rounded-tr-sm px-4 py-3 max-w-xs text-sm">
+                      How much GCT do I owe this quarter?
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 text-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm">
+                      Based on your records, your GCT liability for this quarter is <span className="font-semibold">$124,350 JMD</span>. Your filing deadline is <span className="font-semibold">March 15th</span>. Would you like me to generate the return?
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="bg-emerald-50 text-gray-800 rounded-2xl rounded-tr-sm px-4 py-3 max-w-xs text-sm">
+                      Yes, and show me which expenses I can still claim.
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 text-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm">
+                      I found <span className="font-semibold">3 unclaimed input tax credits</span> totalling $18,200 JMD. Claiming these would reduce your net GCT to <span className="font-semibold">$106,150 JMD</span>.
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -bottom-3 -left-3 bg-purple-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg transform -rotate-2">
+                <SparklesIcon className="w-4 h-4 inline mr-1" />
+                AI Built-In
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Advanced Accounting Features */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              <BookOpenIcon className="w-5 h-5" />
+              Professional-Grade Accounting
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Advanced Accounting at Your Fingertips
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Go beyond basic bookkeeping with full double-entry accounting features that accountants and auditors expect.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                <ListBulletIcon className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Chart of Accounts</h3>
+              <p className="text-gray-600">Pre-configured chart of accounts tailored for Jamaican businesses. Fully customizable to match your reporting needs.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                <BookOpenIcon className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">General Ledger</h3>
+              <p className="text-gray-600">Complete double-entry general ledger with real-time balances. Every transaction recorded accurately and instantly.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                <PencilSquareIcon className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Journal Entries</h3>
+              <p className="text-gray-600">Create and manage general journal entries with ease. Support for recurring entries, adjustments, and reversals.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                <ScaleIcon className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Trial Balance</h3>
+              <p className="text-gray-600">Generate trial balances at any date. Verify debits equal credits and ensure your books are always in balance.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                <ClipboardDocumentCheckIcon className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Audit Trail</h3>
+              <p className="text-gray-600">Every change is tracked with timestamps, users, and before/after values. Full transparency for auditors and compliance.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                <DocumentChartBarIcon className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Financial Reports</h3>
+              <p className="text-gray-600">Income statements, balance sheets, cash flow reports, and more. Export to PDF or Excel for your accountant.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials */}
       <section className="py-20 px-4 bg-emerald-600">
         <div className="max-w-7xl mx-auto">
@@ -461,7 +620,7 @@ export default async function LandingPage() {
               <ul className="space-y-2">
                 <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
                 <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>
-                <li><a href="mailto:support@yaadbooks.com" className="hover:text-white">Contact Us</a></li>
+                <li><Link href="/contact" className="hover:text-white">Contact Us</Link></li>
               </ul>
             </div>
             

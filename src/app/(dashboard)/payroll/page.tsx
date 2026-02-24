@@ -188,6 +188,7 @@ export default function PayrollPage() {
     bankName: '',
     trnNumber: '',
     nisNumber: '',
+    dateOfBirth: '',
     hireDate: new Date().toISOString().split('T')[0],
   });
 
@@ -216,6 +217,7 @@ export default function PayrollPage() {
         bankName: employee.bankName || '',
         trnNumber: employee.trnNumber || '',
         nisNumber: employee.nisNumber || '',
+        dateOfBirth: (employee as any).dateOfBirth ? new Date((employee as any).dateOfBirth).toISOString().split('T')[0] : '',
         hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
       });
     } else {
@@ -234,6 +236,7 @@ export default function PayrollPage() {
         bankName: '',
         trnNumber: '',
         nisNumber: '',
+        dateOfBirth: '',
         hireDate: new Date().toISOString().split('T')[0],
       });
     }
@@ -261,6 +264,7 @@ export default function PayrollPage() {
       bankName: employeeForm.bankName || undefined,
       trnNumber: employeeForm.trnNumber || '',
       nisNumber: employeeForm.nisNumber || '',
+      dateOfBirth: employeeForm.dateOfBirth || undefined,
       hireDate: employeeForm.hireDate || undefined,
       isActive: true,
     };
@@ -789,16 +793,25 @@ export default function PayrollPage() {
                 onChange={(e) => setEmployeeForm({ ...employeeForm, bankAccountNumber: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <Input
                 label="TRN"
                 value={employeeForm.trnNumber}
                 onChange={(e) => setEmployeeForm({ ...employeeForm, trnNumber: e.target.value })}
+                placeholder="9-digit TRN"
               />
               <Input
                 label="NIS Number"
                 value={employeeForm.nisNumber}
                 onChange={(e) => setEmployeeForm({ ...employeeForm, nisNumber: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Date of Birth"
+                type="date"
+                value={employeeForm.dateOfBirth}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, dateOfBirth: e.target.value })}
               />
               <Input
                 label="Hire Date"

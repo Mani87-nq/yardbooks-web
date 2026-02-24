@@ -54,6 +54,7 @@ const updateCompanySchema = z.object({
   address: z.string().max(500).nullable().optional(),
   parish: z.string().max(50).nullable().optional(),
   fiscalYearEnd: z.number().int().min(1).max(12).optional(),
+  currency: z.enum(['JMD', 'USD', 'GBP', 'CAD', 'EUR']).optional(),
   // Invoice settings
   invoicePrefix: z.string().max(20).optional(),
   invoiceNextNum: z.number().int().min(1).optional(),

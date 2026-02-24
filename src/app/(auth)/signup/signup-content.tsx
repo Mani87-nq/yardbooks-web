@@ -14,6 +14,9 @@ import {
   EyeIcon,
   EyeSlashIcon,
   ArrowLeftIcon,
+  GiftIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const INDUSTRIES = [
@@ -87,6 +90,12 @@ export default function SignupContent() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
+  // Referral code state
+  const [referralStatus, setReferralStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const [referralMessage, setReferralMessage] = useState('');
+  const [referralBenefit, setReferralBenefit] = useState('');
+  const [referralValidated, setReferralValidated] = useState(false); // Tracks if the current value has been validated
+
   // Get selected plan and billing interval from URL
   const selectedPlan = searchParams.get('plan') || 'solo';
   const billingInterval = searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
@@ -128,7 +137,80 @@ export default function SignupContent() {
     industry: '',
     parish: '',
     trnNumber: '',
+    // Referral
+    referralCode: '',
   });
+
+  // Initialize referral code from URL param (e.g. ?ref=ABCD1234)
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setFormData((prev) => ({ ...prev, referralCode: refCode.toUpperCase() }));
+      // Auto-validate the code from URL
+      validateReferralCode(refCode.toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  /**
+   * Validate a referral code against the server.
+   * Called on blur or when a code is provided via URL param.
+   */
+  const validateReferralCode = async (code: string) => {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
+      setReferralStatus('idle');
+      setReferralMessage('');
+      setReferralBenefit('');
+      setReferralValidated(false);
+      return;
+    }
+
+    setReferralStatus('validating');
+    setReferralMessage('');
+    setReferralBenefit('');
+    setReferralValidated(false);
+
+    try {
+      const res = await fetch('/api/v1/referrals/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: trimmed }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setReferralStatus('invalid');
+        setReferralMessage(data.detail ?? 'Invalid referral code');
+        return;
+      }
+
+      if (data.valid) {
+        setReferralStatus('valid');
+        setReferralValidated(true);
+        // Build a human-friendly benefit message
+        const benefits: string[] = [];
+        if (data.trialExtendDays > 0) {
+          benefits.push(`${data.trialExtendDays} extra days free`);
+        }
+        if (data.discountType === 'PERCENTAGE' && data.discountValue > 0) {
+          benefits.push(`${data.discountValue}% discount`);
+        } else if (data.discountType === 'FIXED' && data.discountValue > 0) {
+          benefits.push(`$${data.discountValue} off`);
+        }
+        const benefitText = benefits.length > 0 ? benefits.join(' + ') : 'Special offer applied';
+        setReferralBenefit(benefitText);
+        setReferralMessage('Valid referral code!');
+      } else {
+        setReferralStatus('invalid');
+        setReferralMessage(data.reason ?? 'This referral code is not valid.');
+      }
+    } catch {
+      setReferralStatus('invalid');
+      setReferralMessage('Unable to validate code. Please try again.');
+    }
+  };
 
   const handleNext = () => {
     setError('');
@@ -191,6 +273,7 @@ export default function SignupContent() {
         phone: formData.phone || undefined,
         companyName: formData.businessName,
         businessType: formData.businessType,
+        referralCode: (referralValidated && formData.referralCode.trim()) ? formData.referralCode.trim().toUpperCase() : undefined,
       });
 
       // Store access token in memory (cookie is already set by the server response)
@@ -602,6 +685,73 @@ export default function SignupContent() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="XXX-XXX-XXX (optional)"
                   />
+                </div>
+
+                {/* Referral Code */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Referral Code
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <GiftIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={formData.referralCode}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                        setFormData({ ...formData, referralCode: val });
+                        // Reset validation when user types
+                        if (referralStatus !== 'idle') {
+                          setReferralStatus('idle');
+                          setReferralMessage('');
+                          setReferralBenefit('');
+                          setReferralValidated(false);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (formData.referralCode.trim()) {
+                          validateReferralCode(formData.referralCode);
+                        }
+                      }}
+                      maxLength={20}
+                      className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 uppercase ${
+                        referralStatus === 'valid'
+                          ? 'border-emerald-400 bg-emerald-50'
+                          : referralStatus === 'invalid'
+                          ? 'border-red-300 bg-red-50'
+                          : 'border-gray-300'
+                      }`}
+                      placeholder="e.g. YAAD2026 (optional)"
+                    />
+                    {/* Status indicator */}
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      {referralStatus === 'validating' && (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600" />
+                      )}
+                      {referralStatus === 'valid' && (
+                        <CheckCircleIcon className="h-5 w-5 text-emerald-500" />
+                      )}
+                      {referralStatus === 'invalid' && (
+                        <XCircleIcon className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                  {/* Feedback messages */}
+                  {referralStatus === 'valid' && referralBenefit && (
+                    <p className="mt-1 text-xs text-emerald-600 font-medium">
+                      {referralBenefit}
+                    </p>
+                  )}
+                  {referralStatus === 'invalid' && referralMessage && (
+                    <p className="mt-1 text-xs text-red-600">{referralMessage}</p>
+                  )}
+                  {referralStatus === 'idle' && !formData.referralCode && (
+                    <p className="mt-1 text-xs text-gray-400">
+                      Have a referral code? Enter it for bonus trial days.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-4">

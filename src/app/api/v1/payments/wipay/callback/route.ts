@@ -2,10 +2,10 @@
  * GET /api/v1/payments/wipay/callback
  *
  * WiPay redirects the customer here after payment (success or failure).
- * Query parameters include: status, order_id, transaction_id, hash, total, etc.
+ * Query parameters include: status, transaction_id, hash, total, reasonCode, message.
  *
  * This endpoint:
- *   1. Verifies the hash (MD5(order_id + total + merchant_key))
+ *   1. Verifies the hash (MD5(transaction_id + total + API_Key))
  *   2. Records the payment in the database
  *   3. Updates invoice status and balance
  *   4. Redirects the customer to a success/failure page
@@ -22,27 +22,23 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
-  // Extract WiPay callback parameters
+  // Extract WiPay callback parameters (v1.0.8 field names)
   const callbackData: WiPayCallbackData = {
     status: params.get('status') ?? '',
-    order_id: params.get('order_id') ?? '',
     transaction_id: params.get('transaction_id') ?? '',
     hash: params.get('hash') ?? '',
     total: params.get('total') ?? '0',
     reasonCode: params.get('reasonCode') ?? '',
-    reasonDescription: params.get('reasonDescription') ?? '',
-    name: params.get('name') ?? undefined,
-    email: params.get('email') ?? undefined,
-    currency: params.get('currency') ?? undefined,
-    date: params.get('date') ?? undefined,
+    message: params.get('message') ?? '',
   };
 
-  const invoiceId = callbackData.order_id;
+  // The order_id is passed through the `data` parameter we sent during checkout.
+  // WiPay may return it as `order_id` or `data` in the callback query string.
+  const invoiceId = params.get('order_id') ?? params.get('data') ?? '';
 
-  // ── 1. Verify hash authenticity ──────────────────────────────────────
+  // -- 1. Verify hash authenticity ----------------------------------------
   if (!verifyWiPayCallback(callbackData)) {
     console.error('WiPay callback hash verification failed', {
-      order_id: callbackData.order_id,
       transaction_id: callbackData.transaction_id,
     });
     return NextResponse.redirect(
@@ -50,29 +46,29 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // ── 2. Idempotency — check if we already processed this transaction ──
+  // -- 2. Idempotency -- check if we already processed this transaction ---
   const existingEvent = await prisma.webhookEvent.findUnique({
     where: { id: callbackData.transaction_id },
   });
   if (existingEvent) {
-    // Already processed — redirect to success page
+    // Already processed -- redirect to success page
     return NextResponse.redirect(
       `${appUrl}/payment/success?invoice=${invoiceId}`
     );
   }
 
-  // ── 3. Handle payment result ─────────────────────────────────────────
+  // -- 3. Handle payment result -------------------------------------------
   if (!isWiPayPaymentSuccessful(callbackData)) {
     console.log('WiPay payment failed:', {
-      order_id: callbackData.order_id,
-      reason: callbackData.reasonDescription,
+      transaction_id: callbackData.transaction_id,
+      reason: callbackData.message,
     });
     return NextResponse.redirect(
-      `${appUrl}/payment/failed?invoice=${invoiceId}&reason=${encodeURIComponent(callbackData.reasonDescription)}`
+      `${appUrl}/payment/failed?invoice=${invoiceId}&reason=${encodeURIComponent(callbackData.message)}`
     );
   }
 
-  // ── 4. Record payment and update invoice ─────────────────────────────
+  // -- 4. Record payment and update invoice -------------------------------
   try {
     const paymentAmount = new Decimal(callbackData.total);
 
