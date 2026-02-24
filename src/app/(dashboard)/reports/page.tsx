@@ -343,7 +343,7 @@ export default function ReportsPage() {
           data.categories.map(c => ({
             name: c.name,
             amount: c.amount,
-            percentage: ((c.amount / data.totalExpenses) * 100).toFixed(1) + '%',
+            percentage: data.totalExpenses > 0 ? ((c.amount / data.totalExpenses) * 100).toFixed(1) + '%' : '0%',
           })),
           {
             formatters: { amount: formatPrintCurrency },
@@ -679,7 +679,7 @@ export default function ReportsPage() {
           data.categories.map(c => ({
             Category: c.name,
             Amount: c.amount,
-            Percentage: ((c.amount / data.totalExpenses) * 100).toFixed(1) + '%',
+            Percentage: data.totalExpenses > 0 ? ((c.amount / data.totalExpenses) * 100).toFixed(1) + '%' : '0%',
           })),
           filename
         );
@@ -932,7 +932,7 @@ export default function ReportsPage() {
                         <div className="w-32 bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-red-600 h-2 rounded-full"
-                            style={{ width: `${(cat.amount / data.totalExpenses) * 100}%` }}
+                            style={{ width: `${data.totalExpenses > 0 ? (cat.amount / data.totalExpenses) * 100 : 0}%` }}
                           />
                         </div>
                         <span className="font-medium w-24 text-right">{formatJMD(cat.amount)}</span>

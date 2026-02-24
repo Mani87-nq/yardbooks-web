@@ -60,9 +60,10 @@ const createExpenseSchema = z.object({
   gctAmount: z.number().min(0).default(0),
   gctClaimable: z.boolean().default(false),
   date: z.coerce.date(),
-  paymentMethod: z.enum(['CASH', 'CHEQUE', 'BANK_TRANSFER', 'CREDIT_CARD', 'DEBIT_CARD', 'MOBILE_MONEY']),
-  reference: z.string().max(100).optional(),
-  notes: z.string().max(2000).optional(),
+  paymentMethod: z.enum(['CASH', 'CHEQUE', 'BANK_TRANSFER', 'CREDIT_CARD', 'DEBIT_CARD', 'MOBILE_MONEY', 'WIPAY']),
+  reference: z.string().max(100).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  receiptUrl: z.string().max(2000).nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {

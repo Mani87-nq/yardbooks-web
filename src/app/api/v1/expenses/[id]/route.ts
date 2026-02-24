@@ -35,9 +35,10 @@ const updateExpenseSchema = z.object({
   gctAmount: z.number().min(0).optional(),
   gctClaimable: z.boolean().optional(),
   date: z.coerce.date().optional(),
-  paymentMethod: z.enum(['CASH', 'CHEQUE', 'BANK_TRANSFER', 'CREDIT_CARD', 'DEBIT_CARD', 'MOBILE_MONEY']).optional(),
-  reference: z.string().max(100).optional(),
-  notes: z.string().max(2000).optional(),
+  paymentMethod: z.enum(['CASH', 'CHEQUE', 'BANK_TRANSFER', 'CREDIT_CARD', 'DEBIT_CARD', 'MOBILE_MONEY', 'WIPAY']).optional(),
+  reference: z.string().max(100).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  receiptUrl: z.string().max(2000).nullable().optional(),
 });
 
 export async function PUT(request: NextRequest, context: RouteContext) {
