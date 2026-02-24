@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
 import { setAccessToken, ApiRequestError } from '@/lib/api-client';
 import {
@@ -65,14 +65,34 @@ interface TwoFactorVerifyResponse {
   accessToken: string;
 }
 
-export default function LoginPage() {
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  google_oauth_not_configured: 'Google Sign-In is not yet configured. Please use email and password.',
+  google_oauth_denied: 'Google sign-in was cancelled. Please try again.',
+  google_oauth_invalid: 'Invalid Google sign-in response. Please try again.',
+  google_oauth_csrf: 'Security verification failed. Please try again.',
+  google_oauth_token_failed: 'Failed to complete Google sign-in. Please try again.',
+  google_oauth_profile_failed: 'Failed to fetch Google profile. Please try again.',
+  google_oauth_no_email: 'No email address found in your Google account.',
+  google_oauth_error: 'An error occurred during Google sign-in. Please try again.',
+};
+
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setUser, setCompanies, setActiveCompany, setAuthenticated } = useAppStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Show Google OAuth error from URL params
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError && OAUTH_ERROR_MESSAGES[oauthError]) {
+      setError(OAUTH_ERROR_MESSAGES[oauthError]);
+    }
+  }, [searchParams]);
 
   // 2FA state
   const [requires2FA, setRequires2FA] = useState(false);
@@ -532,5 +552,17 @@ export default function LoginPage() {
         {requires2FA ? render2FAForm() : renderLoginForm()}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-emerald-600">Loading...</div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

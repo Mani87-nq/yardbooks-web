@@ -21,6 +21,7 @@ import {
   ChartBarIcon,
   SparklesIcon,
   Cog6ToothIcon,
+  ClockIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   XMarkIcon,
@@ -54,6 +55,9 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, permission: null },
       { name: 'Point of Sale', href: '/pos', icon: ShoppingCartIcon, badge: 'NEW', permission: 'pos:read' },
+      { name: 'POS Returns', href: '/pos/returns', icon: ReceiptRefundIcon, permission: 'pos:read' },
+      { name: 'POS Grid Settings', href: '/pos/grid-settings', icon: Cog6ToothIcon, permission: 'pos:read' },
+      { name: 'POS Sessions', href: '/pos/sessions', icon: ClockIcon, permission: 'pos:read' },
     ],
   },
   {

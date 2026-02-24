@@ -33,6 +33,7 @@ import {
   PlayIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
+  ReceiptRefundIcon,
 } from '@heroicons/react/24/outline';
 
 // ---- Local cart types (client-only, not persisted to API until order creation) ----
@@ -526,13 +527,23 @@ export default function POSPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900">Current Order</h2>
             <div className="flex gap-2">
-              <Link href="/pos/held">
+              <Link href="/pos/held" title="Held Orders">
                 <Button variant="ghost" size="sm">
                   <ClockIcon className="w-4 h-4" />
                   <span className="ml-1">{heldOrderCount}</span>
                 </Button>
               </Link>
-              <Link href="/pos/settings">
+              <Link href="/pos/returns" title="Returns">
+                <Button variant="ghost" size="sm">
+                  <ReceiptRefundIcon className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/pos/sessions" title="Sessions">
+                <Button variant="ghost" size="sm">
+                  <DocumentTextIcon className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/pos/grid-settings" title="Grid Settings">
                 <Button variant="ghost" size="sm">
                   <Cog6ToothIcon className="w-4 h-4" />
                 </Button>

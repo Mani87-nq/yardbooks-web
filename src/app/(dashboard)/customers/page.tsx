@@ -19,6 +19,7 @@ import {
   EnvelopeIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 
@@ -149,9 +150,16 @@ export default function CustomersPage() {
           <p className="text-gray-500">Manage your business contacts</p>
         </div>
         <PermissionGate permission="customers:create">
-          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
-            Add Contact
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/customers/new">
+              <Button variant="outline" icon={<PlusIcon className="w-4 h-4" />}>
+                New Customer
+              </Button>
+            </Link>
+            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+              Quick Add
+            </Button>
+          </div>
         </PermissionGate>
       </div>
 
@@ -262,12 +270,12 @@ export default function CustomersPage() {
               customers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell>
-                    <div>
-                      <p className="font-medium text-gray-900">{customer.name}</p>
+                    <Link href={`/customers/${customer.id}`} className="block group">
+                      <p className="font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">{customer.name}</p>
                       {customer.companyName && (
                         <p className="text-sm text-gray-500">{customer.companyName}</p>
                       )}
-                    </div>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <Badge variant={customer.type === 'customer' ? 'success' : customer.type === 'vendor' ? 'info' : 'default'}>
@@ -296,6 +304,11 @@ export default function CustomersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Link href={`/customers/${customer.id}`}>
+                        <Button variant="ghost" size="sm" title="View Details">
+                          <EyeIcon className="w-4 h-4" />
+                        </Button>
+                      </Link>
                       <PermissionGate permission="customers:update">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenModal(customer)}>
                           <PencilIcon className="w-4 h-4" />

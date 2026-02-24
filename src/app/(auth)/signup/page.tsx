@@ -46,9 +46,21 @@ const BUSINESS_TYPES = [
 ];
 
 const PLANS: Record<string, { name: string; price: string }> = {
-  solo: { name: 'Solo', price: '$19.99/mo' },
-  team: { name: 'Team', price: '$14.99/user/mo' },
+  solo: { name: 'Solo', price: 'Free for 14 days' },
+  team: { name: 'Team', price: 'Free for 14 days' },
 };
+
+// Google Icon SVG
+function GoogleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+  );
+}
 
 interface RegisterResponse {
   user: {
@@ -190,23 +202,9 @@ function SignupContent() {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-
-        // Step 2: Redirect to Stripe Checkout
-        const checkoutRes = await api.post<{ url: string }>('/api/billing/checkout', {
-          planId: selectedPlan,
-          companyId: data.company.id,
-          userId: data.user.id,
-          email: data.user.email,
-        });
-
-        if (checkoutRes.url) {
-          // Redirect to Stripe
-          window.location.href = checkoutRes.url;
-          return;
-        }
       }
 
-      // Fallback: go to dashboard if checkout fails
+      // 14-day free trial — go straight to dashboard (no Stripe checkout)
       router.push('/dashboard');
     } catch (err) {
       if (err instanceof ApiRequestError) {
@@ -268,7 +266,7 @@ function SignupContent() {
 
           <div className="space-y-4">
             {[
-              'Instant access after payment',
+              '14-day free trial, no credit card required',
               'Cancel anytime',
               'Jamaica-specific features',
               'GCT & tax compliance built-in',
@@ -600,12 +598,36 @@ function SignupContent() {
                     disabled={isLoading}
                     className="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
                   >
-                    {isLoading ? 'Processing...' : 'Continue to Payment'}
+                    {isLoading ? 'Creating account...' : 'Start Free Trial'}
                   </button>
                 </div>
               </>
             )}
           </form>
+
+          {/* Google Sign In — show on step 1 only */}
+          {step === 1 && (
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => window.location.href = '/api/auth/oauth/google'}
+                disabled={isLoading}
+                className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+              >
+                <GoogleIcon className="w-5 h-5" />
+                Sign up with Google
+              </button>
+            </div>
+          )}
 
           <p className="mt-8 text-center text-sm text-gray-500">
             Already have an account?{' '}
