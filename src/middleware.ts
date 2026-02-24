@@ -59,8 +59,10 @@ export async function middleware(request: NextRequest) {
   // ============================================
 
   // Check if route is public
+  // NOTE: '/' uses exact match; all other routes use prefix matching.
   const isPublicRoute =
-    PUBLIC_ROUTES.some(route => pathname.startsWith(route)) ||
+    pathname === '/' ||
+    PUBLIC_ROUTES.filter(r => r !== '/').some(route => pathname.startsWith(route)) ||
     // Invoice pay endpoint: /api/v1/invoices/[id]/pay (public for customer payments)
     /^\/api\/v1\/invoices\/[^/]+\/pay$/.test(pathname);
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
@@ -120,10 +122,10 @@ export async function middleware(request: NextRequest) {
           // Forward the response and set the new cookies from the refresh endpoint
           const response = NextResponse.next({ request: { headers: requestHeaders } });
 
-          // Set the new access token cookie
+          // Set the new access token cookie (not httpOnly for client-side hydration)
           if (data.accessToken) {
             response.cookies.set('accessToken', data.accessToken, {
-              httpOnly: true,
+              httpOnly: false,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               path: '/',
@@ -148,8 +150,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect unauthenticated users from protected routes
+  // Block unauthenticated users from protected routes
   if (!isPublicRoute && !isAuthenticated) {
+    // API routes → return 401 JSON (clients expect JSON, not a redirect)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { type: 'unauthorized', title: 'Authentication required', status: 401, detail: 'Please log in.' },
+        { status: 401 }
+      );
+    }
+
+    // Page routes → redirect to login
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', pathname);
 

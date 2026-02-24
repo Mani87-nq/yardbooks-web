@@ -92,7 +92,7 @@ export function getRefreshTokenCookieOptions() {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
-    path: '/api/auth',
+    path: '/',   // Available site-wide so middleware can read it for transparent refresh
     maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   };
 }

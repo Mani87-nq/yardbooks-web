@@ -186,9 +186,10 @@ export async function POST(request: NextRequest) {
     // Set refresh token as httpOnly cookie
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
     
-    // Set access token cookie for middleware
+    // Set access token cookie for middleware + client-side hydration.
+    // NOT httpOnly so ensureAccessTokenFromCookie() can read it client-side.
     response.cookies.set('accessToken', accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
