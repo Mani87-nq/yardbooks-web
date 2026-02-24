@@ -11,6 +11,12 @@ import {
   useDeleteEmployee,
 } from '@/hooks/api';
 import { api } from '@/lib/api-client';
+import Decimal from 'decimal.js';
+
+// Configure Decimal.js for financial calculations
+Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
+/** Round to 2dp and return a number */
+const d2 = (v: Decimal): number => v.toDecimalPlaces(2).toNumber();
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -298,23 +304,35 @@ export default function PayrollPage() {
   };
 
   const calculateDeductions = (grossPay: number) => {
-    const nisCappedGross = Math.min(grossPay, NIS_ANNUAL_CEILING / 12);
-    const nis = nisCappedGross * NIS_RATE;
-    const nht = grossPay * NHT_RATE;
-    const eduTax = grossPay * EDUCATION_TAX_RATE;
+    const dGross = new Decimal(grossPay);
+    const dMonthlyCeiling = new Decimal(NIS_ANNUAL_CEILING).dividedBy(12);
+    const dNisCapped = Decimal.min(dGross, dMonthlyCeiling);
 
-    const annualGross = grossPay * 12;
-    let paye = 0;
-    if (annualGross > PAYE_ANNUAL_THRESHOLD) {
-      const taxable = annualGross - PAYE_ANNUAL_THRESHOLD;
-      if (taxable <= 6000000) {
-        paye = (taxable * 0.25) / 12;
+    const dNis = dNisCapped.times(NIS_RATE);
+    const dNht = dGross.times(NHT_RATE);
+    const dEduTax = dGross.times(EDUCATION_TAX_RATE);
+
+    const dAnnualGross = dGross.times(12);
+    let dPaye = new Decimal(0);
+    if (dAnnualGross.greaterThan(PAYE_ANNUAL_THRESHOLD)) {
+      const dTaxable = dAnnualGross.minus(PAYE_ANNUAL_THRESHOLD);
+      if (dTaxable.lessThanOrEqualTo(6000000)) {
+        dPaye = dTaxable.times(0.25).dividedBy(12);
       } else {
-        paye = ((6000000 * 0.25) + ((taxable - 6000000) * 0.30)) / 12;
+        dPaye = new Decimal(6000000).times(0.25)
+          .plus(dTaxable.minus(6000000).times(0.30))
+          .dividedBy(12);
       }
     }
 
-    return { nis, nht, eduTax, paye, total: nis + nht + eduTax + paye };
+    const dTotal = dNis.plus(dNht).plus(dEduTax).plus(dPaye);
+    return {
+      nis: d2(dNis),
+      nht: d2(dNht),
+      eduTax: d2(dEduTax),
+      paye: d2(dPaye),
+      total: d2(dTotal),
+    };
   };
 
   const handleRunPayroll = async () => {
@@ -348,11 +366,11 @@ export default function PayrollPage() {
           educationTax: deductions.eduTax,
           otherDeductions: 0,
           totalDeductions: deductions.total,
-          netPay: gross - deductions.total,
-          employerNis: gross * NIS_RATE,
-          employerNht: gross * NHT_RATE,
-          employerEducationTax: gross * EDUCATION_TAX_RATE,
-          heartContribution: gross * 0.03,
+          netPay: d2(new Decimal(gross).minus(deductions.total)),
+          employerNis: d2(new Decimal(gross).times(NIS_RATE)),
+          employerNht: d2(new Decimal(gross).times(NHT_RATE)),
+          employerEducationTax: d2(new Decimal(gross).times(EDUCATION_TAX_RATE)),
+          heartContribution: d2(new Decimal(gross).times(0.03)),
         };
       });
 

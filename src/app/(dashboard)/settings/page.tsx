@@ -722,8 +722,22 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveInvoiceSettings = () => {
-    if (activeCompany) {
+  const [isSavingInvoice, setIsSavingInvoice] = useState(false);
+  const handleSaveInvoiceSettings = async () => {
+    if (!activeCompany) return;
+    setIsSavingInvoice(true);
+    try {
+      await api.put(`/api/v1/companies/${activeCompany.id}`, {
+        invoicePrefix: invoiceSettings.prefix || undefined,
+        invoiceNextNum: invoiceSettings.nextNumber || undefined,
+        invoiceTemplate: invoiceSettings.template || undefined,
+        primaryColor: invoiceSettings.primaryColor || undefined,
+        accentColor: invoiceSettings.accentColor || undefined,
+        invoiceShowLogo: invoiceSettings.showLogo,
+        invoiceTerms: invoiceSettings.termsAndConditions || undefined,
+        invoiceNotes: invoiceSettings.notes || undefined,
+        invoiceFooter: invoiceSettings.footer || undefined,
+      });
       setActiveCompany({
         ...activeCompany,
         invoiceSettings: {
@@ -740,15 +754,30 @@ export default function SettingsPage() {
         updatedAt: new Date(),
       });
       alert('Invoice settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save invoice settings');
+    } finally {
+      setIsSavingInvoice(false);
     }
   };
 
-  const handleSaveUser = () => {
-    if (user) {
-      updateUser({
-        ...userForm,
+  const [isSavingUser, setIsSavingUser] = useState(false);
+  const handleSaveUser = async () => {
+    if (!user) return;
+    setIsSavingUser(true);
+    try {
+      await api.patch(`/api/auth/users/${(user as any).id || (user as any).sub}`, {
+        firstName: userForm.firstName || undefined,
+        lastName: userForm.lastName || undefined,
+        email: userForm.email || undefined,
+        phone: userForm.phone || undefined,
       });
+      updateUser({ ...userForm });
       alert('Profile settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save profile');
+    } finally {
+      setIsSavingUser(false);
     }
   };
 
@@ -897,7 +926,9 @@ export default function SettingsPage() {
                     placeholder="e.g., Retail, Agriculture, Services"
                   />
                   <div className="flex justify-end pt-4">
-                    <Button onClick={handleSaveCompany}>Save Changes</Button>
+                    <Button onClick={handleSaveCompany} disabled={isSavingCompany}>
+                      {isSavingCompany ? 'Saving...' : 'Save Changes'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -1080,7 +1111,9 @@ export default function SettingsPage() {
               </Card>
 
               <div className="flex justify-end">
-                <Button onClick={handleSaveInvoiceSettings}>Save Invoice Settings</Button>
+                <Button onClick={handleSaveInvoiceSettings} disabled={isSavingInvoice}>
+                  {isSavingInvoice ? 'Saving...' : 'Save Invoice Settings'}
+                </Button>
               </div>
             </div>
           )}
@@ -1126,7 +1159,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex justify-end pt-4">
-                    <Button onClick={handleSaveUser}>Save Profile</Button>
+                    <Button onClick={handleSaveUser} disabled={isSavingUser}>
+                      {isSavingUser ? 'Saving...' : 'Save Profile'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
