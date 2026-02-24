@@ -71,8 +71,21 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleMarkPaid = () => {
-    updatePayrollRun?.(run.id, { status: 'paid' });
+  const [markingPaid, setMarkingPaid] = useState(false);
+
+  const handleMarkPaid = async () => {
+    if (!confirm('Are you sure you want to mark this payroll run as paid?')) return;
+    setMarkingPaid(true);
+    try {
+      await api.post(`/api/v1/payroll/${run.id}/mark-paid`);
+      updatePayrollRun?.(run.id, { status: 'paid' });
+      alert('Payroll run marked as paid!');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to mark as paid';
+      alert(message);
+    } finally {
+      setMarkingPaid(false);
+    }
   };
 
   const handleEmailPayslips = async () => {
@@ -208,9 +221,10 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
               </button>
               <button
                 onClick={handleMarkPaid}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                disabled={markingPaid}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                Mark as Paid
+                {markingPaid ? 'Processing...' : 'Mark as Paid'}
               </button>
             </>
           )}
