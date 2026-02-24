@@ -33,8 +33,8 @@ export default async function LandingPage() {
               <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium">
                 Sign In
               </Link>
-              <Link 
-                href="#pricing" 
+              <Link
+                href="/signup"
                 className="bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
               >
                 Get Started
@@ -60,8 +60,8 @@ export default async function LandingPage() {
                 Stop struggling with foreign software. YaadBooks handles GCT, NIS, NHT, PAYE, and all your Jamaican tax compliance automatically. From invoicing to payroll — we've got you covered.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link 
-                  href="#pricing" 
+                <Link
+                  href="/signup"
                   className="bg-emerald-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 text-center"
                 >
                   Start Your Business Journey
@@ -280,21 +280,17 @@ export default async function LandingPage() {
             Watch how easy it is to manage your Jamaican business
           </p>
           
-          {/* Video Placeholder */}
+          {/* Demo Video */}
           <div className="relative aspect-video bg-gray-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-700">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button className="w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/50">
-                <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              </button>
-            </div>
-            <div className="absolute bottom-4 left-4 right-4 flex items-center gap-4">
-              <div className="flex-1 h-1 bg-gray-700 rounded-full">
-                <div className="w-1/3 h-full bg-emerald-500 rounded-full"></div>
-              </div>
-              <span className="text-gray-400 text-sm">2:45</span>
-            </div>
+            <video
+              className="w-full h-full object-cover"
+              controls
+              playsInline
+              preload="metadata"
+            >
+              <source src="/videos/demo.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         </div>
       </section>
@@ -410,8 +406,8 @@ export default async function LandingPage() {
           <p className="text-xl text-gray-400 mb-8">
             Join hundreds of Jamaican businesses already using YaadBooks to grow and thrive.
           </p>
-          <Link 
-            href="#pricing" 
+          <Link
+            href="/signup"
             className="inline-block bg-emerald-600 text-white px-10 py-4 rounded-xl font-semibold text-lg hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/30"
           >
             Start Your Free Trial Today
