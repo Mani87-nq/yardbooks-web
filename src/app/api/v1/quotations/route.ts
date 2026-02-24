@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 }
 
 const quotationItemSchema = z.object({
-  productId: z.string().min(1),
+  productId: z.string().nullable().optional(),
   productName: z.string().min(1).max(200),
   quantity: z.number().positive(),
   unitPrice: z.number().min(0),
@@ -60,8 +60,8 @@ const createQuotationSchema = z.object({
   discount: z.number().min(0).default(0),
   total: z.number().min(0),
   validUntil: z.coerce.date(),
-  notes: z.string().max(2000).optional(),
-  terms: z.string().max(2000).optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  terms: z.string().max(2000).nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         createdBy: user!.sub,
         items: {
           create: items.map((item) => ({
-            productId: item.productId,
+            productId: item.productId || null,
             productName: item.productName,
             quantity: item.quantity,
             unitPrice: item.unitPrice,

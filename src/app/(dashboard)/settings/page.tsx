@@ -9,6 +9,7 @@ import {
 } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { usePosStore } from '@/store/posStore';
+import api from '@/lib/api-client';
 import {
   BuildingOfficeIcon,
   UserCircleIcon,
@@ -695,14 +696,29 @@ export default function SettingsPage() {
     notes: activeCompany?.invoiceSettings?.notes || '',
   });
 
-  const handleSaveCompany = () => {
-    if (activeCompany) {
-      setActiveCompany({
-        ...activeCompany,
-        ...companyForm,
-        updatedAt: new Date(),
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const handleSaveCompany = async () => {
+    if (!activeCompany) return;
+    setIsSavingCompany(true);
+    try {
+      const updated = await api.put(`/api/v1/companies/${activeCompany.id}`, {
+        businessName: companyForm.businessName || undefined,
+        tradingName: companyForm.tradingName || undefined,
+        trnNumber: companyForm.trnNumber || undefined,
+        gctNumber: companyForm.gctNumber || undefined,
+        email: companyForm.email || undefined,
+        phone: companyForm.phone || undefined,
+        address: companyForm.address || undefined,
+        parish: companyForm.parish || undefined,
+        website: companyForm.website || undefined,
+        industry: companyForm.industry || undefined,
       });
+      setActiveCompany({ ...activeCompany, ...(updated as any), updatedAt: new Date() });
       alert('Company settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save company settings');
+    } finally {
+      setIsSavingCompany(false);
     }
   };
 

@@ -1080,8 +1080,8 @@ model QuotationItem {
   quotationId String
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id])
   productName String
   
   quantity    Decimal   @db.Decimal(15, 4)
