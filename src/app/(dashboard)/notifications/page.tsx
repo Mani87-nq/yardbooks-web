@@ -20,6 +20,7 @@ import {
   CogIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '@/store/appStore';
+import { apiFetch } from '@/lib/api-client';
 import type { NotificationType, NotificationPriority } from '@/types/notifications';
 import {
   NOTIFICATION_TYPE_LABELS,
@@ -87,17 +88,38 @@ export default function NotificationsPage() {
     return colors[priority];
   };
 
-  const handleMarkRead = (id: string) => {
+  const handleMarkRead = async (id: string) => {
+    // Optimistic UI update
     markNotificationRead?.(id);
+    // Persist to DB
+    try {
+      await apiFetch('/api/v1/notifications', { method: 'POST', body: { notificationIds: [id] } });
+    } catch {
+      // Revert would be complex — the notification was already marked in Zustand
+      // The next page load will sync from API anyway
+    }
   };
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = async () => {
+    // Optimistic UI update
     markAllNotificationsRead?.();
+    // Persist to DB
+    try {
+      await apiFetch('/api/v1/notifications', { method: 'POST', body: { markAllRead: true } });
+    } catch {
+      // Same — next hydration will sync
+    }
   };
 
-  const handleArchive = (id: string) => {
-    // For now, just delete it since we don't have archive action
+  const handleArchive = async (id: string) => {
+    // Optimistic UI update
     deleteNotification?.(id);
+    // Persist to DB
+    try {
+      await apiFetch('/api/v1/notifications', { method: 'DELETE', body: { notificationId: id } });
+    } catch {
+      // Next hydration will sync
+    }
   };
 
   return (

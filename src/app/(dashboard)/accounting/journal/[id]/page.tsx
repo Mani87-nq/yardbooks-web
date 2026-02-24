@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import {
@@ -12,6 +12,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '@/store/appStore';
+import { useJournalEntry, usePostJournalEntry, useVoidJournalEntry } from '@/hooks/api/useAccounting';
 import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
 
 interface PageProps {
@@ -20,12 +21,42 @@ interface PageProps {
 
 export default function JournalEntryDetailPage({ params }: PageProps) {
   const { id } = use(params);
-  const journalEntries = useAppStore((state) => state.journalEntries);
   const glAccounts = useAppStore((state) => state.glAccounts);
-  const updateJournalEntry = useAppStore((state) => state.updateJournalEntry);
   const activeCompany = useAppStore((state) => state.activeCompany);
 
-  const entry = journalEntries.find((e) => e.id === id);
+  // Fetch from API
+  const { data: apiEntry, isLoading } = useJournalEntry(id);
+  const postMutation = usePostJournalEntry();
+  const voidMutation = useVoidJournalEntry();
+
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Fallback to Zustand store for hydrated data while API loads
+  const journalEntries = useAppStore((state) => state.journalEntries);
+  const storeEntry = journalEntries.find((e) => e.id === id);
+
+  // Normalize API entry to match the UI shape
+  const entry = apiEntry
+    ? {
+        ...(apiEntry as any),
+        status: ((apiEntry as any).status || '').toLowerCase(),
+        totalDebits: Number((apiEntry as any).totalDebits),
+        totalCredits: Number((apiEntry as any).totalCredits),
+        lines: ((apiEntry as any).lines || []).map((l: any) => ({
+          ...l,
+          debit: Number(l.debitAmount ?? l.debit ?? 0),
+          credit: Number(l.creditAmount ?? l.credit ?? 0),
+        })),
+      }
+    : storeEntry;
+
+  if (isLoading && !storeEntry) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
+      </div>
+    );
+  }
 
   if (!entry) {
     return (
@@ -57,13 +88,22 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
     return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
-  const handlePost = () => {
-    updateJournalEntry?.(entry.id, { status: 'posted', postedAt: new Date() });
+  const handlePost = async () => {
+    setActionError(null);
+    try {
+      await postMutation.mutateAsync(entry.id);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Failed to post entry');
+    }
   };
 
-  const handleVoid = () => {
-    if (confirm('Are you sure you want to void this entry? This action cannot be undone.')) {
-      updateJournalEntry?.(entry.id, { status: 'void' });
+  const handleVoid = async () => {
+    if (!confirm('Are you sure you want to void this entry? This action cannot be undone.')) return;
+    setActionError(null);
+    try {
+      await voidMutation.mutateAsync(entry.id);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Failed to void entry');
     }
   };
 
@@ -75,7 +115,7 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
         { key: 'debit', label: 'Debit', align: 'right' },
         { key: 'credit', label: 'Credit', align: 'right' },
       ],
-      entry.lines.map(line => ({
+      entry.lines.map((line: any) => ({
         account: line.accountName || getAccountName(line.accountId),
         description: line.description || '-',
         debit: line.debit > 0 ? line.debit : null,
@@ -119,8 +159,18 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
     });
   };
 
+  const isPosting = postMutation.isPending;
+  const isVoiding = voidMutation.isPending;
+
   return (
     <div className="space-y-6">
+      {/* Error Banner */}
+      {actionError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
@@ -145,7 +195,7 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
           >
             <PrinterIcon className="w-5 h-5 text-gray-600" />
           </button>
-          {entry.status === 'draft' && (
+          {(entry.status === 'draft' || entry.status === 'DRAFT') && (
             <>
               <Link
                 href="/accounting/journal"
@@ -156,19 +206,21 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
               </Link>
               <button
                 onClick={handlePost}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                disabled={isPosting}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
               >
-                Post Entry
+                {isPosting ? 'Posting...' : 'Post Entry'}
               </button>
             </>
           )}
-          {entry.status === 'posted' && (
+          {(entry.status === 'posted' || entry.status === 'POSTED') && (
             <button
               onClick={handleVoid}
-              className="inline-flex items-center gap-2 px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+              disabled={isVoiding}
+              className="inline-flex items-center gap-2 px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
             >
               <XMarkIcon className="w-4 h-4" />
-              Void
+              {isVoiding ? 'Voiding...' : 'Void'}
             </button>
           )}
         </div>
@@ -217,7 +269,7 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {entry.lines.map((line, index) => (
+              {entry.lines.map((line: any, index: number) => (
                 <tr key={line.id || index} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <Link

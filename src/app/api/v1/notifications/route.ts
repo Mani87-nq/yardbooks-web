@@ -1,6 +1,7 @@
 /**
- * GET  /api/v1/notifications — List notifications for the current user
- * POST /api/v1/notifications — Mark notification(s) as read
+ * GET    /api/v1/notifications — List notifications for the current user
+ * POST   /api/v1/notifications — Mark notification(s) as read
+ * DELETE /api/v1/notifications — Delete (archive) a notification
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
@@ -131,5 +132,48 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to update notifications');
+  }
+}
+
+// ─── DELETE (Archive / delete notification) ──────────────────────────
+
+const deleteSchema = z.object({
+  notificationId: z.string().min(1),
+});
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { user, error: authError } = await requirePermission(request, 'settings:read');
+    if (authError) return authError;
+
+    const { companyId, error: companyError } = requireCompany(user!);
+    if (companyError) return companyError;
+
+    const body = await request.json();
+    const parsed = deleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return badRequest('notificationId is required');
+    }
+
+    // Verify the notification belongs to this company/user
+    const notification = await prisma.notification.findFirst({
+      where: {
+        id: parsed.data.notificationId,
+        companyId: companyId!,
+        OR: [{ userId: user!.sub }, { userId: null }],
+      },
+    });
+
+    if (!notification) {
+      return NextResponse.json({ message: 'Notification not found' }, { status: 404 });
+    }
+
+    await prisma.notification.delete({
+      where: { id: parsed.data.notificationId },
+    });
+
+    return NextResponse.json({ message: 'Notification deleted' });
+  } catch (error) {
+    return internalError(error instanceof Error ? error.message : 'Failed to delete notification');
   }
 }

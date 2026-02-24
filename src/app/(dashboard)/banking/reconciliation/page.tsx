@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
 import { formatJMD, formatDate } from '@/lib/utils';
 import {
   BuildingLibraryIcon,
@@ -143,16 +144,31 @@ export default function BankReconciliationPage() {
     });
   };
 
-  // Complete reconciliation
-  const handleCompleteReconciliation = () => {
-    // Mark checked statement transactions as reconciled
-    checkedStatementItems.forEach((txnId) => {
-      updateBankTransaction(txnId, {
-        isReconciled: true,
-        reconciledAt: new Date(),
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileError, setReconcileError] = useState<string | null>(null);
+
+  // Complete reconciliation — persist to DB via API
+  const handleCompleteReconciliation = async () => {
+    setReconciling(true);
+    setReconcileError(null);
+    try {
+      // Send each checked transaction to the API to mark as reconciled
+      const txnIds = Array.from(checkedStatementItems);
+      await Promise.all(
+        txnIds.map((txnId) =>
+          api.put(`/api/v1/banking/transactions/${txnId}`, { isReconciled: true })
+        )
+      );
+      // Also update Zustand store for instant UI feedback
+      txnIds.forEach((txnId) => {
+        updateBankTransaction(txnId, { isReconciled: true, reconciledAt: new Date() });
       });
-    });
-    setIsCompleted(true);
+      setIsCompleted(true);
+    } catch (err: unknown) {
+      setReconcileError(err instanceof Error ? err.message : 'Failed to save reconciliation');
+    } finally {
+      setReconciling(false);
+    }
   };
 
   // Reset reconciliation
@@ -520,6 +536,13 @@ export default function BankReconciliationPage() {
               </div>
             </div>
 
+            {/* Error */}
+            {reconcileError && (
+              <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {reconcileError}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
               {isCompleted ? (
@@ -539,10 +562,10 @@ export default function BankReconciliationPage() {
                   </Button>
                   <Button
                     onClick={handleCompleteReconciliation}
-                    disabled={!isReconciled || checkedStatementItems.size === 0}
+                    disabled={!isReconciled || checkedStatementItems.size === 0 || reconciling}
                     icon={<CheckCircleIcon className="w-4 h-4" />}
                   >
-                    Complete Reconciliation
+                    {reconciling ? 'Saving...' : 'Complete Reconciliation'}
                   </Button>
                 </>
               )}
