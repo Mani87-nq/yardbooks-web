@@ -50,16 +50,20 @@ export async function GET(request: NextRequest) {
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
+    // Determine where to redirect errors: /signup or /login based on intent cookie
+    const intent = request.cookies.get('google_oauth_intent')?.value;
+    const errorPage = intent === 'signup' ? '/signup' : '/login';
+
     // User denied access or error from Google
     if (error) {
       return NextResponse.redirect(
-        `${appUrl}/login?error=google_oauth_denied`
+        `${appUrl}${errorPage}?error=google_oauth_denied`
       );
     }
 
     if (!code || !state) {
       return NextResponse.redirect(
-        `${appUrl}/login?error=google_oauth_invalid`
+        `${appUrl}${errorPage}?error=google_oauth_invalid`
       );
     }
 
@@ -67,7 +71,7 @@ export async function GET(request: NextRequest) {
     const storedState = request.cookies.get('google_oauth_state')?.value;
     if (!storedState || storedState !== state) {
       return NextResponse.redirect(
-        `${appUrl}/login?error=google_oauth_csrf`
+        `${appUrl}${errorPage}?error=google_oauth_csrf`
       );
     }
 
@@ -91,7 +95,7 @@ export async function GET(request: NextRequest) {
     if (!tokenRes.ok) {
       console.error('[Google OAuth] Token exchange failed:', await tokenRes.text());
       return NextResponse.redirect(
-        `${appUrl}/login?error=google_oauth_token_failed`
+        `${appUrl}${errorPage}?error=google_oauth_token_failed`
       );
     }
 
@@ -105,7 +109,7 @@ export async function GET(request: NextRequest) {
     if (!userInfoRes.ok) {
       console.error('[Google OAuth] User info fetch failed:', await userInfoRes.text());
       return NextResponse.redirect(
-        `${appUrl}/login?error=google_oauth_profile_failed`
+        `${appUrl}${errorPage}?error=google_oauth_profile_failed`
       );
     }
 
@@ -113,7 +117,7 @@ export async function GET(request: NextRequest) {
 
     if (!googleUser.email) {
       return NextResponse.redirect(
-        `${appUrl}/login?error=google_oauth_no_email`
+        `${appUrl}${errorPage}?error=google_oauth_no_email`
       );
     }
 
@@ -169,9 +173,9 @@ export async function GET(request: NextRequest) {
     } else {
       // Reject Google accounts with unverified email to prevent account takeover
       if (!googleUser.email_verified) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('error', 'google_oauth_error');
-        return NextResponse.redirect(loginUrl);
+        const redirectUrl = new URL(errorPage, request.url);
+        redirectUrl.searchParams.set('error', 'google_oauth_error');
+        return NextResponse.redirect(redirectUrl);
       }
 
       // Check if email matches an existing user (link accounts)
@@ -330,7 +334,7 @@ export async function GET(request: NextRequest) {
     });
 
     // ------- Redirect: new users → onboarding, returning → dashboard -------
-    const redirectPath = isNewUser ? '/dashboard/onboarding' : '/dashboard';
+    const redirectPath = isNewUser ? '/onboarding' : '/dashboard';
     const response = NextResponse.redirect(`${appUrl}${redirectPath}`);
 
     // Set refresh token as httpOnly cookie
@@ -347,14 +351,18 @@ export async function GET(request: NextRequest) {
       maxAge: 15 * 60, // 15 minutes — matches JWT expiry
     });
 
-    // Clear the CSRF state cookie
+    // Clear OAuth cookies
     response.cookies.delete('google_oauth_state');
+    response.cookies.delete('google_oauth_intent');
 
     return response;
   } catch (error) {
     console.error('[Google OAuth] Callback error:', error);
+    // Read intent from cookie in outer catch (errorPage may not be defined here)
+    const intent = request.cookies.get('google_oauth_intent')?.value;
+    const fallbackPage = intent === 'signup' ? '/signup' : '/login';
     return NextResponse.redirect(
-      `${appUrl}/login?error=google_oauth_error`
+      `${appUrl}${fallbackPage}?error=google_oauth_error`
     );
   }
 }

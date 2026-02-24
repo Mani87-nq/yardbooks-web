@@ -21,6 +21,7 @@ const PUBLIC_ROUTES = [
   '/verify-email',
   '/privacy',
   '/terms',
+  '/legal/',              // Redirects to /terms and /privacy
   '/contact',
   '/billing/success',
   '/billing/cancelled',
@@ -220,6 +221,7 @@ function addSecurityHeaders(response: NextResponse, nonce: string) {
     `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob: https:`,
+    `media-src 'self'`,
     `font-src 'self' https://fonts.gstatic.com`,
     `connect-src 'self' https://*.ingest.sentry.io https://us.i.posthog.com${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
     `frame-ancestors 'none'`,

@@ -17,9 +17,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const { origin } = new URL(request.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+  const url = new URL(request.url);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
   const redirectUri = `${appUrl}/api/auth/oauth/google/callback`;
+
+  // Capture intent (signup vs login) to redirect errors back to the right page
+  const intent = url.searchParams.get('intent') === 'signup' ? 'signup' : 'login';
 
   // Generate CSRF state token
   const state = crypto.randomBytes(32).toString('hex');
@@ -34,9 +37,16 @@ export async function GET(request: NextRequest) {
   googleAuthUrl.searchParams.set('prompt', 'consent');
   googleAuthUrl.searchParams.set('state', state);
 
-  // Store state in httpOnly cookie for CSRF verification
+  // Store state and intent in httpOnly cookies for CSRF verification and redirect target
   const response = NextResponse.redirect(googleAuthUrl.toString());
   response.cookies.set('google_oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 600, // 10 minutes
+  });
+  response.cookies.set('google_oauth_intent', intent, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

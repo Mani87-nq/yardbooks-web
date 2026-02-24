@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
@@ -95,6 +95,23 @@ export default function SignupContent() {
     name: planData.name,
     price: billingInterval === 'annual' ? planData.priceAnnual : planData.priceMonthly,
   };
+
+  // Show Google OAuth error from URL params (user initiated from signup page)
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    const oauthMessages: Record<string, string> = {
+      google_oauth_denied: 'Google sign-up was cancelled. Please try again.',
+      google_oauth_invalid: 'Invalid Google sign-up response. Please try again.',
+      google_oauth_csrf: 'Security verification failed. Please try again.',
+      google_oauth_token_failed: 'Failed to complete Google sign-up. Please try again.',
+      google_oauth_profile_failed: 'Failed to fetch Google profile. Please try again.',
+      google_oauth_no_email: 'No email address found in your Google account.',
+      google_oauth_error: 'An error occurred during Google sign-up. Please try again.',
+    };
+    if (oauthError && oauthMessages[oauthError]) {
+      setError(oauthMessages[oauthError]);
+    }
+  }, [searchParams]);
 
   const [formData, setFormData] = useState({
     // Step 1: Personal Info
@@ -207,7 +224,7 @@ export default function SignupContent() {
       }
 
       // 14-day free trial — send to onboarding to complete company setup
-      router.push('/dashboard/onboarding');
+      router.push('/onboarding');
     } catch (err) {
       if (err instanceof ApiRequestError) {
         if (err.status === 409) {
@@ -621,7 +638,7 @@ export default function SignupContent() {
 
               <button
                 type="button"
-                onClick={() => window.location.href = '/api/auth/oauth/google'}
+                onClick={() => window.location.href = '/api/auth/oauth/google?intent=signup'}
                 disabled={isLoading}
                 className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
               >
@@ -641,9 +658,9 @@ export default function SignupContent() {
           {step === 1 && (
             <p className="mt-4 text-center text-xs text-gray-400">
               By signing up, you agree to our{' '}
-              <Link href="/legal/terms" className="text-emerald-600">Terms of Service</Link>
+              <Link href="/terms" className="text-emerald-600" target="_blank">Terms of Service</Link>
               {' '}and{' '}
-              <Link href="/legal/privacy" className="text-emerald-600">Privacy Policy</Link>
+              <Link href="/privacy" className="text-emerald-600" target="_blank">Privacy Policy</Link>
             </p>
           )}
         </div>

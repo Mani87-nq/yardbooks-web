@@ -21,8 +21,8 @@ export function DashboardLayoutClient({
   // If the user has not completed onboarding and is NOT already on the
   // onboarding page, redirect them there.
   useEffect(() => {
-    if (isHydrated && !isOnboarded && !pathname.startsWith('/dashboard/onboarding')) {
-      router.replace('/dashboard/onboarding');
+    if (isHydrated && !isOnboarded && !pathname.startsWith('/onboarding')) {
+      router.replace('/onboarding');
     }
   }, [isHydrated, isOnboarded, pathname, router]);
 
