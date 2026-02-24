@@ -54,6 +54,16 @@ const updateCompanySchema = z.object({
   address: z.string().max(500).nullable().optional(),
   parish: z.string().max(50).nullable().optional(),
   fiscalYearEnd: z.number().int().min(1).max(12).optional(),
+  // Invoice settings
+  invoicePrefix: z.string().max(20).optional(),
+  invoiceNextNum: z.number().int().min(1).optional(),
+  invoiceTerms: z.string().max(5000).nullable().optional(),
+  invoiceNotes: z.string().max(5000).nullable().optional(),
+  invoiceShowLogo: z.boolean().optional(),
+  invoiceTemplate: z.string().max(50).optional(),
+  primaryColor: z.string().max(20).optional(),
+  accentColor: z.string().max(20).optional(),
+  invoiceFooter: z.string().max(2000).nullable().optional(),
 });
 
 export async function PUT(request: NextRequest, context: RouteContext) {

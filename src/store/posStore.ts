@@ -269,37 +269,45 @@ export const usePosStore = create<PosState>()(
           };
         });
 
-        let subtotal = 0;
-        let taxableAmount = 0;
-        let exemptAmount = 0;
-        let gctAmount = 0;
+        // Use Decimal.js for precise financial calculations (matches calculateCartTotals)
+        let dSubtotal = new Decimal(0);
+        let dTaxable = new Decimal(0);
+        let dExempt = new Decimal(0);
+        let dGct = new Decimal(0);
         let itemCount = 0;
 
         items.forEach((item) => {
-          subtotal += item.lineTotalBeforeTax;
+          dSubtotal = dSubtotal.plus(item.lineTotalBeforeTax);
           if (item.isGctExempt) {
-            exemptAmount += item.lineTotalBeforeTax;
+            dExempt = dExempt.plus(item.lineTotalBeforeTax);
           } else {
-            taxableAmount += item.lineTotalBeforeTax;
+            dTaxable = dTaxable.plus(item.lineTotalBeforeTax);
           }
-          gctAmount += item.gctAmount;
+          dGct = dGct.plus(item.gctAmount);
           itemCount += item.quantity;
         });
 
-        let orderDiscountAmount = 0;
+        let dOrderDiscount = new Decimal(0);
         if (cart.orderDiscountType === 'percent' && cart.orderDiscountValue) {
-          orderDiscountAmount = subtotal * (cart.orderDiscountValue / 100);
+          dOrderDiscount = dSubtotal.times(cart.orderDiscountValue).dividedBy(100);
         } else if (cart.orderDiscountType === 'amount' && cart.orderDiscountValue) {
-          orderDiscountAmount = cart.orderDiscountValue;
+          dOrderDiscount = new Decimal(cart.orderDiscountValue);
         }
 
-        const discountedSubtotal = subtotal - orderDiscountAmount;
-        const discountRatio = discountedSubtotal / subtotal;
-        taxableAmount = taxableAmount * discountRatio;
-        exemptAmount = exemptAmount * discountRatio;
-        gctAmount = taxableAmount * gctRate;
+        const dDiscountedSubtotal = dSubtotal.minus(dOrderDiscount);
+        const dDiscountRatio = dSubtotal.greaterThan(0) ? dDiscountedSubtotal.dividedBy(dSubtotal) : new Decimal(1);
+        dTaxable = dTaxable.times(dDiscountRatio);
+        dExempt = dExempt.times(dDiscountRatio);
+        dGct = dTaxable.times(gctRate);
 
-        const total = discountedSubtotal + gctAmount;
+        const dTotal = dDiscountedSubtotal.plus(dGct);
+
+        const subtotal = d2(dSubtotal);
+        const taxableAmount = d2(dTaxable);
+        const exemptAmount = d2(dExempt);
+        const gctAmount = d2(dGct);
+        const orderDiscountAmount = d2(dOrderDiscount);
+        const total = d2(dTotal);
 
         const now = new Date();
         const order: PosOrder = {
