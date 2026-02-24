@@ -1,5 +1,6 @@
-Contact: mailto:admin@dolphytech.com
-Contact: mailto:partnerships@dolphytech.com
+Contact: mailto:security@yaadbooks.com
+Contact: mailto:support@yaadbooks.com
+Contact: tel:+18766139119
 Expires: 2026-12-31T23:59:59.000Z
 Preferred-Languages: en
 Canonical: https://yaadbooks.com/.well-known/security.txt
