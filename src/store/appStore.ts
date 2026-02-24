@@ -179,6 +179,9 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
 
+  // Clear all company-scoped cached data (used when switching companies)
+  clearCompanyData: () => void;
+
   // Reset
   reset: () => void;
 }
@@ -521,6 +524,27 @@ export const useAppStore = create<AppState>()(
     clearError: () => set({ error: null }),
     setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
     toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+
+    // Clear all company-scoped cached data (used when switching companies)
+    clearCompanyData: () =>
+      set({
+        customers: [],
+        products: [],
+        invoices: [],
+        quotations: [],
+        expenses: [],
+        employees: [],
+        payrollRuns: [],
+        glAccounts: [],
+        journalEntries: [],
+        fixedAssets: [],
+        bankAccounts: [],
+        bankTransactions: [],
+        customerPOs: [],
+        parkingSlips: [],
+        notifications: [],
+        hydrated: false,
+      }),
 
     // Reset
     reset: () => set(initialState),
