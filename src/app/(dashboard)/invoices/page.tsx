@@ -40,7 +40,7 @@ export default function InvoicesPage() {
     const matchesSearch = !searchQuery ||
       invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.customer?.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || invoice.status.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -48,8 +48,8 @@ export default function InvoicesPage() {
 
   const stats = {
     total: invoices.length,
-    outstanding: invoices.filter(i => !['paid', 'cancelled'].includes(i.status)).reduce((sum, i) => sum + i.balance, 0),
-    overdue: invoices.filter(i => i.status === 'overdue').length,
+    outstanding: invoices.filter(i => !['paid', 'cancelled'].includes(i.status.toLowerCase())).reduce((sum, i) => sum + i.balance, 0),
+    overdue: invoices.filter(i => i.status.toLowerCase() === 'overdue').length,
     paidThisMonth: invoices.filter(i => {
       const paidDate = i.paidDate ? new Date(i.paidDate) : null;
       const now = new Date();

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // Build the callback URL
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
-    const returnUrl = `${appUrl}/api/v1/payments/wipay/callback`;
+    const responseUrl = `${appUrl}/api/v1/payments/wipay/callback`;
 
     // Create WiPay checkout session
     const redirectUrl = await createWiPayCheckout({
@@ -74,9 +74,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       customerName: invoice.customer?.name ?? 'Customer',
       customerEmail: invoice.customer?.email ?? '',
       customerPhone: parsed.data.customerPhone,
-      returnUrl,
+      responseUrl,
       currency: 'JMD',
-      feeStructure: 2, // Merchant absorbs fees
+      feeStructure: 'merchant_absorb',
     });
 
     return NextResponse.json({

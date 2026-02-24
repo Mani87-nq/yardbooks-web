@@ -70,7 +70,7 @@ export function StatusBadge({ status }: { status: string }) {
     suspended: { variant: 'warning', label: 'Suspended' },
   };
 
-  const config = statusConfig[status] || { variant: 'default', label: status };
+  const config = statusConfig[status.toLowerCase()] || { variant: 'default', label: status };
 
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }

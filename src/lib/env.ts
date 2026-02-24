@@ -35,7 +35,7 @@ const serverEnvSchema = z.object({
   // WiPay (optional — JMD invoice payments disabled without it)
   WIPAY_ACCOUNT_NUMBER: z.string().optional(),
   WIPAY_API_KEY: z.string().optional(),
-  WIPAY_DEVELOPER_ID: z.string().optional(),
+  WIPAY_ORIGIN: z.string().url().optional(),
   WIPAY_ENVIRONMENT: z.enum(['sandbox', 'live']).default('sandbox'),
 
   // Sentry (optional — monitoring disabled without it)

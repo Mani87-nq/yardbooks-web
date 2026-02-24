@@ -29,23 +29,30 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Accept both lowercase (from frontend selects) and uppercase enum values.
+ */
+const flexEnum = (values: readonly [string, ...string[]]) =>
+  z.string().transform((v) => v.toUpperCase()).pipe(z.enum(values as any) as any);
+
 const createEmployeeSchema = z.object({
-  employeeNumber: z.string().min(1).max(20),
+  employeeNumber: z.string().min(1).max(20).optional(), // Auto-generated if omitted
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().max(20).optional(),
   position: z.string().min(1).max(100),
   department: z.string().max(100).optional(),
-  employmentType: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT']).default('FULL_TIME'),
-  paymentFrequency: z.enum(['WEEKLY', 'BIWEEKLY', 'MONTHLY']).default('MONTHLY'),
-  baseSalary: z.number().positive(),
-  trnNumber: z.string().min(1).max(20),
-  nisNumber: z.string().min(1).max(20),
-  dateOfBirth: z.coerce.date(),
+  employmentType: flexEnum(['FULL_TIME', 'PART_TIME', 'CONTRACT'] as const).default('FULL_TIME'),
+  paymentFrequency: flexEnum(['WEEKLY', 'BIWEEKLY', 'MONTHLY'] as const).default('MONTHLY'),
+  baseSalary: z.number().min(0),
+  trnNumber: z.string().max(20).optional().or(z.literal('')),
+  nisNumber: z.string().max(20).optional().or(z.literal('')),
+  dateOfBirth: z.coerce.date().optional(),
   hireDate: z.coerce.date(),
   bankName: z.string().max(100).optional(),
   bankAccountNumber: z.string().max(50).optional(),
+  isActive: z.boolean().default(true),
 });
 
 export async function POST(request: NextRequest) {
@@ -67,10 +74,22 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
+    // Auto-generate employee number if not provided
+    let employeeNumber = parsed.data.employeeNumber;
+    if (!employeeNumber) {
+      const count = await prisma.employee.count({ where: { companyId: companyId! } });
+      employeeNumber = `EMP-${String(count + 1).padStart(4, '0')}`;
+    }
+
+    const { dateOfBirth, ...restData } = parsed.data;
     const employee = await prisma.employee.create({
       data: {
-        ...parsed.data,
-        email: parsed.data.email || null,
+        ...restData,
+        employeeNumber,
+        email: restData.email || null,
+        trnNumber: restData.trnNumber || '',
+        nisNumber: restData.nisNumber || '',
+        ...(dateOfBirth ? { dateOfBirth } : {}),
         companyId: companyId!,
         createdBy: user!.sub,
       },
