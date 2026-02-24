@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
+import api, { setAccessToken } from '@/lib/api-client';
 import {
   Bars3Icon,
   BellIcon,
@@ -18,10 +19,36 @@ import {
 
 export function Header() {
   const router = useRouter();
-  const { setSidebarOpen, user, activeCompany, companies, switchCompany } = useAppStore();
+  const { setSidebarOpen, user, activeCompany, companies, switchCompany, clearCompanyData } = useAppStore();
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [switchingCompany, setSwitchingCompany] = useState(false);
+
+  const handleSwitchCompany = async (companyId: string) => {
+    if (companyId === activeCompany?.id || switchingCompany) return;
+    setSwitchingCompany(true);
+    setShowCompanyDropdown(false);
+    try {
+      const res = await api.patch<{ accessToken: string; companyId: string }>(
+        '/api/v1/user/active-company',
+        { companyId }
+      );
+
+      // Update the in-memory access token so subsequent requests use the new one
+      setAccessToken(res.accessToken);
+
+      // Update local store state immediately (for optimistic UI)
+      switchCompany(companyId);
+      clearCompanyData();
+
+      // Full page reload to re-hydrate all company-scoped data with new JWT
+      window.location.href = '/dashboard';
+    } catch (error) {
+      console.error('Failed to switch company:', error);
+      setSwitchingCompany(false);
+    }
+  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -85,11 +112,9 @@ export function Header() {
                   {companies.map((company) => (
                     <button
                       key={company.id}
-                      onClick={() => {
-                        switchCompany(company.id);
-                        setShowCompanyDropdown(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors"
+                      disabled={switchingCompany}
+                      onClick={() => handleSwitchCompany(company.id)}
+                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                       <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                         <span className="text-emerald-700 font-medium text-sm">

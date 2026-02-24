@@ -381,6 +381,40 @@ export function welcomeEmail(params: WelcomeEmailParams) {
   return { subject, html: layout(subject, body), text };
 }
 
+// ─── Template: Email Verification ────────────────────────────────
+
+export interface EmailVerificationParams {
+  userName: string;
+  verifyUrl: string;
+}
+
+export function emailVerificationEmail(params: EmailVerificationParams) {
+  const { userName, verifyUrl } = params;
+  const subject = 'Verify Your YaadBooks Email';
+  const body = `
+    <p>Hello ${escapeHtml(userName)},</p>
+    <p>Thanks for creating your YaadBooks account! Please verify your email address by clicking the button below:</p>
+    ${button('Verify Email', verifyUrl)}
+    <p>This link will expire in <strong>24 hours</strong>.</p>
+    <p style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;color:${MUTED_COLOR};font-size:13px;">
+      If the button doesn&rsquo;t work, copy and paste this URL into your browser:<br />
+      <a href="${escapeHtml(verifyUrl)}" style="color:${BRAND_COLOR};word-break:break-all;">${escapeHtml(verifyUrl)}</a>
+    </p>
+  `;
+  const text = [
+    `Hello ${userName},`,
+    '',
+    'Thanks for creating your YaadBooks account! Please verify your email address:',
+    verifyUrl,
+    '',
+    'This link will expire in 24 hours.',
+    '',
+    'Regards,',
+    'The YaadBooks Team',
+  ].join('\n');
+  return { subject, html: layout(subject, body), text };
+}
+
 // ─── Template: Password Reset ────────────────────────────────────
 
 export interface PasswordResetEmailParams {

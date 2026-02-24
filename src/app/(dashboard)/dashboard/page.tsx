@@ -144,8 +144,8 @@ export default function DashboardPage() {
         <StatCard
           title="Revenue (This Month)"
           value={formatJMD(stats.totalRevenue)}
-          change="+12% vs last month"
-          changeType="positive"
+          change={`${stats.invoiceCount ?? 0} invoices`}
+          changeType="neutral"
           icon={BanknotesIcon}
           color="bg-emerald-600"
         />
@@ -160,8 +160,8 @@ export default function DashboardPage() {
         <StatCard
           title="Expenses (This Month)"
           value={formatJMD(stats.totalExpenses)}
-          change="-5% vs last month"
-          changeType="positive"
+          change={`${stats.expenseCount ?? 0} expenses`}
+          changeType="neutral"
           icon={BanknotesIcon}
           color="bg-red-500"
         />

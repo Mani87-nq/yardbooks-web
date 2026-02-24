@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
+import { api } from '@/lib/api-client';
 import { formatJMD, formatDate } from '@/lib/utils';
 import {
   ArrowDownTrayIcon,
@@ -106,354 +108,149 @@ const ALL_ENTITY_TYPES: EntityType[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Demo data generator
+// API response shape (from /api/v1/audit-logs)
 // ---------------------------------------------------------------------------
 
-function generateDemoAuditEntries(): AuditEntry[] {
-  const now = new Date();
+interface AuditLogApiEntry {
+  id: string;
+  companyId: string | null;
+  userId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
+  changedFields: string[];
+  ipAddress: string | null;
+  userAgent: string | null;
+  sessionId: string | null;
+  reason: string | null;
+  notes: string | null;
+  createdAt: string;
+}
 
-  function daysAgo(d: number, hours = 0, minutes = 0): Date {
-    const date = new Date(now);
-    date.setDate(date.getDate() - d);
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-  }
+interface AuditLogApiResponse {
+  data: AuditLogApiEntry[];
+  pagination: {
+    nextCursor: string | null;
+    hasMore: boolean;
+    limit: number;
+  };
+}
 
-  const entries: AuditEntry[] = [
-    {
-      id: 'audit-001',
-      timestamp: daysAgo(0, 9, 15),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Invoice',
-      entityId: 'inv-009',
-      entityLabel: 'INV-009',
-      description: 'Created Invoice INV-009 for Montego Bay Resort (J$125,000.00)',
-      changes: [],
-    },
-    {
-      id: 'audit-002',
-      timestamp: daysAgo(0, 10, 30),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'SEND',
-      entityType: 'Invoice',
-      entityId: 'inv-009',
-      entityLabel: 'INV-009',
-      description: 'Sent Invoice INV-009 to purchasing@mbresort.com',
-      changes: [
-        { field: 'Status', oldValue: 'Draft', newValue: 'Sent' },
-      ],
-    },
-    {
-      id: 'audit-003',
-      timestamp: daysAgo(1, 8, 45),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'UPDATE',
-      entityType: 'Customer',
-      entityId: 'cust-002',
-      entityLabel: 'Caribbean Supplies Ltd',
-      description: "Updated Customer 'Caribbean Supplies Ltd' - email changed",
-      changes: [
-        { field: 'Email', oldValue: 'info@caribbeansupplies.com', newValue: 'orders@caribbeansupplies.com' },
-        { field: 'Phone', oldValue: '876-555-1002', newValue: '876-555-2002' },
-      ],
-    },
-    {
-      id: 'audit-004',
-      timestamp: daysAgo(1, 14, 20),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'PAYMENT',
-      entityType: 'Invoice',
-      entityId: 'inv-003',
-      entityLabel: 'INV-003',
-      description: 'Recorded payment of J$45,000.00 for Invoice INV-003 from Sandra Williams',
-      changes: [
-        { field: 'Amount Paid', oldValue: 'J$0.00', newValue: 'J$45,000.00' },
-        { field: 'Status', oldValue: 'Sent', newValue: 'Paid' },
-      ],
-    },
-    {
-      id: 'audit-005',
-      timestamp: daysAgo(2, 11, 10),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'VOID',
-      entityType: 'Expense',
-      entityId: 'exp-005',
-      entityLabel: 'EXP-005',
-      description: 'Voided Expense EXP-005 - Duplicate entry for office supplies',
-      changes: [
-        { field: 'Status', oldValue: 'Active', newValue: 'Voided' },
-      ],
-    },
-    {
-      id: 'audit-006',
-      timestamp: daysAgo(2, 15, 45),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'APPROVE',
-      entityType: 'Journal Entry',
-      entityId: 'je-003',
-      entityLabel: 'JE-003',
-      description: 'Approved Journal Entry JE-003 - Monthly depreciation for equipment',
-      changes: [
-        { field: 'Status', oldValue: 'Draft', newValue: 'Posted' },
-      ],
-    },
-    {
-      id: 'audit-007',
-      timestamp: daysAgo(3, 9, 0),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Customer',
-      entityId: 'cust-009',
-      entityLabel: 'Negril Beach Supplies',
-      description: "Created new Customer 'Negril Beach Supplies' with TRN 666-777-888",
-      changes: [],
-    },
-    {
-      id: 'audit-008',
-      timestamp: daysAgo(3, 13, 30),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'DELETE',
-      entityType: 'Product',
-      entityId: 'prod-015',
-      entityLabel: 'Expired Stock',
-      description: "Deleted Product 'Expired Stock' (SKU: EXP-STOCK-01) - Discontinued item",
-      changes: [],
-    },
-    {
-      id: 'audit-009',
-      timestamp: daysAgo(4, 10, 15),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Expense',
-      entityId: 'exp-012',
-      entityLabel: 'EXP-012',
-      description: 'Created Expense EXP-012 - Office rent payment J$85,000.00',
-      changes: [],
-    },
-    {
-      id: 'audit-010',
-      timestamp: daysAgo(5, 8, 30),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'UPDATE',
-      entityType: 'Product',
-      entityId: 'prod-001',
-      entityLabel: 'Rice 5kg',
-      description: "Updated Product 'Rice 5kg' - price adjustment",
-      changes: [
-        { field: 'Unit Price', oldValue: 'J$1,200.00', newValue: 'J$1,350.00' },
-        { field: 'Cost Price', oldValue: 'J$900.00', newValue: 'J$1,050.00' },
-      ],
-    },
-    {
-      id: 'audit-011',
-      timestamp: daysAgo(6, 16, 0),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'EXPORT',
-      entityType: 'Invoice',
-      entityId: 'inv-batch',
-      entityLabel: 'Invoice Report',
-      description: 'Exported Invoice Aging Report for Jan 2025 - Feb 2025',
-      changes: [],
-    },
-    {
-      id: 'audit-012',
-      timestamp: daysAgo(7, 11, 45),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Journal Entry',
-      entityId: 'je-008',
-      entityLabel: 'JE-008',
-      description: 'Created Journal Entry JE-008 - Accrued utility expenses J$22,500.00',
-      changes: [],
-    },
-    {
-      id: 'audit-013',
-      timestamp: daysAgo(8, 9, 20),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Quotation',
-      entityId: 'quot-004',
-      entityLabel: 'QT-004',
-      description: 'Created Quotation QT-004 for Ocho Rios Trading Co (J$210,000.00)',
-      changes: [],
-    },
-    {
-      id: 'audit-014',
-      timestamp: daysAgo(10, 14, 0),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'UPDATE',
-      entityType: 'Invoice',
-      entityId: 'inv-005',
-      entityLabel: 'INV-005',
-      description: 'Updated Invoice INV-005 - adjusted line items and discount',
-      changes: [
-        { field: 'Discount', oldValue: '0%', newValue: '5%' },
-        { field: 'Total', oldValue: 'J$156,000.00', newValue: 'J$148,200.00' },
-      ],
-    },
-    {
-      id: 'audit-015',
-      timestamp: daysAgo(12, 10, 30),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'APPROVE',
-      entityType: 'Payroll Run',
-      entityId: 'pr-002',
-      entityLabel: 'PR-002',
-      description: 'Approved Payroll Run PR-002 for January 2025 - 5 employees, J$485,000.00',
-      changes: [
-        { field: 'Status', oldValue: 'Pending', newValue: 'Approved' },
-      ],
-    },
-    {
-      id: 'audit-016',
-      timestamp: daysAgo(14, 8, 0),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Employee',
-      entityId: 'emp-006',
-      entityLabel: 'Kevin Thompson',
-      description: "Added new Employee 'Kevin Thompson' - Warehouse Associate",
-      changes: [],
-    },
-    {
-      id: 'audit-017',
-      timestamp: daysAgo(16, 15, 10),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'UPDATE',
-      entityType: 'Bank Account',
-      entityId: 'bank-001',
-      entityLabel: 'NCB Business Chequing',
-      description: "Updated Bank Account 'NCB Business Chequing' - reconciled balance",
-      changes: [
-        { field: 'Reconciled Balance', oldValue: 'J$1,245,000.00', newValue: 'J$1,312,500.00' },
-        { field: 'Last Reconciled', oldValue: '15 Dec 2024', newValue: '15 Jan 2025' },
-      ],
-    },
-    {
-      id: 'audit-018',
-      timestamp: daysAgo(20, 12, 0),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'DELETE',
-      entityType: 'Quotation',
-      entityId: 'quot-002',
-      entityLabel: 'QT-002',
-      description: 'Deleted expired Quotation QT-002 for Marcus Brown',
-      changes: [],
-    },
-    {
-      id: 'audit-019',
-      timestamp: daysAgo(22, 9, 45),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Fixed Asset',
-      entityId: 'fa-003',
-      entityLabel: 'FA-003',
-      description: 'Registered Fixed Asset FA-003 - Commercial Refrigerator (J$350,000.00)',
-      changes: [],
-    },
-    {
-      id: 'audit-020',
-      timestamp: daysAgo(25, 10, 0),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'VOID',
-      entityType: 'Invoice',
-      entityId: 'inv-002',
-      entityLabel: 'INV-002',
-      description: 'Voided Invoice INV-002 for Devon Campbell - customer cancelled order',
-      changes: [
-        { field: 'Status', oldValue: 'Sent', newValue: 'Voided' },
-        { field: 'Balance', oldValue: 'J$38,500.00', newValue: 'J$0.00' },
-      ],
-    },
-    {
-      id: 'audit-021',
-      timestamp: daysAgo(27, 14, 30),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'SEND',
-      entityType: 'Quotation',
-      entityId: 'quot-003',
-      entityLabel: 'QT-003',
-      description: 'Sent Quotation QT-003 to Kingston Hardware Depot via email',
-      changes: [
-        { field: 'Status', oldValue: 'Draft', newValue: 'Sent' },
-      ],
-    },
-    {
-      id: 'audit-022',
-      timestamp: daysAgo(28, 11, 15),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'UPDATE',
-      entityType: 'Employee',
-      entityId: 'emp-002',
-      entityLabel: 'Simone Clarke',
-      description: "Updated Employee 'Simone Clarke' - salary adjustment",
-      changes: [
-        { field: 'Basic Salary', oldValue: 'J$95,000.00', newValue: 'J$105,000.00' },
-        { field: 'Effective Date', oldValue: '-', newValue: '01 Feb 2025' },
-      ],
-    },
-    {
-      id: 'audit-023',
-      timestamp: daysAgo(29, 16, 45),
-      userId: 'user-001',
-      userName: 'Damany Dolphy',
-      userEmail: 'demo@yaadbooks.com',
-      action: 'CREATE',
-      entityType: 'Expense',
-      entityId: 'exp-014',
-      entityLabel: 'EXP-014',
-      description: 'Created Expense EXP-014 - Internet service J$12,500.00 (GraceKennedy Telecom)',
-      changes: [],
-    },
-  ];
+// ---------------------------------------------------------------------------
+// Map API entity type strings to display labels
+// ---------------------------------------------------------------------------
 
-  // Sort by timestamp descending (most recent first)
-  return entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+const ENTITY_TYPE_MAP: Record<string, EntityType> = {
+  invoice: 'Invoice',
+  customer: 'Customer',
+  product: 'Product',
+  expense: 'Expense',
+  journal_entry: 'Journal Entry',
+  journalentry: 'Journal Entry',
+  quotation: 'Quotation',
+  bank_account: 'Bank Account',
+  bankaccount: 'Bank Account',
+  employee: 'Employee',
+  payroll_run: 'Payroll Run',
+  payrollrun: 'Payroll Run',
+  fixed_asset: 'Fixed Asset',
+  fixedasset: 'Fixed Asset',
+};
+
+function mapEntityType(raw: string): EntityType {
+  return ENTITY_TYPE_MAP[raw.toLowerCase()] ?? (raw as EntityType);
+}
+
+// ---------------------------------------------------------------------------
+// Map API action strings to AuditAction
+// ---------------------------------------------------------------------------
+
+const VALID_ACTIONS: Set<string> = new Set(ALL_ACTIONS);
+
+function mapAction(raw: string): AuditAction {
+  const upper = raw.toUpperCase();
+  if (VALID_ACTIONS.has(upper)) return upper as AuditAction;
+  // Map additional Prisma enum values to closest display action
+  const fallback: Record<string, AuditAction> = {
+    RESTORE: 'CREATE',
+    LOGIN: 'EXPORT',
+    LOGOUT: 'EXPORT',
+    IMPORT: 'CREATE',
+    REJECT: 'DELETE',
+    POST: 'APPROVE',
+    REVERSE: 'VOID',
+    SECURITY_ALERT: 'EXPORT',
+  };
+  return fallback[upper] ?? 'UPDATE';
+}
+
+// ---------------------------------------------------------------------------
+// Build changes array from oldValues / newValues
+// ---------------------------------------------------------------------------
+
+function buildChanges(
+  oldValues: Record<string, unknown> | null,
+  newValues: Record<string, unknown> | null,
+  changedFields: string[],
+): AuditChange[] {
+  if (!changedFields.length && !oldValues && !newValues) return [];
+
+  const fields = changedFields.length
+    ? changedFields
+    : Array.from(new Set([
+        ...Object.keys(oldValues ?? {}),
+        ...Object.keys(newValues ?? {}),
+      ]));
+
+  return fields.map((field) => ({
+    field,
+    oldValue: oldValues?.[field] != null ? String(oldValues[field]) : '-',
+    newValue: newValues?.[field] != null ? String(newValues[field]) : '-',
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Build a human-readable description from an audit log entry
+// ---------------------------------------------------------------------------
+
+function buildDescription(entry: AuditLogApiEntry): string {
+  const action = entry.action;
+  const entity = mapEntityType(entry.entityType);
+  const id = entry.entityId;
+
+  if (entry.notes) return entry.notes;
+  if (entry.reason) return entry.reason;
+
+  return `${action.charAt(0) + action.slice(1).toLowerCase()} ${entity} ${id}`;
+}
+
+// ---------------------------------------------------------------------------
+// Map a raw API entry to the UI AuditEntry interface
+// ---------------------------------------------------------------------------
+
+function mapApiEntry(raw: AuditLogApiEntry, currentUser: { id: string; firstName: string; lastName: string; email: string } | null): AuditEntry {
+  const isCurrentUser = currentUser && raw.userId === currentUser.id;
+
+  return {
+    id: raw.id,
+    timestamp: new Date(raw.createdAt),
+    userId: raw.userId ?? 'unknown',
+    userName: isCurrentUser
+      ? `${currentUser.firstName} ${currentUser.lastName}`
+      : raw.userId ?? 'System',
+    userEmail: isCurrentUser
+      ? currentUser.email
+      : '',
+    action: mapAction(raw.action),
+    entityType: mapEntityType(raw.entityType),
+    entityId: raw.entityId,
+    entityLabel: raw.entityId,
+    description: buildDescription(raw),
+    changes: buildChanges(raw.oldValues, raw.newValues, raw.changedFields),
+    ipAddress: raw.ipAddress ?? undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -556,13 +353,22 @@ export default function AuditTrailPage() {
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
   // Store
-  const { activeCompany } = useAppStore();
+  const { activeCompany, user } = useAppStore();
 
   // -----------------------------------------------------------------------
-  // Generate demo data
+  // Fetch audit logs from API
   // -----------------------------------------------------------------------
 
-  const allEntries = useMemo(() => generateDemoAuditEntries(), []);
+  const { data: allEntries = [], isLoading: isLoadingAudit } = useQuery<AuditEntry[]>({
+    queryKey: ['audit-logs', activeCompany?.id],
+    queryFn: async () => {
+      const res = await api.get<AuditLogApiResponse>('/api/v1/audit-logs?limit=200');
+      return res.data.map((entry) =>
+        mapApiEntry(entry, user ? { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email } : null)
+      );
+    },
+    enabled: !!activeCompany?.id,
+  });
 
   // -----------------------------------------------------------------------
   // Filter entries
@@ -1078,8 +884,16 @@ export default function AuditTrailPage() {
         </p>
       </div>
 
-      {/* Activity Timeline */}
-      {filteredEntries.length === 0 ? (
+      {/* Loading state */}
+      {isLoadingAudit ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full mx-auto mb-4" />
+            <p className="text-gray-500 text-sm">Loading audit trail...</p>
+          </CardContent>
+        </Card>
+      ) : /* Activity Timeline */
+      filteredEntries.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <ShieldCheckIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -1087,7 +901,9 @@ export default function AuditTrailPage() {
               No audit events found
             </p>
             <p className="text-gray-400 text-sm mt-2">
-              Try adjusting your filters or date range.
+              {allEntries.length === 0
+                ? 'No audit events have been recorded yet.'
+                : 'Try adjusting your filters or date range.'}
             </p>
           </CardContent>
         </Card>

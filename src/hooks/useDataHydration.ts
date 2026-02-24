@@ -142,14 +142,31 @@ export function useDataHydration() {
         store.getState().setOnboarded(true);
 
         // ── Step 3: Fetch company-scoped data in parallel ────────────
-        const [customersRes, productsRes, invoicesRes, expensesRes, notificationsRes] =
-          await Promise.all([
-            api.get<PaginatedResponse<Customer>>('/api/v1/customers?limit=100'),
-            api.get<PaginatedResponse<Product>>('/api/v1/products?limit=100'),
-            api.get<PaginatedResponse<Invoice>>('/api/v1/invoices?limit=100'),
-            api.get<PaginatedResponse<Expense>>('/api/v1/expenses?limit=100'),
-            api.get<NotificationsResponse>('/api/v1/notifications?limit=100'),
-          ]);
+        const [
+          customersRes,
+          productsRes,
+          invoicesRes,
+          expensesRes,
+          notificationsRes,
+          quotationsRes,
+          employeesRes,
+          payrollRes,
+          glAccountsRes,
+          bankAccountsRes,
+          fixedAssetsRes,
+        ] = await Promise.all([
+          api.get<PaginatedResponse<Customer>>('/api/v1/customers?limit=100'),
+          api.get<PaginatedResponse<Product>>('/api/v1/products?limit=100'),
+          api.get<PaginatedResponse<Invoice>>('/api/v1/invoices?limit=100'),
+          api.get<PaginatedResponse<Expense>>('/api/v1/expenses?limit=100'),
+          api.get<NotificationsResponse>('/api/v1/notifications?limit=100'),
+          api.get<PaginatedResponse<any>>('/api/v1/quotations?limit=100').catch(() => ({ data: [] })),
+          api.get<{ data: any[] }>('/api/v1/employees?limit=100').catch(() => ({ data: [] })),
+          api.get<PaginatedResponse<any>>('/api/v1/payroll?limit=100').catch(() => ({ data: [] })),
+          api.get<{ data: any[] }>('/api/v1/gl-accounts?limit=200').catch(() => ({ data: [] })),
+          api.get<{ data: any[] }>('/api/v1/bank-accounts?limit=50').catch(() => ({ data: [] })),
+          api.get<PaginatedResponse<any>>('/api/v1/fixed-assets?limit=100').catch(() => ({ data: [] })),
+        ]);
 
         // Populate the store in a single batch
         const state = store.getState();
@@ -158,6 +175,12 @@ export function useDataHydration() {
         state.setInvoices(invoicesRes.data);
         state.setExpenses(expensesRes.data);
         state.setNotifications(notificationsRes.data);
+        state.setQuotations(quotationsRes.data);
+        state.setEmployees(employeesRes.data);
+        state.setPayrollRuns(payrollRes.data || []);
+        state.setGLAccounts(glAccountsRes.data);
+        state.setBankAccounts(bankAccountsRes.data);
+        state.setFixedAssets(fixedAssetsRes.data);
 
         // Mark hydration complete
         store.setState({ hydrated: true });

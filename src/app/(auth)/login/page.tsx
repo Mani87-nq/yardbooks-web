@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
-import { api, setAccessToken, ApiRequestError } from '@/lib/api-client';
+import { setAccessToken, ApiRequestError } from '@/lib/api-client';
 import {
   EnvelopeIcon,
   LockClosedIcon,
   EyeIcon,
   EyeSlashIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 
 // Google Icon SVG
@@ -40,6 +41,30 @@ interface LoginResponse {
   accessToken: string;
 }
 
+interface TwoFactorRequiredResponse {
+  requiresTwoFactor: true;
+  tempToken: string;
+  userId: string;
+}
+
+interface TwoFactorVerifyResponse {
+  success: boolean;
+  message: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    activeCompanyId: string | null;
+  };
+  companies: Array<{
+    id: string;
+    businessName: string;
+    role: string;
+  }>;
+  accessToken: string;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { setUser, setCompanies, setActiveCompany, setAuthenticated } = useAppStore();
@@ -48,6 +73,64 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // 2FA state
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFACode, setTwoFACode] = useState('');
+  const [tempToken, setTempToken] = useState('');
+  const [useBackupCode, setUseBackupCode] = useState(false);
+  const [backupCode, setBackupCode] = useState('');
+
+  /** Complete login after receiving full tokens (from initial login or 2FA verify). */
+  const completeLogin = (data: LoginResponse | TwoFactorVerifyResponse) => {
+    // Store access token in memory and cookie
+    setAccessToken(data.accessToken);
+    document.cookie = `accessToken=${data.accessToken}; path=/; max-age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
+
+    // Map API role to app role
+    const apiRole = data.companies[0]?.role?.toLowerCase() ?? 'admin';
+    const appRole = (apiRole === 'owner' || apiRole === 'admin') ? 'admin'
+      : apiRole === 'staff' ? 'staff'
+      : 'user';
+
+    // Set user in store
+    setUser({
+      id: data.user.id,
+      email: data.user.email,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      activeCompanyId: data.user.activeCompanyId ?? undefined,
+      role: appRole as 'admin' | 'user' | 'staff',
+      createdAt: new Date(),
+    });
+
+    setAuthenticated(true);
+
+    // Store companies from login response (partial data -- full hydration
+    // happens in useDataHydration when the dashboard mounts)
+    const loginCompanies = data.companies.map((c) => ({
+      id: c.id,
+      businessName: c.businessName,
+      tradingName: '',
+      trnNumber: '',
+      email: data.user.email,
+      phone: '',
+      address: '',
+      parish: '',
+      industry: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+    setCompanies(loginCompanies);
+
+    // Set active company if exists
+    if (data.companies.length > 0) {
+      const active = data.companies.find(c => c.id === data.user.activeCompanyId) ?? data.companies[0];
+      setActiveCompany(loginCompanies.find(c => c.id === active.id) ?? loginCompanies[0]);
+    }
+
+    router.push('/dashboard');
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,73 +144,361 @@ export default function LoginPage() {
     }
 
     try {
-      const data = await api.post<LoginResponse>('/api/auth/login', { email, password });
-
-      // Store access token in memory and cookie
-      setAccessToken(data.accessToken);
-      
-      // Store in cookie for middleware to check
-      document.cookie = `accessToken=${data.accessToken}; path=/; max-age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
-
-      // Map API role to app role
-      const apiRole = data.companies[0]?.role?.toLowerCase() ?? 'admin';
-      const appRole = (apiRole === 'owner' || apiRole === 'admin') ? 'admin' 
-        : apiRole === 'staff' ? 'staff' 
-        : 'user';
-
-      // Set user in store
-      setUser({
-        id: data.user.id,
-        email: data.user.email,
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        activeCompanyId: data.user.activeCompanyId ?? undefined,
-        role: appRole as 'admin' | 'user' | 'staff',
-        createdAt: new Date(),
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
 
-      setAuthenticated(true);
+      const data = await res.json();
 
-      // Store companies from login response (partial data — full hydration
-      // happens in useDataHydration when the dashboard mounts)
-      const loginCompanies = data.companies.map((c) => ({
-        id: c.id,
-        businessName: c.businessName,
-        tradingName: '',
-        trnNumber: '',
-        email: data.user.email,
-        phone: '',
-        address: '',
-        parish: '',
-        industry: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
-      setCompanies(loginCompanies);
-
-      // Set active company if exists
-      if (data.companies.length > 0) {
-        const active = data.companies.find(c => c.id === data.user.activeCompanyId) ?? data.companies[0];
-        setActiveCompany(loginCompanies.find(c => c.id === active.id) ?? loginCompanies[0]);
-      }
-
-      router.push('/dashboard');
-    } catch (err) {
-      if (err instanceof ApiRequestError) {
-        if (err.status === 423) {
+      if (!res.ok) {
+        if (res.status === 423) {
           setError('Account locked due to too many failed attempts. Please try again later.');
-        } else if (err.status === 429) {
+        } else if (res.status === 429) {
           setError('Too many login attempts. Please wait a moment and try again.');
         } else {
-          setError(err.detail ?? 'Invalid email or password');
+          setError(data.detail ?? 'Invalid email or password');
         }
-      } else {
-        setError('An error occurred. Please try again.');
+        return;
       }
+
+      // Check if 2FA is required
+      if (data.requiresTwoFactor) {
+        setRequires2FA(true);
+        setTempToken(data.tempToken);
+        return;
+      }
+
+      // No 2FA — complete login immediately
+      completeLogin(data as LoginResponse);
+    } catch {
+      setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tempToken}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ code: twoFACode, action: 'login' }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.detail ?? 'Invalid 2FA code');
+        return;
+      }
+
+      completeLogin(data as TwoFactorVerifyResponse);
+    } catch {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBackupCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/2fa/backup', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tempToken}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ code: backupCode, action: 'login' }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.detail ?? 'Invalid backup code');
+        return;
+      }
+
+      completeLogin(data as TwoFactorVerifyResponse);
+    } catch {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetTo2FALogin = () => {
+    setRequires2FA(false);
+    setTempToken('');
+    setTwoFACode('');
+    setBackupCode('');
+    setUseBackupCode(false);
+    setError('');
+  };
+
+  // ─── 2FA Verification Form ──────────────────────────────────
+  const render2FAForm = () => (
+    <div className="w-full max-w-md">
+      <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
+          YB
+        </div>
+        <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+      </div>
+
+      <div className="flex items-center gap-3 mb-2">
+        <ShieldCheckIcon className="h-7 w-7 text-emerald-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
+      </div>
+      <p className="text-gray-500 mb-8">
+        {useBackupCode
+          ? 'Enter one of your backup codes'
+          : 'Enter the 6-digit code from your authenticator app'}
+      </p>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+          {error}
+        </div>
+      )}
+
+      {useBackupCode ? (
+        /* Backup code form */
+        <form onSubmit={handleBackupCode} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Backup Code
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <LockClosedIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={backupCode}
+                onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono tracking-wider"
+                placeholder="XXXX-XXXX"
+                autoFocus
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading || !backupCode.trim()}
+            className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Verifying...' : 'Verify Backup Code'}
+          </button>
+
+          <div className="flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={() => { setUseBackupCode(false); setError(''); setBackupCode(''); }}
+              className="text-emerald-600 hover:text-emerald-700 font-medium"
+            >
+              Use authenticator code
+            </button>
+            <button
+              type="button"
+              onClick={resetTo2FALogin}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Back to login
+            </button>
+          </div>
+        </form>
+      ) : (
+        /* TOTP code form */
+        <form onSubmit={handleVerify2FA} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Authentication Code
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <ShieldCheckIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={twoFACode}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setTwoFACode(val);
+                }}
+                pattern="[0-9]{6}"
+                inputMode="numeric"
+                maxLength={6}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-2xl tracking-[0.5em]"
+                placeholder="000000"
+                autoFocus
+                autoComplete="one-time-code"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading || twoFACode.length !== 6}
+            className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Verifying...' : 'Verify'}
+          </button>
+
+          <div className="flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={() => { setUseBackupCode(true); setError(''); setTwoFACode(''); }}
+              className="text-emerald-600 hover:text-emerald-700 font-medium"
+            >
+              Use backup code
+            </button>
+            <button
+              type="button"
+              onClick={resetTo2FALogin}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Back to login
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+
+  // ─── Login Form ─────────────────────────────────────────────
+  const renderLoginForm = () => (
+    <div className="w-full max-w-md">
+      <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
+          YB
+        </div>
+        <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+      </div>
+
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
+      <p className="text-gray-500 mb-8">Sign in to your account to continue</p>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleLogin} className="space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email Address
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              placeholder="you@example.com"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <LockClosedIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              placeholder="Enter your password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              {showPassword ? (
+                <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+              ) : (
+                <EyeIcon className="h-5 w-5 text-gray-400" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" className="rounded border-gray-300 text-emerald-600" />
+            <span className="text-sm text-gray-600">Remember me</span>
+          </label>
+          <Link href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700">
+            Forgot password?
+          </Link>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Signing in...' : 'Sign in'}
+        </button>
+      </form>
+
+      {/* Google Sign In */}
+      <div className="mt-6">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => window.location.href = '/api/auth/oauth/google'}
+          disabled={isLoading}
+          className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+        >
+          <GoogleIcon className="w-5 h-5" />
+          Sign in with Google
+        </button>
+      </div>
+
+      <p className="mt-8 text-center text-sm text-gray-500">
+        Don&apos;t have an account?{' '}
+        <Link href="/signup" className="text-emerald-600 hover:text-emerald-700 font-medium">
+          Sign up for free
+        </Link>
+      </p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex">
@@ -156,121 +527,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
+      {/* Right Panel - Login or 2FA Form */}
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
-              YB
-            </div>
-            <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
-          </div>
-
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
-          <p className="text-gray-500 mb-8">Sign in to your account to continue</p>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <EnvelopeIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="you@example.com"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockClosedIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded border-gray-300 text-emerald-600" />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-              <Link href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700">
-                Forgot password?
-              </Link>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </form>
-
-          {/* Google Sign In */}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => window.location.href = '/api/auth/oauth/google'}
-              disabled={isLoading}
-              className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
-            >
-              <GoogleIcon className="w-5 h-5" />
-              Sign in with Google
-            </button>
-          </div>
-
-          <p className="mt-8 text-center text-sm text-gray-500">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-emerald-600 hover:text-emerald-700 font-medium">
-              Sign up for free
-            </Link>
-          </p>
-        </div>
+        {requires2FA ? render2FAForm() : renderLoginForm()}
       </div>
     </div>
   );

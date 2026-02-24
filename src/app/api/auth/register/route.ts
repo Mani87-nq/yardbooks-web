@@ -4,10 +4,13 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
+import crypto from 'crypto';
 import prisma from '@/lib/db';
 import { hashPassword, validatePasswordStrength, signAccessToken, signRefreshToken, REFRESH_TOKEN_COOKIE, getRefreshTokenCookieOptions } from '@/lib/auth';
 import { badRequest, conflict, internalError } from '@/lib/api-error';
 import { strictLimiter, getClientIP } from '@/lib/rate-limit';
+import { sendEmail } from '@/lib/email/service';
+import { emailVerificationEmail, welcomeEmail } from '@/lib/email/templates';
 
 const registerSchema = z.object({
   email: z.email(),
@@ -116,6 +119,40 @@ export async function POST(request: NextRequest) {
 
       return { user, company, membership };
     });
+
+    // Send verification email
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyTokenHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
+
+    await prisma.verificationToken.create({
+      data: {
+        email,
+        token: verifyTokenHash,
+        type: 'email_verify',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      },
+    });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://yaadbooks.com';
+    const verifyUrl = `${appUrl}/verify-email?token=${verifyToken}`;
+
+    // Fire and forget — don't block registration on email delivery
+    sendEmail({
+      to: email,
+      ...emailVerificationEmail({
+        userName: firstName,
+        verifyUrl,
+      }),
+    }).catch((err) => console.error('[Register] Failed to send verification email:', err));
+
+    // Send welcome email (fire and forget)
+    sendEmail({
+      to: email,
+      ...welcomeEmail({
+        userName: firstName,
+        companyName: companyName || 'your business',
+      }),
+    }).catch((err) => console.error('[Register] Failed to send welcome email:', err));
 
     // Generate access token
     const companies = result.company ? [result.company.id] : [];

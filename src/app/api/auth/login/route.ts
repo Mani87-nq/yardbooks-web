@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
+import { SignJWT } from 'jose';
 import {
   verifyPassword,
   signAccessToken,
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = parsed.data;
 
-    // Find user with company memberships
+    // Find user with company memberships (twoFactorEnabled is included by default as a scalar field)
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -91,6 +92,26 @@ export async function POST(request: NextRequest) {
         );
       }
       return unauthorized('Invalid email or password');
+    }
+
+    // If user has 2FA enabled, issue a short-lived temp token instead of full tokens
+    if (user.twoFactorEnabled) {
+      // Reset failed login attempts (password was correct)
+      await resetFailedLogins(user.id);
+
+      const accessSecret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
+      const tempToken = await new SignJWT({ sub: user.id, purpose: '2fa_verify' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('5m')
+        .setIssuer('yaadbooks')
+        .sign(accessSecret);
+
+      return NextResponse.json({
+        requiresTwoFactor: true,
+        tempToken,
+        userId: user.id,
+      });
     }
 
     // Determine active company and role
