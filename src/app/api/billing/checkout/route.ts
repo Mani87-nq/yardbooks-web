@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
-    const { planId } = body;
+    const { planId, billingInterval } = body;
 
     if (!planId) {
       return NextResponse.json(
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const interval = billingInterval === 'year' ? 'year' as const : 'month' as const;
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://yaadbooks.com';
 
     const result = await createCheckoutSession({
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
       email: user!.email,
       successUrl: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${baseUrl}/billing/cancelled`,
+      billingInterval: interval,
     });
 
     if ('error' in result) {

@@ -78,6 +78,8 @@ export function migrateLegacyPlanId(planId: string): string {
   return 'team';
 }
 
+export type BillingInterval = 'month' | 'year';
+
 // Stripe API integration (requires STRIPE_SECRET_KEY env var)
 export async function createCheckoutSession(params: {
   planId: string;
@@ -86,12 +88,17 @@ export async function createCheckoutSession(params: {
   email: string;
   successUrl: string;
   cancelUrl: string;
+  billingInterval?: BillingInterval;
 }): Promise<{ url: string } | { error: string }> {
   const apiKey = process.env.STRIPE_SECRET_KEY;
   if (!apiKey) return { error: 'Stripe not configured' };
 
   const plan = getPlan(params.planId);
   if (!plan) return { error: 'Invalid plan for checkout' };
+
+  const interval: BillingInterval = params.billingInterval ?? 'month';
+  const priceUsd = interval === 'year' ? plan.priceUsdAnnual : plan.priceUsd;
+  const productSuffix = interval === 'year' ? ' (Annual)' : ' (Monthly)';
 
   // Create Stripe checkout session via API
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -104,15 +111,16 @@ export async function createCheckoutSession(params: {
       'mode': 'subscription',
       'customer_email': params.email,
       'line_items[0][price_data][currency]': 'usd',
-      'line_items[0][price_data][unit_amount]': String(Math.round(plan.priceUsd * 100)),
-      'line_items[0][price_data][recurring][interval]': 'month',
-      'line_items[0][price_data][product_data][name]': `YaadBooks ${plan.name}`,
+      'line_items[0][price_data][unit_amount]': String(Math.round(priceUsd * 100)),
+      'line_items[0][price_data][recurring][interval]': interval,
+      'line_items[0][price_data][product_data][name]': `YaadBooks ${plan.name}${productSuffix}`,
       'line_items[0][quantity]': '1',
       'success_url': params.successUrl,
       'cancel_url': params.cancelUrl,
       'metadata[companyId]': params.companyId,
       'metadata[userId]': params.userId,
       'metadata[planId]': params.planId,
+      'metadata[billingInterval]': interval,
     }),
   });
 
