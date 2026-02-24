@@ -27,7 +27,7 @@ interface PageProps {
 
 export default function InvoiceDetailPage({ params }: PageProps) {
   const { id } = use(params);
-  const { data: invoice, isLoading: isFetchingInvoice } = useInvoice(id);
+  const { data: invoice, isLoading: isFetchingInvoice, refetch: refetchInvoice } = useInvoice(id);
   const updateInvoiceMutation = useUpdateInvoice();
   const deleteInvoiceMutation = useDeleteInvoice();
   const { activeCompany } = useAppStore();
@@ -107,6 +107,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
     }
   };
 
+  const [recordingPayment, setRecordingPayment] = useState(false);
   const handleRecordPayment = async () => {
     const amount = parseFloat(paymentAmount);
     if (!amount || amount <= 0) {
@@ -119,19 +120,22 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
       return;
     }
 
-    const newAmountPaid = Number(invoice.amountPaid) + amount;
-    const newBalance = Number(invoice.total) - newAmountPaid;
-    const newStatus = newBalance <= 0 ? 'PAID' : 'PARTIAL';
-
+    setRecordingPayment(true);
     try {
-      await updateInvoiceMutation.mutateAsync({
-        id: invoice.id,
-        data: { status: newStatus },
+      await api.post(`/api/v1/invoices/${invoice.id}/payments`, {
+        amount,
+        paymentMethod: paymentMethod.toUpperCase(),
+        date: paymentDate || new Date().toISOString(),
+        reference: '',
       });
       setShowPaymentModal(false);
       setPaymentAmount('');
+      // Refetch invoice to get updated balance/status
+      refetchInvoice();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to record payment');
+    } finally {
+      setRecordingPayment(false);
     }
   };
 
