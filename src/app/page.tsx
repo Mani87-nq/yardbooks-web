@@ -286,7 +286,7 @@ export default async function LandingPage() {
               className="w-full h-full object-cover"
               controls
               playsInline
-              preload="metadata"
+              preload="auto"
             >
               <source src="/videos/demo.mp4" type="video/mp4" />
               Your browser does not support the video tag.
