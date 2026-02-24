@@ -9,6 +9,8 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
+import { sendEmail } from '@/lib/email/service';
+import { paymentReminderEmail } from '@/lib/email/templates';
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     const { invoiceIds, message } = parsed.data;
 
-    // Get the invoices
+    // Get the invoices with company info for email template
     const invoices = await prisma.invoice.findMany({
       where: {
         id: { in: invoiceIds },
@@ -123,27 +125,13 @@ export async function POST(request: NextRequest) {
       },
       include: {
         customer: { select: { id: true, name: true, email: true } },
+        company: { select: { businessName: true, tradingName: true, currency: true } },
       },
     });
 
     if (invoices.length === 0) {
       return badRequest('No valid invoices found');
     }
-
-    // Build reminder records
-    const reminders = invoices.map((inv) => {
-      const daysOverdue = Math.floor((Date.now() - inv.dueDate.getTime()) / (1000 * 60 * 60 * 24));
-      return {
-        invoiceId: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        customerName: inv.customer.name,
-        customerEmail: inv.customer.email,
-        balance: Number(inv.balance),
-        daysOverdue: Math.max(0, daysOverdue),
-        reminderSent: !!inv.customer.email,
-        message: message || generateDefaultMessage(inv.invoiceNumber, Number(inv.balance), daysOverdue),
-      };
-    });
 
     // Update invoice statuses to OVERDUE if not already
     await prisma.invoice.updateMany({
@@ -155,8 +143,59 @@ export async function POST(request: NextRequest) {
       data: { status: 'OVERDUE' },
     });
 
-    // TODO: Integrate with actual email service (e.g., SendGrid, AWS SES)
-    // For now, return the generated reminders
+    // Send reminder emails for each invoice
+    const reminders = [];
+    for (const inv of invoices) {
+      const daysOverdue = Math.max(0, Math.floor((Date.now() - inv.dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const customerEmail = inv.customer.email;
+      const companyName = inv.company.tradingName || inv.company.businessName;
+      const currency = inv.company.currency || 'JMD';
+
+      let emailSent = false;
+      let emailError: string | undefined;
+
+      if (customerEmail) {
+        // Determine severity based on days overdue
+        const severity: 'mild' | 'moderate' | 'severe' =
+          daysOverdue <= 30 ? 'mild' : daysOverdue <= 60 ? 'moderate' : 'severe';
+
+        const emailContent = paymentReminderEmail({
+          customerName: inv.customer.name,
+          invoiceNumber: inv.invoiceNumber,
+          amount: Number(inv.balance),
+          currency,
+          dueDate: inv.dueDate.toLocaleDateString('en-JM', { year: 'numeric', month: 'long', day: 'numeric' }),
+          daysOverdue,
+          companyName,
+          severity,
+        });
+
+        const result = await sendEmail({
+          to: customerEmail,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text,
+          replyTo: user!.email,
+        });
+
+        emailSent = result.success;
+        if (!result.success) {
+          emailError = result.error;
+        }
+      }
+
+      reminders.push({
+        invoiceId: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        customerName: inv.customer.name,
+        customerEmail,
+        balance: Number(inv.balance),
+        daysOverdue,
+        reminderSent: emailSent,
+        skippedReason: !customerEmail ? 'No email address on file' : emailError ? `Email failed: ${emailError}` : undefined,
+        message: message || generateDefaultMessage(inv.invoiceNumber, Number(inv.balance), daysOverdue),
+      });
+    }
 
     return NextResponse.json({
       sent: reminders.filter((r) => r.reminderSent).length,

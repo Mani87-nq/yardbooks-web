@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeftIcon,
@@ -8,6 +8,7 @@ import {
   EnvelopeIcon,
   DevicePhoneMobileIcon,
 } from '@heroicons/react/24/outline';
+import { api } from '@/lib/api-client';
 
 interface NotificationSetting {
   key: string;
@@ -96,6 +97,27 @@ const DEFAULT_SETTINGS: NotificationSetting[] = [
 export default function NotificationSettingsPage() {
   const [settings, setSettings] = useState<NotificationSetting[]>(DEFAULT_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  // Load settings from API on mount
+  const loadSettings = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.get<{ settings: NotificationSetting[]; enableNotifications: boolean }>('/api/v1/notifications/settings');
+      if (data.settings && Array.isArray(data.settings)) {
+        setSettings(data.settings);
+      }
+    } catch {
+      // If the API fails, fall back to defaults (already set)
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const toggleSetting = (key: string, channel: 'email' | 'push' | 'inApp') => {
     setSettings((prev) =>
@@ -109,10 +131,16 @@ export default function NotificationSettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setIsSaving(false);
-    alert('Settings saved successfully');
+    setSaveMessage(null);
+    try {
+      await api.put('/api/v1/notifications/settings', { settings });
+      setSaveMessage('Settings saved successfully');
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err: any) {
+      setSaveMessage(err.message || 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -212,10 +240,15 @@ export default function NotificationSettingsPage() {
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-4">
+        {saveMessage && (
+          <span className={`text-sm ${saveMessage.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
+            {saveMessage}
+          </span>
+        )}
         <button
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || isLoading}
           className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
         >
           {isSaving ? 'Saving...' : 'Save Settings'}
