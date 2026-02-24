@@ -36,6 +36,7 @@ const PUBLIC_ROUTES = [
   '/api/billing/checkout',
   '/api/billing/webhook',
   '/api/health',
+  '/api/chat',                       // Public AI chatbot (landing page)
   '/api/v1/payments/wipay/callback', // WiPay callback redirect
   '/payment/',            // Payment result pages (success/failed/error)
 ];

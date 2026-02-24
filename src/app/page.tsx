@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import PricingSection from '@/components/PricingSection';
+import ChatWidget from '@/components/ChatWidget';
 
 export default async function LandingPage() {
   const cookieStore = await cookies();
@@ -418,6 +419,9 @@ export default async function LandingPage() {
           <p className="mt-4 text-gray-500 text-sm">No credit card required</p>
         </div>
       </section>
+
+      {/* AI Chat Widget */}
+      <ChatWidget />
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-16 px-4 border-t border-gray-800">
