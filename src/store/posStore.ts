@@ -2,6 +2,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
+import Decimal from 'decimal.js';
+
+// Configure Decimal.js for financial calculations (matches src/lib/currency.ts)
+Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
+
+/** Round a Decimal to 2 dp and return a plain number. */
+const d2 = (v: Decimal): number => v.toDecimalPlaces(2).toNumber();
 import type {
   PosOrder,
   PosOrderItem,
@@ -162,19 +169,19 @@ const EMPTY_CART: PosCart = {
 // ============================================
 
 function calculateLineItem(item: CartItem, gctRate: number): Omit<PosOrderItem, 'id' | 'lineNumber' | 'inventoryDeducted' | 'warehouseId'> {
-  const lineSubtotal = item.quantity * item.unitPrice;
+  const lineSubtotal = d2(new Decimal(item.quantity).times(item.unitPrice));
 
   let discountAmount = 0;
   if (item.discountType === 'percent' && item.discountValue) {
-    discountAmount = lineSubtotal * (item.discountValue / 100);
+    discountAmount = d2(new Decimal(lineSubtotal).times(item.discountValue).dividedBy(100));
   } else if (item.discountType === 'amount' && item.discountValue) {
     discountAmount = item.discountValue;
   }
 
-  const lineTotalBeforeTax = lineSubtotal - discountAmount;
+  const lineTotalBeforeTax = d2(new Decimal(lineSubtotal).minus(discountAmount));
   const effectiveGctRate = item.isGctExempt ? 0 : gctRate;
-  const gctAmount = lineTotalBeforeTax * effectiveGctRate;
-  const lineTotal = lineTotalBeforeTax + gctAmount;
+  const gctAmount = d2(new Decimal(lineTotalBeforeTax).times(effectiveGctRate));
+  const lineTotal = d2(new Decimal(lineTotalBeforeTax).plus(gctAmount));
 
   return {
     productId: item.productId,
@@ -505,46 +512,46 @@ export const usePosStore = create<PosState>()(
         const { currentCart, settings } = get();
         const gctRate = settings.gctRate;
 
-        let subtotal = 0;
-        let taxableAmount = 0;
-        let exemptAmount = 0;
-        let gctAmount = 0;
+        let subtotal = new Decimal(0);
+        let taxableAmount = new Decimal(0);
+        let exemptAmount = new Decimal(0);
+        let gctAmount = new Decimal(0);
         let itemCount = 0;
 
         currentCart.items.forEach((item) => {
           const calculated = calculateLineItem(item, gctRate);
-          subtotal += calculated.lineTotalBeforeTax;
+          subtotal = subtotal.plus(calculated.lineTotalBeforeTax);
           if (item.isGctExempt) {
-            exemptAmount += calculated.lineTotalBeforeTax;
+            exemptAmount = exemptAmount.plus(calculated.lineTotalBeforeTax);
           } else {
-            taxableAmount += calculated.lineTotalBeforeTax;
+            taxableAmount = taxableAmount.plus(calculated.lineTotalBeforeTax);
           }
-          gctAmount += calculated.gctAmount;
+          gctAmount = gctAmount.plus(calculated.gctAmount);
           itemCount += item.quantity;
         });
 
-        let discountAmount = 0;
+        let discountAmount = new Decimal(0);
         if (currentCart.orderDiscountType === 'percent' && currentCart.orderDiscountValue) {
-          discountAmount = subtotal * (currentCart.orderDiscountValue / 100);
+          discountAmount = subtotal.times(currentCart.orderDiscountValue).dividedBy(100);
         } else if (currentCart.orderDiscountType === 'amount' && currentCart.orderDiscountValue) {
-          discountAmount = currentCart.orderDiscountValue;
+          discountAmount = new Decimal(currentCart.orderDiscountValue);
         }
 
-        const discountedSubtotal = subtotal - discountAmount;
-        const discountRatio = subtotal > 0 ? discountedSubtotal / subtotal : 1;
-        taxableAmount = taxableAmount * discountRatio;
-        exemptAmount = exemptAmount * discountRatio;
-        gctAmount = taxableAmount * gctRate;
+        const discountedSubtotal = subtotal.minus(discountAmount);
+        const discountRatio = subtotal.greaterThan(0) ? discountedSubtotal.dividedBy(subtotal) : new Decimal(1);
+        taxableAmount = taxableAmount.times(discountRatio);
+        exemptAmount = exemptAmount.times(discountRatio);
+        gctAmount = taxableAmount.times(gctRate);
 
-        const total = discountedSubtotal + gctAmount;
+        const total = discountedSubtotal.plus(gctAmount);
 
         return {
-          subtotal,
-          discountAmount,
-          taxableAmount,
-          exemptAmount,
-          gctAmount,
-          total,
+          subtotal: d2(subtotal),
+          discountAmount: d2(discountAmount),
+          taxableAmount: d2(taxableAmount),
+          exemptAmount: d2(exemptAmount),
+          gctAmount: d2(gctAmount),
+          total: d2(total),
           itemCount,
         };
       },
@@ -566,18 +573,18 @@ export const usePosStore = create<PosState>()(
         };
 
         if (data.method === 'cash' && data.amountTendered) {
-          payment.changeGiven = Math.max(0, data.amountTendered - data.amount);
+          payment.changeGiven = d2(Decimal.max(0, new Decimal(data.amountTendered).minus(data.amount)));
           payment.processedAt = now;
         }
 
         const order = get().getOrder(data.orderId);
         if (order) {
           const newPayments = [...order.payments, payment];
-          const amountPaid = newPayments
+          const amountPaid = d2(newPayments
             .filter((p) => p.status === 'completed')
-            .reduce((sum, p) => sum + p.amount, 0);
-          const amountDue = Math.max(0, order.total - amountPaid);
-          const changeGiven = newPayments.reduce((sum, p) => sum + (p.changeGiven || 0), 0);
+            .reduce((sum, p) => sum.plus(p.amount), new Decimal(0)));
+          const amountDue = d2(Decimal.max(0, new Decimal(order.total).minus(amountPaid)));
+          const changeGiven = d2(newPayments.reduce((sum, p) => sum.plus(p.changeGiven || 0), new Decimal(0)));
 
           set((state) => ({
             orders: state.orders.map((o) =>
@@ -614,10 +621,10 @@ export const usePosStore = create<PosState>()(
         if (!order) return;
 
         const newPayments = order.payments.filter((p) => p.id !== paymentId);
-        const amountPaid = newPayments
+        const amountPaid = d2(newPayments
           .filter((p) => p.status === 'completed')
-          .reduce((sum, p) => sum + p.amount, 0);
-        const amountDue = Math.max(0, order.total - amountPaid);
+          .reduce((sum, p) => sum.plus(p.amount), new Decimal(0)));
+        const amountDue = d2(Decimal.max(0, new Decimal(order.total).minus(amountPaid)));
 
         set((state) => ({
           orders: state.orders.map((o) =>
@@ -639,10 +646,10 @@ export const usePosStore = create<PosState>()(
             : p
         );
 
-        const amountPaid = newPayments
+        const amountPaid = d2(newPayments
           .filter((p) => p.status === 'completed')
-          .reduce((sum, p) => sum + p.amount, 0);
-        const amountDue = Math.max(0, order.total - amountPaid);
+          .reduce((sum, p) => sum.plus(p.amount), new Decimal(0)));
+        const amountDue = d2(Decimal.max(0, new Decimal(order.total).minus(amountPaid)));
 
         set((state) => ({
           orders: state.orders.map((o) =>
@@ -713,7 +720,7 @@ export const usePosStore = create<PosState>()(
         if (!session) return;
 
         const now = new Date();
-        const variance = data.closingCash - session.expectedCash;
+        const variance = d2(new Decimal(data.closingCash).minus(session.expectedCash));
 
         const closingMovement: CashMovement = {
           id: uuidv4(),
@@ -730,27 +737,27 @@ export const usePosStore = create<PosState>()(
         const voidedOrders = sessionOrders.filter((o) => o.status === 'voided');
         const refundedOrders = sessionOrders.filter((o) => o.status === 'refunded');
 
-        const totalSales = completedOrders.reduce((sum, o) => sum + o.total, 0);
-        const totalRefunds = refundedOrders.reduce((sum, o) => sum + o.total, 0);
-        const netSales = totalSales - totalRefunds;
+        const totalSales = d2(completedOrders.reduce((sum, o) => sum.plus(o.total), new Decimal(0)));
+        const totalRefunds = d2(refundedOrders.reduce((sum, o) => sum.plus(o.total), new Decimal(0)));
+        const netSales = d2(new Decimal(totalSales).minus(totalRefunds));
 
-        const paymentMap = new Map<PaymentMethodType, { count: number; total: number }>();
+        const paymentMap = new Map<PaymentMethodType, { count: number; total: Decimal }>();
         completedOrders.forEach((order) => {
           order.payments
             .filter((p) => p.status === 'completed')
             .forEach((payment) => {
-              const existing = paymentMap.get(payment.method) || { count: 0, total: 0 };
+              const existing = paymentMap.get(payment.method) || { count: 0, total: new Decimal(0) };
               paymentMap.set(payment.method, {
                 count: existing.count + 1,
-                total: existing.total + payment.amount,
+                total: existing.total.plus(payment.amount),
               });
             });
         });
 
-        const paymentBreakdown = Array.from(paymentMap.entries()).map(([method, data]) => ({
+        const paymentBreakdown = Array.from(paymentMap.entries()).map(([method, pData]) => ({
           method,
-          count: data.count,
-          total: data.total,
+          count: pData.count,
+          total: d2(pData.total),
         }));
 
         set((state) => ({
@@ -829,16 +836,17 @@ export const usePosStore = create<PosState>()(
           performedAt: new Date(),
         };
 
-        let expectedCash = session.expectedCash;
+        let expected = new Decimal(session.expectedCash);
         if (type === 'sale' || type === 'payout') {
-          expectedCash += amount;
+          expected = expected.plus(amount);
         } else if (type === 'refund') {
-          expectedCash -= Math.abs(amount);
+          expected = expected.minus(new Decimal(amount).abs());
         } else if (type === 'drop') {
-          expectedCash -= Math.abs(amount);
+          expected = expected.minus(new Decimal(amount).abs());
         } else if (type === 'adjustment') {
-          expectedCash += amount;
+          expected = expected.plus(amount);
         }
+        const expectedCash = d2(expected);
 
         set((state) => ({
           sessions: state.sessions.map((s) =>
@@ -900,43 +908,43 @@ export const usePosStore = create<PosState>()(
         const voidedOrders = sessionOrders.filter((o) => o.status === 'voided');
         const refundedOrders = sessionOrders.filter((o) => o.status === 'refunded');
 
-        const grossSales = completedOrders.reduce((sum, o) => sum + o.subtotal, 0);
-        const discounts = completedOrders.reduce((sum, o) => sum + o.orderDiscountAmount, 0);
-        const refunds = refundedOrders.reduce((sum, o) => sum + o.total, 0);
-        const netSales = grossSales - discounts - refunds;
-        const taxableAmount = completedOrders.reduce((sum, o) => sum + o.taxableAmount, 0);
-        const exemptAmount = completedOrders.reduce((sum, o) => sum + o.exemptAmount, 0);
-        const gctCollected = completedOrders.reduce((sum, o) => sum + o.gctAmount, 0);
+        const grossSales = d2(completedOrders.reduce((sum, o) => sum.plus(o.subtotal), new Decimal(0)));
+        const discounts = d2(completedOrders.reduce((sum, o) => sum.plus(o.orderDiscountAmount), new Decimal(0)));
+        const refunds = d2(refundedOrders.reduce((sum, o) => sum.plus(o.total), new Decimal(0)));
+        const netSales = d2(new Decimal(grossSales).minus(discounts).minus(refunds));
+        const taxableAmount = d2(completedOrders.reduce((sum, o) => sum.plus(o.taxableAmount), new Decimal(0)));
+        const exemptAmount = d2(completedOrders.reduce((sum, o) => sum.plus(o.exemptAmount), new Decimal(0)));
+        const gctCollected = d2(completedOrders.reduce((sum, o) => sum.plus(o.gctAmount), new Decimal(0)));
 
-        const paymentMap = new Map<PaymentMethodType, { count: number; total: number }>();
+        const zPaymentMap = new Map<PaymentMethodType, { count: number; total: Decimal }>();
         completedOrders.forEach((order) => {
           order.payments
             .filter((p) => p.status === 'completed')
             .forEach((payment) => {
-              const existing = paymentMap.get(payment.method) || { count: 0, total: 0 };
-              paymentMap.set(payment.method, {
+              const existing = zPaymentMap.get(payment.method) || { count: 0, total: new Decimal(0) };
+              zPaymentMap.set(payment.method, {
                 count: existing.count + 1,
-                total: existing.total + payment.amount,
+                total: existing.total.plus(payment.amount),
               });
             });
         });
 
-        const paymentBreakdown = Array.from(paymentMap.entries()).map(([method, data]) => ({
+        const paymentBreakdown = Array.from(zPaymentMap.entries()).map(([method, pData]) => ({
           method,
           methodLabel: getPaymentMethodLabel(method),
-          transactionCount: data.count,
-          total: data.total,
+          transactionCount: pData.count,
+          total: d2(pData.total),
         }));
 
         const cashPayments = paymentBreakdown.find((p) => p.method === 'cash');
         const cashSales = cashPayments?.total || 0;
-        const cashRefunds = refundedOrders
+        const cashRefunds = d2(refundedOrders
           .flatMap((o) => o.payments)
           .filter((p) => p.method === 'cash' && p.status === 'refunded')
-          .reduce((sum, p) => sum + p.amount, 0);
-        const cashPayouts = session.cashMovements
+          .reduce((sum, p) => sum.plus(p.amount), new Decimal(0)));
+        const cashPayouts = d2(session.cashMovements
           .filter((m) => m.type === 'payout' || m.type === 'drop')
-          .reduce((sum, m) => sum + Math.abs(m.amount), 0);
+          .reduce((sum, m) => sum.plus(new Decimal(m.amount).abs()), new Decimal(0)));
 
         const now = new Date();
         const reportNumber = `Z-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${get().zReports.length + 1}`;
@@ -993,13 +1001,13 @@ export const usePosStore = create<PosState>()(
         const returnNumber = `RTN-${now.getFullYear()}-${(get().returns.length + 1).toString().padStart(4, '0')}`;
 
         // Build return items and calculate total
-        let totalRefund = 0;
+        let totalRefundDec = new Decimal(0);
         const returnItems: PosReturnItem[] = itemsToReturn.map((item) => {
           const orderItem = order.items.find((i) => i.id === item.itemId);
           if (!orderItem) return null;
-          const unitPrice = orderItem.lineTotal / orderItem.quantity;
-          const refundAmount = unitPrice * item.quantity;
-          totalRefund += refundAmount;
+          const unitPrice = d2(new Decimal(orderItem.lineTotal).dividedBy(orderItem.quantity));
+          const refundAmount = d2(new Decimal(unitPrice).times(item.quantity));
+          totalRefundDec = totalRefundDec.plus(refundAmount);
           return {
             id: uuidv4(),
             orderItemId: item.itemId,
@@ -1017,6 +1025,7 @@ export const usePosStore = create<PosState>()(
 
         if (returnItems.length === 0) return null;
 
+        const totalRefund = d2(totalRefundDec);
         const posReturn: PosReturn = {
           id: uuidv4(),
           orderId,

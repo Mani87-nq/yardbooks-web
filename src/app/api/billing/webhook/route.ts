@@ -26,6 +26,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
+  // ── Idempotency check ──────────────────────────────────────────────
+  // Stripe may deliver the same event multiple times. We track each
+  // event ID so duplicate deliveries are safely ignored.
+  const eventId: string | undefined = event.id;
+  if (eventId) {
+    const existing = await prisma.webhookEvent.findUnique({ where: { id: eventId } });
+    if (existing) {
+      // Already processed — acknowledge without re-processing
+      console.log(`Duplicate webhook event ignored: ${eventId}`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -104,6 +117,13 @@ export async function POST(request: NextRequest) {
 
       default:
         console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    // ── Record event as processed ──────────────────────────────────────
+    if (eventId) {
+      await prisma.webhookEvent.create({
+        data: { id: eventId, source: 'stripe', eventType: event.type },
+      });
     }
 
     return NextResponse.json({ received: true });

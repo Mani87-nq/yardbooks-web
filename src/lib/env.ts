@@ -29,6 +29,12 @@ const serverEnvSchema = z.object({
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
 
+  // WiPay (optional — JMD invoice payments disabled without it)
+  WIPAY_ACCOUNT_NUMBER: z.string().optional(),
+  WIPAY_API_KEY: z.string().optional(),
+  WIPAY_DEVELOPER_ID: z.string().optional(),
+  WIPAY_ENVIRONMENT: z.enum(['sandbox', 'live']).default('sandbox'),
+
   // Sentry (optional — monitoring disabled without it)
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
 
