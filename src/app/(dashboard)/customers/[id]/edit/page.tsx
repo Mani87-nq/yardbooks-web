@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, Button } from '@/components/ui';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useAppStore } from '@/store/appStore';
 import type { JamaicanParish } from '@/types';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
@@ -30,21 +30,13 @@ export default function EditCustomerPage() {
   const router = useRouter();
   const params = useParams();
   const customerId = params?.id as string;
-  const { hasPermission, isLoading: permLoading } = usePermission();
+  const { can } = usePermissions();
 
   const { customers, updateCustomer } = useAppStore();
   const customer = customers.find((c) => c.id === customerId);
 
   // Permission check - block users without customers.edit
-  if (permLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!hasPermission('customers.edit')) {
+  if (!can('customers:edit')) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, Button, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { PermissionGate } from '@/hooks/usePermission';
+import { PermissionGate } from '@/components/PermissionGate';
 import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate } from '@/lib/utils';
 import {
