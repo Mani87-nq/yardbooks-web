@@ -50,6 +50,7 @@ export default function InventoryPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductAPI | null>(null);
   const [saveError, setSaveError] = useState('');
+  const [showCostOfGoods, setShowCostOfGoods] = useState(false);
 
   // API hooks
   const { data: productsResponse, isLoading, error: fetchError, refetch } = useProducts({
@@ -202,7 +203,16 @@ export default function InventoryPage() {
           <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
           <p className="text-gray-500">Manage your products and stock levels</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={showCostOfGoods}
+              onChange={(e) => setShowCostOfGoods(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            COGS
+          </label>
           <PermissionGate permission="inventory:create">
             <Link href="/inventory/stock-count">
               <Button variant="outline" icon={<ArrowPathIcon className="w-4 h-4" />}>
@@ -320,7 +330,8 @@ export default function InventoryPage() {
               <TableHead>SKU/Barcode</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Cost</TableHead>
+              {showCostOfGoods && <TableHead>Cost</TableHead>}
+              {showCostOfGoods && <TableHead>Margin</TableHead>}
               <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
@@ -329,7 +340,7 @@ export default function InventoryPage() {
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={showCostOfGoods ? 9 : 7} className="text-center py-12 text-gray-500">
                   <p className="mb-4">No products found</p>
                   <PermissionGate permission="inventory:create">
                     <Button onClick={() => handleOpenModal()}>Add your first product</Button>
@@ -369,9 +380,28 @@ export default function InventoryPage() {
                     </TableCell>
                     <TableCell className="text-gray-500">{product.category || '-'}</TableCell>
                     <TableCell className="font-medium">{formatJMD(product.unitPrice)}</TableCell>
-                    <TableCell className="text-gray-500">
-                      {product.costPrice ? formatJMD(product.costPrice) : '-'}
-                    </TableCell>
+                    {showCostOfGoods && (
+                      <TableCell className="text-gray-500">
+                        {product.costPrice ? formatJMD(product.costPrice) : '-'}
+                      </TableCell>
+                    )}
+                    {showCostOfGoods && (
+                      <TableCell>
+                        {product.costPrice && product.unitPrice ? (
+                          <span className={
+                            ((product.unitPrice - product.costPrice) / product.unitPrice) * 100 > 30
+                              ? 'text-emerald-600 font-medium'
+                              : ((product.unitPrice - product.costPrice) / product.unitPrice) * 100 > 10
+                              ? 'text-orange-600 font-medium'
+                              : 'text-red-600 font-medium'
+                          }>
+                            {(((product.unitPrice - product.costPrice) / product.unitPrice) * 100).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className={

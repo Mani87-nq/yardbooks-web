@@ -22,7 +22,12 @@ import type {
   OpenSessionData,
   CloseSessionData,
   ZReport,
+  PosReturn,
+  PosReturnItem,
+  ProductShortcut,
 } from '@/types/pos';
+import { DEFAULT_GRID_SETTINGS } from '@/types/pos';
+import type { PosGridSettings } from '@/types/pos';
 
 // ============================================
 // STORE STATE INTERFACE
@@ -94,6 +99,35 @@ interface PosState {
   // Report Actions
   generateZReport: (sessionId: string, generatedBy: string) => ZReport;
   getZReport: (id: string) => ZReport | undefined;
+
+  // Return Actions
+  returns: PosReturn[];
+  processReturn: (
+    orderId: string,
+    itemsToReturn: { itemId: string; quantity: number; condition?: 'resellable' | 'damaged' | 'defective' }[],
+    reason: string,
+    reasonCategory: string,
+    refundMethod: PaymentMethodType,
+    processedBy: string,
+  ) => { returnNumber: string; totalRefund: number } | null;
+  getReturnableQuantity: (orderId: string, itemId: string) => number;
+  getReturnsByOrder: (orderId: string) => PosReturn[];
+
+  // Grid Settings Actions
+  gridSettings: PosGridSettings;
+  gridShortcuts: ProductShortcut[];
+  updateGridSettings: (updates: Partial<PosGridSettings>) => void;
+  addGridShortcut: (shortcut: Omit<ProductShortcut, 'position'>) => void;
+  removeGridShortcut: (productId: string) => void;
+  updateGridShortcut: (productId: string, updates: Partial<ProductShortcut>) => void;
+  reorderGridShortcuts: (shortcuts: ProductShortcut[]) => void;
+  // Branch-compatible aliases for grid-settings page
+  addProductShortcut: (productId: string, color: string, icon: string) => void;
+  removeProductShortcut: (productId: string) => void;
+  reorderShortcuts: (shortcuts: ProductShortcut[]) => void;
+  updateShortcutColor: (productId: string, color: string) => void;
+  updateShortcutIcon: (productId: string, icon: string) => void;
+  resetGridToDefaults: () => void;
 
   // Utility
   generateOrderNumber: () => string;
@@ -193,6 +227,9 @@ export const usePosStore = create<PosState>()(
       currentCart: EMPTY_CART,
       currentSessionId: null,
       currentTerminalId: null,
+      returns: [],
+      gridSettings: DEFAULT_GRID_SETTINGS,
+      gridShortcuts: [],
 
       generateOrderNumber: () => {
         const { settings } = get();
@@ -943,6 +980,168 @@ export const usePosStore = create<PosState>()(
       },
 
       getZReport: (id) => get().zReports.find((r) => r.id === id),
+
+      // ============================================
+      // RETURN ACTIONS
+      // ============================================
+
+      processReturn: (orderId, itemsToReturn, reason, _reasonCategory, refundMethod, processedBy) => {
+        const order = get().orders.find((o) => o.id === orderId);
+        if (!order) return null;
+
+        const now = new Date();
+        const returnNumber = `RTN-${now.getFullYear()}-${(get().returns.length + 1).toString().padStart(4, '0')}`;
+
+        // Build return items and calculate total
+        let totalRefund = 0;
+        const returnItems: PosReturnItem[] = itemsToReturn.map((item) => {
+          const orderItem = order.items.find((i) => i.id === item.itemId);
+          if (!orderItem) return null;
+          const unitPrice = orderItem.lineTotal / orderItem.quantity;
+          const refundAmount = unitPrice * item.quantity;
+          totalRefund += refundAmount;
+          return {
+            id: uuidv4(),
+            orderItemId: item.itemId,
+            productId: orderItem.productId,
+            name: orderItem.name,
+            sku: orderItem.sku,
+            quantity: item.quantity,
+            unitPrice: orderItem.unitPrice,
+            refundAmount,
+            returnReason: 'other' as const,
+            condition: item.condition || 'resellable',
+            restockItem: item.condition === 'resellable' || !item.condition,
+          };
+        }).filter(Boolean) as PosReturnItem[];
+
+        if (returnItems.length === 0) return null;
+
+        const posReturn: PosReturn = {
+          id: uuidv4(),
+          orderId,
+          orderNumber: order.orderNumber,
+          sessionId: get().currentSessionId || undefined,
+          terminalId: get().currentTerminalId || undefined,
+          customerId: order.customerId,
+          customerName: order.customerName,
+          items: returnItems,
+          totalRefundAmount: totalRefund,
+          refundMethod: refundMethod === 'store_credit' ? 'store_credit' : refundMethod === 'jam_dex' ? 'original_method' : 'cash',
+          status: 'completed',
+          returnReason: 'other',
+          notes: reason,
+          processedBy,
+          createdAt: now,
+          completedAt: now,
+        };
+
+        // Update order status to 'refunded'
+        set((state) => ({
+          returns: [...state.returns, posReturn],
+          orders: state.orders.map((o) =>
+            o.id === orderId
+              ? { ...o, status: 'refunded' as PosOrderStatus, refundReason: reason, updatedAt: now }
+              : o
+          ),
+        }));
+
+        // Add cash movement to session if cash refund
+        if (refundMethod === 'cash' && get().currentSessionId) {
+          get().addCashMovement(
+            get().currentSessionId!,
+            'refund',
+            -Math.abs(totalRefund),
+            `Return: ${returnNumber}`,
+          );
+        }
+
+        return { returnNumber, totalRefund };
+      },
+
+      getReturnableQuantity: (orderId, itemId) => {
+        const order = get().orders.find((o) => o.id === orderId);
+        if (!order) return 0;
+
+        // Find item by ID (order item ID)
+        const orderItem = order.items.find((i) => i.id === itemId);
+        if (!orderItem) return 0;
+
+        // Sum quantities already returned for this item
+        const alreadyReturned = get().returns
+          .filter((r) => r.orderId === orderId && r.status !== 'rejected')
+          .flatMap((r) => r.items)
+          .filter((i) => i.orderItemId === itemId)
+          .reduce((sum, i) => sum + i.quantity, 0);
+
+        return Math.max(0, orderItem.quantity - alreadyReturned);
+      },
+
+      getReturnsByOrder: (orderId) => get().returns.filter((r) => r.orderId === orderId),
+
+      // ============================================
+      // GRID SETTINGS ACTIONS
+      // ============================================
+
+      updateGridSettings: (updates) => {
+        set((state) => ({
+          gridSettings: { ...state.gridSettings, ...updates },
+        }));
+      },
+
+      addGridShortcut: (shortcut) => {
+        set((state) => {
+          const maxPosition = state.gridShortcuts.reduce((max, s) => Math.max(max, s.position), 0);
+          const newShortcut: ProductShortcut = {
+            ...shortcut,
+            position: maxPosition + 1,
+          };
+          return {
+            gridShortcuts: [...state.gridShortcuts, newShortcut],
+          };
+        });
+      },
+
+      removeGridShortcut: (productId) => {
+        set((state) => ({
+          gridShortcuts: state.gridShortcuts.filter((s) => s.productId !== productId),
+        }));
+      },
+
+      updateGridShortcut: (productId, updates) => {
+        set((state) => ({
+          gridShortcuts: state.gridShortcuts.map((s) =>
+            s.productId === productId ? { ...s, ...updates } : s
+          ),
+        }));
+      },
+
+      reorderGridShortcuts: (shortcuts) => {
+        set({ gridShortcuts: shortcuts });
+      },
+
+      // Branch-compatible aliases for grid-settings page
+      addProductShortcut: (productId, color, icon) => {
+        get().addGridShortcut({ productId, color, icon });
+      },
+      removeProductShortcut: (productId) => {
+        get().removeGridShortcut(productId);
+      },
+      reorderShortcuts: (shortcuts) => {
+        get().reorderGridShortcuts(shortcuts);
+      },
+      updateShortcutColor: (productId, color) => {
+        get().updateGridShortcut(productId, { color });
+      },
+      updateShortcutIcon: (productId, icon) => {
+        get().updateGridShortcut(productId, { icon });
+      },
+      resetGridToDefaults: () => {
+        set({
+          gridSettings: { ...DEFAULT_GRID_SETTINGS },
+          gridShortcuts: [],
+        });
+      },
     }),
     {
       name: 'yaadbooks-pos-web',
@@ -953,6 +1152,9 @@ export const usePosStore = create<PosState>()(
         terminals: state.terminals,
         settings: state.settings,
         zReports: state.zReports,
+        returns: state.returns,
+        gridSettings: state.gridSettings,
+        gridShortcuts: state.gridShortcuts,
         currentCart: state.currentCart,
         currentSessionId: state.currentSessionId,
         currentTerminalId: state.currentTerminalId,
