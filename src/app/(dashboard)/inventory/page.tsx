@@ -51,7 +51,6 @@ export default function InventoryPage() {
   const [editingProduct, setEditingProduct] = useState<ProductAPI | null>(null);
   const [saveError, setSaveError] = useState('');
   const [showCostOfGoods, setShowCostOfGoods] = useState(false);
-  const [showCostOfGoods, setShowCostOfGoods] = useState(false);
 
   // API hooks
   const { data: productsResponse, isLoading, error: fetchError, refetch } = useProducts({
