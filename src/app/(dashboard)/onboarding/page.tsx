@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
 import { api } from '@/lib/api-client';
+import type { Company } from '@/types';
 import {
   BuildingOffice2Icon,
   CurrencyDollarIcon,
@@ -101,21 +102,23 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      // Update company details
+      // Update company details + mark onboarding complete in one call
       if (activeCompany) {
-        await api.put(`/api/v1/companies/${activeCompany.id}`, {
+        const updated = await api.put<Company>(`/api/v1/companies/${activeCompany.id}`, {
           businessName: data.businessName,
-          trn: data.trn || undefined,
+          trnNumber: data.trn || undefined,
           gctNumber: data.gctNumber || undefined,
           industry: data.industry || undefined,
-          street: data.street || undefined,
-          city: data.city || undefined,
+          address: data.street || undefined,
           parish: data.parish || undefined,
           phone: data.phone || undefined,
-          fiscalYearStart: parseInt(data.fiscalYearStart),
-          currency: data.currency,
-          defaultPaymentTerms: parseInt(data.defaultPaymentTerms),
+          fiscalYearEnd: parseInt(data.fiscalYearStart),
+          onboardingCompleted: true,
         });
+
+        // Update store so the layout stops redirecting to onboarding
+        useAppStore.getState().setActiveCompany(updated);
+        useAppStore.getState().setOnboarded(true);
       }
 
       // Create first customer if provided
@@ -124,13 +127,6 @@ export default function OnboardingPage() {
           name: data.customerName,
           email: data.customerEmail || undefined,
           phone: data.customerPhone || undefined,
-        });
-      }
-
-      // Mark onboarding complete
-      if (activeCompany) {
-        await api.put(`/api/v1/companies/${activeCompany.id}`, {
-          onboardingCompleted: true,
         });
       }
 

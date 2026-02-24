@@ -51,6 +51,7 @@ export interface Company {
   stripeSubscriptionId?: string;
   subscriptionStartDate?: Date | string;
   subscriptionEndDate?: Date | string;
+  onboardingCompleted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

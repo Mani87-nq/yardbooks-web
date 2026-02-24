@@ -139,7 +139,7 @@ export function useDataHydration() {
           return;
         }
 
-        store.getState().setOnboarded(true);
+        store.getState().setOnboarded(activeCompany.onboardingCompleted === true);
 
         // ── Step 3: Fetch company-scoped data in parallel ────────────
         const [

@@ -64,6 +64,7 @@ const updateCompanySchema = z.object({
   primaryColor: z.string().max(20).optional(),
   accentColor: z.string().max(20).optional(),
   invoiceFooter: z.string().max(2000).nullable().optional(),
+  onboardingCompleted: z.boolean().optional(),
 });
 
 export async function PUT(request: NextRequest, context: RouteContext) {

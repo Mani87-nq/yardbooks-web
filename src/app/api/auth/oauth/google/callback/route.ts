@@ -329,8 +329,9 @@ export async function GET(request: NextRequest) {
       data: { lastLoginAt: new Date() },
     });
 
-    // ------- Redirect to dashboard with tokens -------
-    const response = NextResponse.redirect(`${appUrl}/dashboard`);
+    // ------- Redirect: new users → onboarding, returning → dashboard -------
+    const redirectPath = isNewUser ? '/dashboard/onboarding' : '/dashboard';
+    const response = NextResponse.redirect(`${appUrl}${redirectPath}`);
 
     // Set refresh token as httpOnly cookie
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
