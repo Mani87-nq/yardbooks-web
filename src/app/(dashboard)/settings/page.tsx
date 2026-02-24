@@ -29,6 +29,7 @@ import {
   PlusIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline';
 
 // ============================================
@@ -764,6 +765,7 @@ export default function SettingsPage() {
     { id: 'billing', name: 'Billing', icon: CreditCardIcon },
     { id: 'security', name: 'Security', icon: ShieldCheckIcon },
     { id: 'data', name: 'Data', icon: CloudArrowUpIcon },
+    { id: 'tax', name: 'GCT / Tax', icon: CalculatorIcon },
   ];
 
   return (
@@ -1352,6 +1354,116 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {activeTab === 'tax' && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CalculatorIcon className="w-5 h-5 text-emerald-600" />
+                    GCT / Tax Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* GCT Rate */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        GCT Rate (%)
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={(posSettings.gctRate * 100).toFixed(2)}
+                          onChange={(e) => {
+                            const rate = parseFloat(e.target.value) / 100;
+                            if (!isNaN(rate) && rate >= 0 && rate <= 1) {
+                              updatePosSettings({ gctRate: rate });
+                            }
+                          }}
+                          className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        />
+                        <span className="text-sm text-gray-500">
+                          Current: {(posSettings.gctRate * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Jamaica&apos;s standard GCT rate is 15%. Set to 0 to disable GCT.
+                      </p>
+                    </div>
+
+                    {/* GCT Registration Number */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        GCT Registration Number
+                      </label>
+                      <input
+                        type="text"
+                        value={posSettings.gctRegistrationNumber || ''}
+                        onChange={(e) => updatePosSettings({ gctRegistrationNumber: e.target.value })}
+                        placeholder="Enter your GCT registration number"
+                        className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        This will be displayed on receipts and invoices.
+                      </p>
+                    </div>
+
+                    {/* Tax Included In Price */}
+                    <div className="flex items-center justify-between py-3 border-t border-gray-100">
+                      <div>
+                        <p className="font-medium text-gray-900">Tax Included in Prices</p>
+                        <p className="text-sm text-gray-500">
+                          When enabled, product prices already include GCT
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={posSettings.taxIncludedInPrice}
+                          onChange={(e) => updatePosSettings({ taxIncludedInPrice: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
+                      </label>
+                    </div>
+
+                    {/* Business TRN */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Business TRN (Tax Registration Number)
+                      </label>
+                      <input
+                        type="text"
+                        value={posSettings.businessTRN || ''}
+                        onChange={(e) => updatePosSettings({ businessTRN: e.target.value })}
+                        placeholder="000-000-000"
+                        className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Your Jamaica Tax Administration TRN number.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Info */}
+              <div className="p-4 bg-blue-50 rounded-lg flex items-start gap-3">
+                <CalculatorIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-600">
+                  <p className="font-medium mb-1">About GCT</p>
+                  <p>
+                    General Consumption Tax (GCT) is a value-added tax applied to goods and services in Jamaica.
+                    Changes here affect all future POS transactions and invoices.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
