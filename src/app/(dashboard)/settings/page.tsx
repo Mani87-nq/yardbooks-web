@@ -169,15 +169,7 @@ function TeamTab() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('yaadbooks_access_token');
-      const res = await fetch('/api/v1/team', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Failed to load team members');
-      }
-      const json = await res.json();
+      const json = await api.get<{ data: TeamMember[]; meta: TeamMeta }>('/api/v1/team');
       setMembers(json.data);
       setMeta(json.meta);
     } catch (err) {
@@ -197,19 +189,7 @@ function TeamTab() {
     setInviteError(null);
     setInviteSuccess(null);
     try {
-      const token = localStorage.getItem('yaadbooks_access_token');
-      const res = await fetch('/api/v1/team/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.detail || 'Failed to invite member');
-      }
+      const json = await api.post<{ message?: string }>('/api/v1/team/invite', { email: inviteEmail, role: inviteRole });
       setInviteSuccess(json.message || 'Member added successfully!');
       setInviteEmail('');
       setInviteRole('STAFF');
@@ -230,19 +210,7 @@ function TeamTab() {
   const handleRoleChange = async (member: TeamMember, newRole: TeamRole) => {
     setActionLoading(member.id);
     try {
-      const token = localStorage.getItem('yaadbooks_access_token');
-      const res = await fetch(`/api/v1/team/${member.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.detail || 'Failed to update role');
-      }
+      await api.put(`/api/v1/team/${member.id}`, { role: newRole });
       // Update local state
       setMembers((prev) =>
         prev.map((m) => (m.id === member.id ? { ...m, role: newRole } : m))
@@ -259,15 +227,7 @@ function TeamTab() {
     if (!memberToRemove) return;
     setActionLoading(memberToRemove.id);
     try {
-      const token = localStorage.getItem('yaadbooks_access_token');
-      const res = await fetch(`/api/v1/team/${memberToRemove.id}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.detail || 'Failed to remove member');
-      }
+      await api.delete(`/api/v1/team/${memberToRemove.id}`);
       setMembers((prev) => prev.filter((m) => m.id !== memberToRemove.id));
       setMeta((prev) => ({ ...prev, totalMembers: prev.totalMembers - 1 }));
       setShowRemoveModal(false);

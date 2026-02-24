@@ -180,9 +180,23 @@ export default function EditInvoicePage({ params }: PageProps) {
 
       const updatedData = {
         status: resolvedStatus,
+        customerId,
+        issueDate: new Date(issueDate).toISOString(),
         dueDate: new Date(dueDate).toISOString(),
-        notes: notes || undefined,
-        terms: terms || undefined,
+        notes: notes || null,
+        terms: terms || null,
+        discount,
+        discountType: discountType.toUpperCase(),
+        customerPONumber: customerPONumber || null,
+        items: items.map((item) => ({
+          productId: item.productId || null,
+          description: item.description || '',
+          quantity: item.quantity || 1,
+          unitPrice: item.unitPrice || 0,
+          gctRate: (item.gctRate || 'standard').toUpperCase(),
+          gctAmount: item.gctAmount || 0,
+          total: item.total || 0,
+        })),
       };
 
       await updateInvoiceMutation.mutateAsync({ id: invoice.id, data: updatedData });
