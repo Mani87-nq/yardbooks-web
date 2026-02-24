@@ -103,9 +103,8 @@ function LoginContent() {
 
   /** Complete login after receiving full tokens (from initial login or 2FA verify). */
   const completeLogin = (data: LoginResponse | TwoFactorVerifyResponse) => {
-    // Store access token in memory and cookie
+    // Store access token in memory (cookie is already set by the server response)
     setAccessToken(data.accessToken);
-    document.cookie = `accessToken=${data.accessToken}; path=/; max-age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
 
     // Map API role to app role
     const apiRole = data.companies[0]?.role?.toLowerCase() ?? 'admin';
@@ -149,7 +148,11 @@ function LoginContent() {
       setActiveCompany(loginCompanies.find(c => c.id === active.id) ?? loginCompanies[0]);
     }
 
-    router.push('/dashboard');
+    // Redirect to the page the user was trying to access, or dashboard
+    const redirectTo = searchParams.get('from') || '/dashboard';
+    // Prevent open redirect — only allow relative paths
+    const safePath = redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/dashboard';
+    router.push(safePath);
   };
 
   const handleLogin = async (e: React.FormEvent) => {

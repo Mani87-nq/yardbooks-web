@@ -49,7 +49,12 @@ async function extractTempTokenUserId(request: NextRequest): Promise<string | nu
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest('Invalid JSON in request body');
+    }
     const parsed = backupSchema.safeParse(body);
     if (!parsed.success) return badRequest('Invalid backup code format');
 
@@ -173,10 +178,11 @@ export async function POST(request: NextRequest) {
 
       response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
       response.cookies.set('accessToken', accessToken, {
+        httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60,
+        maxAge: 15 * 60, // 15 minutes — matches JWT expiry
       });
 
       return response;

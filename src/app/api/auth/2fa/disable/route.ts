@@ -20,10 +20,15 @@ const disableSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, error: authError } = await requirePermission(request, 'settings:read');
+    const { user, error: authError } = await requirePermission(request, 'settings:update');
     if (authError) return authError;
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest('Invalid JSON in request body');
+    }
     const parsed = disableSchema.safeParse(body);
     if (!parsed.success) return badRequest('Either password or TOTP code is required');
 

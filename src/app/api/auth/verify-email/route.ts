@@ -14,7 +14,12 @@ const verifySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest('Invalid JSON in request body');
+    }
     const parsed = verifySchema.safeParse(body);
     if (!parsed.success) return badRequest('Invalid token');
 

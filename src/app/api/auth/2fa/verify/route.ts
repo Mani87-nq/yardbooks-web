@@ -48,7 +48,12 @@ async function extractTempTokenUserId(request: NextRequest): Promise<string | nu
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest('Invalid JSON in request body');
+    }
     const parsed = verifySchema.safeParse(body);
     if (!parsed.success) return badRequest('Invalid code format');
 
@@ -63,8 +68,8 @@ export async function POST(request: NextRequest) {
       }
       userId = tempUserId;
     } else {
-      // Setup flow: require full access token with settings:read permission
-      const { user, error: authError } = await requirePermission(request, 'settings:read');
+      // Setup flow: require full access token with settings:update permission
+      const { user, error: authError } = await requirePermission(request, 'settings:update');
       if (authError) return authError;
       userId = user!.sub;
     }
@@ -180,10 +185,11 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
     response.cookies.set('accessToken', accessToken, {
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 15 * 60, // 15 minutes — matches JWT expiry
     });
 
     return response;
