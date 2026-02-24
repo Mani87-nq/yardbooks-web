@@ -87,12 +87,17 @@ export async function middleware(request: NextRequest) {
     if (refreshCookie) {
       try {
         const origin = request.nextUrl.origin;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s max
+
         const refreshRes = await fetch(`${origin}/api/auth/refresh`, {
           method: 'POST',
           headers: {
             'Cookie': `${REFRESH_TOKEN_COOKIE}=${refreshCookie}`,
           },
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
 
         if (refreshRes.ok) {
           const data = await refreshRes.json();

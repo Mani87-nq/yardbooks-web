@@ -1,6 +1,7 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { QueryProvider } from '@/providers/QueryProvider';
 import { useDataHydration } from '@/hooks/useDataHydration';
 
 export function DashboardLayoutClient({
@@ -59,5 +60,9 @@ export function DashboardLayoutClient({
   }
 
   // ── Hydrated — render the full dashboard ───────────────────────────
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return (
+    <QueryProvider>
+      <DashboardLayout>{children}</DashboardLayout>
+    </QueryProvider>
+  );
 }
