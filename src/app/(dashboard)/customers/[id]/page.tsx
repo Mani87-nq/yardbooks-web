@@ -192,28 +192,22 @@ export default function CustomerDetailPage() {
                 </div>
               )}
 
-              {customer.address && (
+              {(customer.addressStreet || customer.addressCity || customer.addressParish) && (
                 <div className="flex items-start gap-3">
                   <MapPinIcon className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div className="text-gray-700">
-                    {typeof customer.address === 'string' ? (
-                      <p>{customer.address}</p>
-                    ) : (
-                      <>
-                        {customer.address.street && <p>{customer.address.street}</p>}
-                        <p>
-                          {[customer.address.city, customer.address.parish]
-                            .filter(Boolean)
-                            .join(', ')}
-                        </p>
-                        {customer.address.country && <p>{customer.address.country}</p>}
-                      </>
-                    )}
+                    {customer.addressStreet && <p>{customer.addressStreet}</p>}
+                    <p>
+                      {[customer.addressCity, customer.addressParish]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
+                    {customer.addressCountry && <p>{customer.addressCountry}</p>}
                   </div>
                 </div>
               )}
 
-              {!customer.email && !customer.phone && !customer.address && (
+              {!customer.email && !customer.phone && !customer.addressStreet && !customer.addressCity && !customer.addressParish && (
                 <p className="text-gray-400 text-sm">No contact information provided</p>
               )}
             </div>
