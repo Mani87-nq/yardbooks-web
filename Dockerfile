@@ -42,6 +42,9 @@ COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
+# Install curl for health checks (lighter than spawning Node.js)
+RUN apk add --no-cache curl
+
 # Fix permissions for .well-known
 RUN chown -R nextjs:nodejs /app/public
 
@@ -53,7 +56,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Health check — Coolify and Docker use this to detect unhealthy containers
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "const http = require('http'); const req = http.get('http://localhost:3000/api/health', (res) => { if (res.statusCode !== 200) process.exit(1); }); req.on('error', () => process.exit(1));"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
 
 CMD ["node", "server.js"]

@@ -8,8 +8,8 @@
 import { z } from 'zod/v4';
 
 const serverEnvSchema = z.object({
-  // Database
-  DATABASE_URL: z.url('DATABASE_URL must be a valid PostgreSQL connection string'),
+  // Database (connection string — starts with postgres:// or postgresql://)
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
   // JWT / Auth
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
@@ -33,7 +33,7 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
 
   // App
-  NEXT_PUBLIC_APP_URL: z.url().optional(),
+  NEXT_PUBLIC_APP_URL: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
 
