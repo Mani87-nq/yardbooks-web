@@ -40,30 +40,34 @@ interface ExpenseAPI {
 }
 
 const EXPENSE_CATEGORIES = [
-  'Advertising & Marketing',
-  'Bank Charges',
-  'Cleaning & Maintenance',
-  'Equipment & Tools',
-  'Insurance',
-  'Interest',
-  'Legal & Professional',
-  'Office Supplies',
-  'Rent',
-  'Repairs & Maintenance',
-  'Salaries & Wages',
-  'Telephone & Internet',
-  'Transportation',
-  'Travel',
-  'Utilities',
-  'Miscellaneous',
+  { value: 'ADVERTISING', label: 'Advertising & Marketing' },
+  { value: 'BANK_FEES', label: 'Bank Charges' },
+  { value: 'CONTRACTOR', label: 'Contractor' },
+  { value: 'EQUIPMENT', label: 'Equipment & Tools' },
+  { value: 'INSURANCE', label: 'Insurance' },
+  { value: 'INVENTORY', label: 'Inventory' },
+  { value: 'MEALS', label: 'Meals' },
+  { value: 'OFFICE_SUPPLIES', label: 'Office Supplies' },
+  { value: 'PROFESSIONAL_SERVICES', label: 'Legal & Professional' },
+  { value: 'RENT', label: 'Rent' },
+  { value: 'REPAIRS', label: 'Repairs & Maintenance' },
+  { value: 'SALARIES', label: 'Salaries & Wages' },
+  { value: 'SOFTWARE', label: 'Software' },
+  { value: 'TAXES', label: 'Taxes' },
+  { value: 'TELEPHONE', label: 'Telephone & Internet' },
+  { value: 'TRAVEL', label: 'Travel' },
+  { value: 'UTILITIES', label: 'Utilities' },
+  { value: 'VEHICLE', label: 'Vehicle / Transportation' },
+  { value: 'OTHER', label: 'Other / Miscellaneous' },
 ];
 
 const PAYMENT_METHODS = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'cheque', label: 'Cheque' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'debit_card', label: 'Debit Card' },
+  { value: 'CASH', label: 'Cash' },
+  { value: 'CHEQUE', label: 'Cheque' },
+  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+  { value: 'CREDIT_CARD', label: 'Credit Card' },
+  { value: 'DEBIT_CARD', label: 'Debit Card' },
+  { value: 'MOBILE_MONEY', label: 'Mobile Money' },
 ];
 
 export default function ExpensesPage() {
@@ -111,7 +115,7 @@ export default function ExpensesPage() {
     category: '',
     date: new Date().toISOString().split('T')[0],
     vendorId: '',
-    paymentMethod: 'cash',
+    paymentMethod: 'CASH',
     reference: '',
     notes: '',
     isRecurring: false,
@@ -142,7 +146,7 @@ export default function ExpensesPage() {
         category: '',
         date: new Date().toISOString().split('T')[0],
         vendorId: '',
-        paymentMethod: 'cash',
+        paymentMethod: 'CASH',
         reference: '',
         notes: '',
         isRecurring: false,
@@ -234,10 +238,10 @@ export default function ExpensesPage() {
       setFormData({
         description: extracted.vendor || '',
         amount: String(extracted.total || ''),
-        category: EXPENSE_CATEGORIES[0],
+        category: EXPENSE_CATEGORIES[0].value,
         date: parsedDate,
         vendorId: '',
-        paymentMethod: extracted.paymentMethod || 'cash',
+        paymentMethod: (extracted.paymentMethod || 'CASH').toUpperCase(),
         reference: '',
         notes: `Scanned from receipt (confidence: ${extracted.confidence})`,
         isRecurring: false,
@@ -254,6 +258,11 @@ export default function ExpensesPage() {
       setScanning(false);
     }
   };
+
+  const getCategoryLabel = (value: string) =>
+    EXPENSE_CATEGORIES.find(c => c.value === value)?.label || value.replace(/_/g, ' ');
+  const getPaymentLabel = (value: string) =>
+    PAYMENT_METHODS.find(p => p.value === value)?.label || value.replace(/_/g, ' ');
 
   const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
   const thisMonthExpenses = allExpenses.filter(e => {
@@ -324,7 +333,7 @@ export default function ExpensesPage() {
           <div className="p-4">
             <p className="text-sm text-gray-500">Top Category</p>
             <p className="text-lg font-bold text-emerald-600 truncate">
-              {isLoading ? '-' : topCategory ? topCategory[0] : 'N/A'}
+              {isLoading ? '-' : topCategory ? getCategoryLabel(topCategory[0]) : 'N/A'}
             </p>
           </div>
         </Card>
@@ -354,7 +363,7 @@ export default function ExpensesPage() {
           >
             <option value="all">All Categories</option>
             {EXPENSE_CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
             ))}
           </select>
           <Input
@@ -423,11 +432,11 @@ export default function ExpensesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="default">{expense.category}</Badge>
+                    <Badge variant="default">{getCategoryLabel(expense.category)}</Badge>
                   </TableCell>
                   <TableCell className="text-gray-500">{expense.vendor?.name || '-'}</TableCell>
-                  <TableCell className="capitalize text-gray-500">
-                    {expense.paymentMethod?.replace('_', ' ') || '-'}
+                  <TableCell className="text-gray-500">
+                    {expense.paymentMethod ? getPaymentLabel(expense.paymentMethod) : '-'}
                   </TableCell>
                   <TableCell className="font-medium text-red-600">
                     {formatJMD(expense.amount)}
@@ -504,7 +513,7 @@ export default function ExpensesPage() {
                 >
                   <option value="">Select category</option>
                   {EXPENSE_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
                   ))}
                 </select>
               </div>
