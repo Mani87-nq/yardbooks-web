@@ -42,6 +42,8 @@ export interface Company {
   fiscalYearEnd?: number;
   logoUri?: string;
   invoiceSettings?: InvoiceSettings;
+  taxSettings?: TaxSettings;
+  receiptSettings?: ReceiptSettings;
   // Subscription & billing
   subscriptionPlan?: SubscriptionPlanType;
   subscriptionStatus?: SubscriptionStatusType;
@@ -63,6 +65,32 @@ export interface InvoiceSettings {
   accentColor: string;
   template: 'classic' | 'modern' | 'minimal' | 'professional';
   footer?: string;
+}
+
+export interface TaxSettings {
+  enabled: boolean;
+  taxName: string; // "GCT", "VAT", "Sales Tax", etc.
+  defaultRate: number; // Decimal format (e.g., 0.15 = 15%)
+  rates: TaxRate[];
+  showTaxOnReceipts: boolean;
+  showTaxBreakdown: boolean;
+  taxIncludedInPrice: boolean; // If true, prices already include tax
+}
+
+export interface TaxRate {
+  id: string;
+  name: string; // "Standard", "Reduced", "Zero-rated", etc.
+  rate: number; // Decimal format (e.g., 0.15 = 15%)
+  description?: string;
+  isDefault?: boolean;
+}
+
+export interface ReceiptSettings {
+  showLogo: boolean;
+  showTaxBreakdown: boolean;
+  headerText?: string;
+  footerText?: string;
+  fontSize?: 'small' | 'medium' | 'large';
 }
 
 export type BusinessType =
