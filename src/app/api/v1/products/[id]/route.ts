@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const parsed = updateProductSchema.safeParse(body);
     if (!parsed.success) return badRequest('Validation failed');
 
-    const product = await prisma.product.update({ where: { id }, data: parsed.data });
+    const product = await prisma.product.update({ where: { id, companyId: companyId! }, data: parsed.data });
     return NextResponse.json(product);
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to update product');
