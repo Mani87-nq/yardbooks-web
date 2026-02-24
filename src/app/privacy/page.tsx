@@ -264,6 +264,7 @@ export default function PrivacyPolicyPage() {
                 <p className="text-gray-600">YaadBooks Limited</p>
                 <p className="text-gray-600">Kingston, Jamaica</p>
                 <p className="text-gray-600">Email: privacy@yaadbooks.com</p>
+                <p className="text-gray-600">Phone: <a href="tel:+18766139119" className="text-emerald-600 hover:text-emerald-700">876-613-9119</a></p>
               </div>
             </section>
 
@@ -293,6 +294,7 @@ export default function PrivacyPolicyPage() {
                 <p className="text-gray-600">Kingston, Jamaica</p>
                 <p className="text-gray-600">Privacy inquiries: privacy@yaadbooks.com</p>
                 <p className="text-gray-600">General support: support@yaadbooks.com</p>
+                <p className="text-gray-600">Phone: <a href="tel:+18766139119" className="text-emerald-600 hover:text-emerald-700">876-613-9119</a></p>
               </div>
             </section>
           </div>

@@ -286,6 +286,7 @@ export default function TermsOfServicePage() {
                 <p className="text-gray-600">Kingston, Jamaica</p>
                 <p className="text-gray-600">Email: legal@yaadbooks.com</p>
                 <p className="text-gray-600">Support: support@yaadbooks.com</p>
+                <p className="text-gray-600">Phone: <a href="tel:+18766139119" className="text-emerald-600 hover:text-emerald-700">876-613-9119</a></p>
               </div>
             </section>
           </div>
@@ -302,7 +303,7 @@ export default function TermsOfServicePage() {
       <footer className="bg-gray-900 text-gray-400 py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm">
-            © 2025 YaadBooks. Made with ❤️ in Jamaica.
+            © 2026 YaadBooks. Made with ❤️ in Jamaica.
           </div>
           <div className="flex gap-6 text-sm">
             <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>

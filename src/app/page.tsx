@@ -563,7 +563,7 @@ export default async function LandingPage() {
               <ul className="space-y-2">
                 <li>📍 Kingston, Jamaica</li>
                 <li>📧 support@yaadbooks.com</li>
-                <li>📞 1-876-XXX-XXXX</li>
+                <li>📞 <a href="tel:+18766139119" className="hover:text-white">876-613-9119</a></li>
               </ul>
             </div>
           </div>

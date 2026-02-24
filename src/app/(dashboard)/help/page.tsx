@@ -286,17 +286,17 @@ export default function HelpPage() {
             </div>
           </a>
           <a
-            href="tel:+18767770000"
+            href="tel:+18766139119"
             className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors"
           >
             <PhoneIcon className="h-6 w-6 text-emerald-600" />
             <div>
               <p className="text-sm font-medium text-gray-900">Phone Support</p>
-              <p className="text-xs text-gray-500">876-777-0000</p>
+              <p className="text-xs text-gray-500">876-613-9119</p>
             </div>
           </a>
           <a
-            href="https://wa.me/18767770000"
+            href="https://wa.me/18766139119"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors"
