@@ -208,7 +208,7 @@ export default function AccountDetailPage({ params }: PageProps) {
             <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
             <div className="space-y-2">
               <Link
-                href={`/accounting/journal/new?account=${account.id}`}
+                href="/accounting/journal"
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
               >
                 New Journal Entry

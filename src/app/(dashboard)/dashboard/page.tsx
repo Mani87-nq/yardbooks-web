@@ -131,9 +131,9 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
             <QuickAction icon={ShoppingCartIcon} title="Point of Sale" href="/pos" color="bg-emerald-600" />
             <QuickAction icon={DocumentTextIcon} title="New Invoice" href="/invoices/new" color="bg-blue-600" />
-            <QuickAction icon={UserGroupIcon} title="Add Customer" href="/customers/new" color="bg-purple-600" />
-            <QuickAction icon={CubeIcon} title="Add Product" href="/inventory/new" color="bg-orange-600" />
-            <QuickAction icon={BanknotesIcon} title="Add Expense" href="/expenses/new" color="bg-red-600" />
+            <QuickAction icon={UserGroupIcon} title="Add Customer" href="/customers" color="bg-purple-600" />
+            <QuickAction icon={CubeIcon} title="Add Product" href="/inventory" color="bg-orange-600" />
+            <QuickAction icon={BanknotesIcon} title="Add Expense" href="/expenses" color="bg-red-600" />
             <QuickAction icon={SparklesIcon} title="AI Assistant" href="/ai" color="bg-indigo-600" />
           </div>
         </CardContent>
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                 {lowStockProducts.slice(0, 5).map((product) => (
                   <Link
                     key={product.id}
-                    href={`/inventory/${product.id}`}
+                    href="/inventory"
                     className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -279,7 +279,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-3">
               <Button variant="secondary" size="sm">
-                <Link href="/reports/gct">View GCT Report</Link>
+                <Link href="/reports">View GCT Report</Link>
               </Button>
               <Button variant="outline" size="sm" className="border-white text-white hover:bg-white/10">
                 <Link href="/settings">Configure Rates</Link>
