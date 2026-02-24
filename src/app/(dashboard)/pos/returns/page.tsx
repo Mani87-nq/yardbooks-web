@@ -21,9 +21,7 @@ import {
 import { printContent, generateTable, generateStatCards, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
 import { useAppStore } from '@/store/appStore';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
-import type { PaymentMethodType, PosOrder, SupervisorApproval } from '@/types/pos';
-import { SupervisorPinModal } from '@/components/pos/SupervisorPinModal';
-import { useToast } from '@/components/ui/Toast';
+import type { PaymentMethodType, PosOrder } from '@/types/pos';
 
 // Reason categories mapping
 const REASON_CATEGORIES: { value: 'defective' | 'wrong_item' | 'changed_mind' | 'price_adjustment' | 'duplicate' | 'other'; label: string }[] = [
@@ -56,7 +54,7 @@ function ProcessReturnModal({
   const [reasonCategory, setReasonCategory] = useState<'defective' | 'wrong_item' | 'changed_mind' | 'price_adjustment' | 'duplicate' | 'other'>('changed_mind');
   const [customReason, setCustomReason] = useState('');
   const [refundMethod, setRefundMethod] = useState<PaymentMethodType>('cash');
-  const { toast } = useToast();
+  const [toastMessage, setToastMessage] = useState('');
 
   const handleQuantityChange = (itemId: string, quantity: number, maxQuantity: number, condition: 'resellable' | 'damaged' | 'defective' = 'resellable') => {
     if (quantity <= 0) {
@@ -94,7 +92,8 @@ function ProcessReturnModal({
 
   const handleSubmit = () => {
     if (Object.keys(selectedItems).length === 0) {
-      toast.warning('Please select at least one item to return');
+      setToastMessage('Please select at least one item to return');
+      setTimeout(() => setToastMessage(''), 3000);
       return;
     }
 
@@ -118,7 +117,6 @@ function ProcessReturnModal({
       <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Process Return</h2>
-          {/* Show all document references */}
           <div className="flex flex-wrap gap-3 mt-2 text-sm">
             <span className="flex items-center gap-1 text-gray-600">
               <ReceiptPercentIcon className="w-4 h-4 text-blue-500" />
@@ -138,6 +136,12 @@ function ProcessReturnModal({
           </div>
           <p className="text-sm text-gray-500 mt-1">Customer: {order.customerName}</p>
         </div>
+
+        {toastMessage && (
+          <div className="mx-6 mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-600">
+            {toastMessage}
+          </div>
+        )}
 
         <div className="p-6 space-y-6">
           {/* Items to return */}
@@ -181,7 +185,7 @@ function ProcessReturnModal({
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, selectedQty - 1, returnableQty, selectedCondition)}
-                              className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center cursor-pointer transition-colors"
+                              className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center cursor-pointer transition-colors"
                               disabled={selectedQty <= 0}
                             >
                               -
@@ -192,7 +196,7 @@ function ProcessReturnModal({
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, selectedQty + 1, returnableQty, selectedCondition)}
-                              className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center cursor-pointer transition-colors"
+                              className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center cursor-pointer transition-colors"
                               disabled={selectedQty >= returnableQty}
                             >
                               +
@@ -200,33 +204,33 @@ function ProcessReturnModal({
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, returnableQty, returnableQty, selectedCondition)}
-                              className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 ml-2 cursor-pointer"
+                              className="text-xs text-blue-600 hover:text-blue-700 ml-2 cursor-pointer"
                             >
                               Max ({returnableQty})
                             </button>
                           </div>
 
-                          {/* Condition selector - only show if item is selected */}
+                          {/* Condition selector */}
                           {selectedQty > 0 && (
                             <div className="flex gap-1 text-xs">
                               <button
                                 type="button"
                                 onClick={() => handleConditionChange(item.id, 'resellable')}
-                                className={`px-2 py-1 rounded cursor-pointer transition-colors ${selectedCondition === 'resellable' ? 'bg-green-100 text-green-700 font-medium dark:bg-green-900/50 dark:text-green-300' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}
+                                className={`px-2 py-1 rounded cursor-pointer transition-colors ${selectedCondition === 'resellable' ? 'bg-green-100 text-green-700 font-medium' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                               >
                                 ✓ Resellable
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConditionChange(item.id, 'damaged')}
-                                className={`px-2 py-1 rounded cursor-pointer transition-colors ${selectedCondition === 'damaged' ? 'bg-orange-100 text-orange-700 font-medium dark:bg-orange-900/50 dark:text-orange-300' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}
+                                className={`px-2 py-1 rounded cursor-pointer transition-colors ${selectedCondition === 'damaged' ? 'bg-orange-100 text-orange-700 font-medium' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                               >
                                 ⚠ Damaged
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConditionChange(item.id, 'defective')}
-                                className={`px-2 py-1 rounded cursor-pointer transition-colors ${selectedCondition === 'defective' ? 'bg-red-100 text-red-700 font-medium dark:bg-red-900/50 dark:text-red-300' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}
+                                className={`px-2 py-1 rounded cursor-pointer transition-colors ${selectedCondition === 'defective' ? 'bg-red-100 text-red-700 font-medium' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                               >
                                 ✗ Defective
                               </button>
@@ -295,7 +299,6 @@ function ProcessReturnModal({
             <p className="text-sm text-emerald-700 mt-1">
               {Object.keys(selectedItems).length} item(s) selected for return
             </p>
-            {/* Show restock info */}
             {Object.values(selectedItems).some(s => s.condition !== 'resellable') && (
               <p className="text-xs text-orange-600 mt-2">
                 ⚠️ Items marked as Damaged/Defective will NOT be restocked to inventory
@@ -329,16 +332,7 @@ export default function ReturnsPage() {
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
   });
-
-  // Supervisor approval state
-  const [showSupervisorModal, setShowSupervisorModal] = useState(false);
-  const [pendingReturn, setPendingReturn] = useState<{
-    itemsToReturn: { itemId: string; quantity: number; condition?: 'resellable' | 'damaged' | 'defective' }[];
-    reason: string;
-    reasonCategory: 'defective' | 'wrong_item' | 'changed_mind' | 'price_adjustment' | 'duplicate' | 'other';
-    refundMethod: PaymentMethodType;
-    refundAmount: number;
-  } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Barcode scanning state
   const [scanFeedback, setScanFeedback] = useState<{
@@ -348,11 +342,15 @@ export default function ReturnsPage() {
   } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { orders, getRefundedOrders, processReturn, getReturnableQuantity, getAllReturns, settings } = usePosStore();
+  const { orders, processReturn, getReturnableQuantity, settings } = usePosStore();
   const { activeCompany, products, invoices } = useAppStore();
-  const { toast } = useToast();
 
-  // Build a lookup of products by barcode/SKU for faster scanning
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToastMessage({ type, message });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // Build product and order lookups
   const productLookup = useMemo(() => {
     const lookup: Record<string, { id: string; name: string; sku: string; barcode?: string }> = {};
     products.forEach(p => {
@@ -362,14 +360,11 @@ export default function ReturnsPage() {
     return lookup;
   }, [products]);
 
-  // Build a lookup of orders by order number for receipt barcode scanning
   const orderLookup = useMemo(() => {
     const lookup: Record<string, PosOrder> = {};
     orders.forEach(o => {
-      // Index by order number (receipt number)
       lookup[o.orderNumber.toUpperCase()] = o;
       lookup[o.orderNumber.toLowerCase()] = o;
-      // Also index by invoice number if exists
       if (o.invoiceNumber) {
         lookup[o.invoiceNumber.toUpperCase()] = o;
         lookup[o.invoiceNumber.toLowerCase()] = o;
@@ -378,177 +373,88 @@ export default function ReturnsPage() {
     return lookup;
   }, [orders]);
 
-  // Check if scanned barcode looks like a receipt/invoice number
   const isReceiptBarcode = useCallback((barcode: string): boolean => {
     const upper = barcode.toUpperCase();
-    // Common receipt/invoice/order number patterns:
-    // POS-2024-0001, POS-202402-0001, RCP-001, INV-2024-001, ORD-001, etc.
     const receiptPatterns = [
-      /^POS-/i,      // POS order numbers
-      /^RCP-/i,      // Receipt numbers
-      /^INV-/i,      // Invoice numbers
-      /^ORD-/i,      // Order numbers
-      /^RTN-/i,      // Return numbers (shouldn't be scanned but just in case)
-      /^\d{4}-\d{2}-\d{4}$/,  // YYYY-MM-#### format
-      /^[A-Z]{2,4}-\d{4,}/i,  // 2-4 letter prefix followed by numbers
+      /^POS-/i, /^RCP-/i, /^INV-/i, /^ORD-/i, /^RTN-/i,
+      /^\d{4}-\d{2}-\d{4}$/, /^[A-Z]{2,4}-\d{4,}/i,
     ];
     return receiptPatterns.some(pattern => pattern.test(upper));
   }, []);
 
-  // Barcode scanner integration - handles BOTH receipt barcodes AND product barcodes
   const handleBarcodeScan = useCallback((barcode: string) => {
-    // FIRST: Check if this is a receipt/invoice barcode
     if (isReceiptBarcode(barcode)) {
-      // Look up the order directly by receipt/invoice number
       const order = orderLookup[barcode.toUpperCase()] || orderLookup[barcode.toLowerCase()];
-
       if (order) {
-        // Check if order can be returned
         if (order.status === 'completed' || order.status === 'partially_refunded') {
-          setScanFeedback({
-            type: 'success',
-            message: '📄 Receipt found!',
-            orderNumber: order.orderNumber
-          });
-          try { new Audio('/sounds/beep.mp3').play().catch(() => {}); } catch {}
+          setScanFeedback({ type: 'success', message: '📄 Receipt found!', orderNumber: order.orderNumber });
           setSelectedOrder(order);
           setShowReturnModal(true);
           setTimeout(() => setScanFeedback(null), 2000);
           return;
-        } else if (order.status === 'refunded') {
-          setScanFeedback({
-            type: 'error',
-            message: `Receipt ${barcode} has already been fully refunded`
-          });
-          try { new Audio('/sounds/error.mp3').play().catch(() => {}); } catch {}
-          setTimeout(() => setScanFeedback(null), 3000);
-          return;
-        } else {
-          setScanFeedback({
-            type: 'error',
-            message: `Order ${barcode} cannot be returned (status: ${order.status})`
-          });
-          try { new Audio('/sounds/error.mp3').play().catch(() => {}); } catch {}
-          setTimeout(() => setScanFeedback(null), 3000);
-          return;
         }
       } else {
-        // Receipt number not found - might be old or from another system
-        setScanFeedback({
-          type: 'error',
-          message: `Receipt/Invoice not found: ${barcode}`
-        });
-        try { new Audio('/sounds/error.mp3').play().catch(() => {}); } catch {}
-        // Also set search term so user can see if partial match exists
+        setScanFeedback({ type: 'error', message: `Receipt/Invoice not found: ${barcode}` });
         setSearchTerm(barcode);
         setTimeout(() => setScanFeedback(null), 3000);
         return;
       }
     }
 
-    // SECOND: Try to look up as a product barcode
     const product = productLookup[barcode] || productLookup[barcode.toLowerCase()];
-
     if (!product) {
-      // Not a receipt and not a known product
       setScanFeedback({ type: 'error', message: `Unknown barcode: ${barcode}` });
-      try { new Audio('/sounds/error.mp3').play().catch(() => {}); } catch {}
-      // Set as search term in case user wants to search
       setSearchTerm(barcode);
       setTimeout(() => setScanFeedback(null), 3000);
       return;
     }
 
-    // Found a product - find orders containing this product
     const ordersWithProduct = orders.filter(o =>
       (o.status === 'completed' || o.status === 'partially_refunded') &&
       o.items.some(item => item.productId === product.id)
     );
 
-    if (ordersWithProduct.length === 0) {
-      setScanFeedback({
-        type: 'error',
-        message: `No returnable orders found for "${product.name}"`
-      });
-      try { new Audio('/sounds/error.mp3').play().catch(() => {}); } catch {}
-      setTimeout(() => setScanFeedback(null), 3000);
-      return;
-    }
-
     if (ordersWithProduct.length === 1) {
-      // Only one order - open it directly
       const order = ordersWithProduct[0];
-      setScanFeedback({
-        type: 'success',
-        message: `Found "${product.name}" in order`,
-        orderNumber: order.orderNumber
-      });
-      try { new Audio('/sounds/beep.mp3').play().catch(() => {}); } catch {}
+      setScanFeedback({ type: 'success', message: `Found "${product.name}" in order`, orderNumber: order.orderNumber });
       setSelectedOrder(order);
       setShowReturnModal(true);
       setTimeout(() => setScanFeedback(null), 2000);
     } else {
-      // Multiple orders - show in search results
-      setScanFeedback({
-        type: 'success',
-        message: `Found "${product.name}" in ${ordersWithProduct.length} orders`
-      });
-      try { new Audio('/sounds/beep.mp3').play().catch(() => {}); } catch {}
-      // Set the search term to the product name to show related orders
+      setScanFeedback({ type: 'success', message: `Found "${product.name}" in ${ordersWithProduct.length} orders` });
       setSearchTerm(product.name);
       setTimeout(() => setScanFeedback(null), 3000);
     }
   }, [orders, productLookup, orderLookup, isReceiptBarcode]);
 
-  // Initialize barcode scanner
-  const { isScanning, lastScan } = useBarcodeScanner({
-    onScan: handleBarcodeScan,
-    enabled: true,
-    minLength: 4,
-  });
+  const { isScanning } = useBarcodeScanner({ onScan: handleBarcodeScan, enabled: true, minLength: 4 });
 
-  // Clear feedback on scan state change
   useEffect(() => {
-    if (isScanning) {
-      setScanFeedback({ type: 'scanning', message: 'Scanning...' });
-    }
+    if (isScanning) setScanFeedback({ type: 'scanning', message: 'Scanning...' });
   }, [isScanning]);
 
-  // Get completed orders (available for return) and refunded orders
-  const completedOrders = useMemo(() => {
-    return orders.filter((o) => o.status === 'completed');
-  }, [orders]);
+  const completedOrders = useMemo(() => orders.filter(o => o.status === 'completed'), [orders]);
 
   const refundedOrders = useMemo(() => {
     const start = new Date(dateRange.start);
     const end = new Date(dateRange.end);
     end.setHours(23, 59, 59, 999);
-
     return orders
-      .filter((o) => o.status === 'refunded')
-      .filter((o) => {
+      .filter(o => o.status === 'refunded')
+      .filter(o => {
         const date = new Date(o.updatedAt);
         return date >= start && date <= end;
       })
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [orders, dateRange]);
 
-  // Fuzzy search helper - calculate similarity score
   const fuzzyMatch = useCallback((query: string, target: string): number => {
     const queryLower = query.toLowerCase();
     const targetLower = target.toLowerCase();
-
-    // Exact match
     if (targetLower === queryLower) return 1;
-
-    // Contains match
     if (targetLower.includes(queryLower)) return 0.8;
-
-    // Word prefix match
     const words = targetLower.split(/\s+/);
     if (words.some(word => word.startsWith(queryLower))) return 0.7;
-
-    // Fuzzy character match (Levenshtein-like)
     let matches = 0;
     let lastIndex = -1;
     for (const char of queryLower) {
@@ -561,130 +467,55 @@ export default function ReturnsPage() {
     return matches / query.length * 0.5;
   }, []);
 
-  // Search for orders to process return - with fuzzy matching
-  // Supports: Order #, Receipt #, Invoice #, Customer PO #, Customer Name, Product Name, SKU
   const searchResults = useMemo(() => {
     if (!searchTerm.trim()) return [];
     const term = searchTerm.toLowerCase().trim();
-
-    // Score and filter orders
     const scoredOrders = completedOrders.map(order => {
       let score = 0;
-      let matchedDoc: string | null = null; // Track what document number matched
-
-      // 1. EXACT/PARTIAL ORDER NUMBER MATCH (highest priority - POS receipt number)
+      let matchedDoc: string | null = null;
       if (order.orderNumber.toLowerCase().includes(term)) {
         score = Math.max(score, 1.0);
         matchedDoc = 'order';
       }
-
-      // 2. INVOICE NUMBER MATCH (from linked invoice or stored invoiceNumber)
       if (order.invoiceNumber?.toLowerCase().includes(term)) {
         score = Math.max(score, 1.0);
         matchedDoc = 'invoice';
       }
-
-      // 3. CUSTOMER PO NUMBER MATCH
       if (order.customerPONumber?.toLowerCase().includes(term)) {
         score = Math.max(score, 0.98);
         matchedDoc = 'customerPO';
       }
-
-      // 4. Match customer name
       const customerScore = fuzzyMatch(term, order.customerName);
-      if (customerScore > score) {
-        score = customerScore * 0.9;
-      }
-
-      // 5. Match items in the order (search by product name, SKU, barcode)
+      if (customerScore > score) score = customerScore * 0.9;
       order.items.forEach(item => {
         const nameScore = fuzzyMatch(term, item.name);
         score = Math.max(score, nameScore * 0.85);
-
-        // Check if search matches the SKU
-        if (item.sku?.toLowerCase().includes(term)) {
-          score = Math.max(score, 0.95);
-        }
-
-        // Check if search matches the barcode
-        if (item.barcode?.toLowerCase().includes(term)) {
-          score = Math.max(score, 0.95);
-        }
+        if (item.sku?.toLowerCase().includes(term)) score = Math.max(score, 0.95);
+        if (item.barcode?.toLowerCase().includes(term)) score = Math.max(score, 0.95);
       });
-
       return { order, score, matchedDoc };
     });
-
-    // Also search invoices for document number matches
-    // If we find an invoice, look for linked POS orders
-    const invoiceMatches = invoices
-      .filter(inv =>
-        inv.status === 'paid' && (
-          inv.invoiceNumber.toLowerCase().includes(term) ||
-          inv.customerPONumber?.toLowerCase().includes(term)
-        )
-      )
-      .map(inv => {
-        // Find POS orders linked to this invoice
-        const linkedOrder = completedOrders.find(o =>
-          o.invoiceId === inv.id || o.invoiceNumber === inv.invoiceNumber
-        );
-        return linkedOrder ? { order: linkedOrder, score: 1.0, matchedDoc: 'invoice' as const } : null;
-      })
-      .filter(Boolean) as typeof scoredOrders;
-
-    // Merge results, removing duplicates
-    const allResults = [...scoredOrders, ...invoiceMatches];
-    const uniqueResults = allResults.reduce((acc, curr) => {
-      const existing = acc.find(r => r.order.id === curr.order.id);
-      if (!existing || curr.score > existing.score) {
-        return [...acc.filter(r => r.order.id !== curr.order.id), curr];
-      }
-      return acc;
-    }, [] as typeof allResults);
-
-    // Filter by minimum score and sort by score
-    return uniqueResults
+    return scoredOrders
       .filter(({ score }) => score >= 0.3)
       .sort((a, b) => b.score - a.score)
       .slice(0, 10)
       .map(({ order, matchedDoc }) => ({ ...order, _matchedDoc: matchedDoc }));
-  }, [completedOrders, invoices, searchTerm, fuzzyMatch]);
+  }, [completedOrders, searchTerm, fuzzyMatch]);
 
-  // Return summary
   const returnSummary = useMemo(() => {
     const totalReturns = refundedOrders.length;
     const totalRefundAmount = refundedOrders.reduce((sum, o) => {
-      const refundPayment = o.payments.find((p) => p.status === 'refunded');
+      const refundPayment = o.payments.find(p => p.status === 'refunded');
       return sum + Math.abs(refundPayment?.amount || 0);
     }, 0);
     const avgRefund = totalReturns > 0 ? totalRefundAmount / totalReturns : 0;
-
-    // Group by reason
     const reasonMap: Record<string, number> = {};
-    refundedOrders.forEach((o) => {
+    refundedOrders.forEach(o => {
       const reason = o.refundReason || 'Unknown';
       reasonMap[reason] = (reasonMap[reason] || 0) + 1;
     });
-
     return { totalReturns, totalRefundAmount, avgRefund, reasonMap };
   }, [refundedOrders]);
-
-  // Calculate refund amount for a set of items
-  const calculateRefundAmount = useCallback((
-    order: PosOrder,
-    itemsToReturn: { itemId: string; quantity: number; condition?: 'resellable' | 'damaged' | 'defective' }[]
-  ): number => {
-    let total = 0;
-    itemsToReturn.forEach(({ itemId, quantity }) => {
-      const item = order.items.find(i => i.id === itemId);
-      if (item) {
-        const unitPrice = item.lineTotal / item.quantity;
-        total += unitPrice * quantity;
-      }
-    });
-    return total;
-  }, []);
 
   const handleProcessReturn = (
     itemsToReturn: { itemId: string; quantity: number; condition?: 'resellable' | 'damaged' | 'defective' }[],
@@ -694,93 +525,20 @@ export default function ReturnsPage() {
   ) => {
     if (!selectedOrder) return;
 
-    // Calculate refund amount
-    const refundAmount = calculateRefundAmount(selectedOrder, itemsToReturn);
-
-    // Check if supervisor approval is required (defaults to TRUE for security)
-    const requiresSupervisor = settings.requireSupervisorForReturns ?? true;
-    const exceedsThreshold = settings.returnApprovalThreshold && refundAmount >= settings.returnApprovalThreshold;
-
-    if (requiresSupervisor || exceedsThreshold) {
-      // Store pending return data and show supervisor modal
-      setPendingReturn({
-        itemsToReturn,
-        reason,
-        reasonCategory,
-        refundMethod,
-        refundAmount,
-      });
-      setShowReturnModal(false);
-      setShowSupervisorModal(true);
-      return;
-    }
-
-    // No supervisor needed, process directly
-    executeReturn(itemsToReturn, reason, reasonCategory, refundMethod);
-  };
-
-  // Execute the actual return (called after supervisor approval if needed)
-  const executeReturn = (
-    itemsToReturn: { itemId: string; quantity: number; condition?: 'resellable' | 'damaged' | 'defective' }[],
-    reason: string,
-    reasonCategory: 'defective' | 'wrong_item' | 'changed_mind' | 'price_adjustment' | 'duplicate' | 'other',
-    refundMethod: PaymentMethodType,
-    supervisorApproval?: SupervisorApproval
-  ) => {
-    if (!selectedOrder) return;
-
-    const processedBy = supervisorApproval
-      ? `Approved by ${supervisorApproval.supervisorEmployeeNumber ? `#${supervisorApproval.supervisorEmployeeNumber}` : supervisorApproval.supervisorName}`
-      : 'Cashier';
-
-    const result = processReturn(
-      selectedOrder.id,
-      itemsToReturn,
-      reason,
-      reasonCategory,
-      refundMethod,
-      processedBy
-    );
+    const result = processReturn(selectedOrder.id, itemsToReturn, reason, reasonCategory, refundMethod, 'Cashier');
 
     if (result) {
       setShowReturnModal(false);
-      setShowSupervisorModal(false);
       setSelectedOrder(null);
       setSearchTerm('');
-      setPendingReturn(null);
-
-      toast.success(`Return processed successfully! Return: ${result.returnNumber}, Refund: ${formatJMD(result.totalRefund)}`);
+      showToast('success', `Return processed successfully! Return: ${result.returnNumber}, Refund: ${formatJMD(result.totalRefund)}`);
     } else {
-      toast.error('Failed to process return. Please check the items and quantities.');
+      showToast('error', 'Failed to process return. Please check the items and quantities.');
     }
-  };
-
-  // Handle supervisor approval for returns
-  const handleSupervisorApproval = (approval: SupervisorApproval) => {
-    if (pendingReturn) {
-      executeReturn(
-        pendingReturn.itemsToReturn,
-        pendingReturn.reason,
-        pendingReturn.reasonCategory,
-        pendingReturn.refundMethod,
-        approval
-      );
-    }
-  };
-
-  // Handle supervisor modal close (cancel)
-  const handleSupervisorModalClose = () => {
-    setShowSupervisorModal(false);
-    // Re-open the return modal so user can try again or cancel
-    if (selectedOrder) {
-      setShowReturnModal(true);
-    }
-    setPendingReturn(null);
   };
 
   const handlePrint = () => {
     const dateSubtitle = `${formatDate(new Date(dateRange.start))} - ${formatDate(new Date(dateRange.end))}`;
-
     const content =
       generateStatCards([
         { label: 'Total Returns', value: String(returnSummary.totalReturns), color: '#dc2626' },
@@ -797,33 +555,10 @@ export default function ReturnsPage() {
         Object.entries(returnSummary.reasonMap).map(([reason, count]) => ({
           reason,
           count,
-          percentage: returnSummary.totalReturns > 0
-            ? ((count / returnSummary.totalReturns) * 100).toFixed(1) + '%'
-            : '0%',
+          percentage: returnSummary.totalReturns > 0 ? ((count / returnSummary.totalReturns) * 100).toFixed(1) + '%' : '0%',
         })),
         {}
-      ) +
-      '<h3 style="margin:30px 0 15px;font-weight:600;">Return Transactions</h3>' +
-      generateTable(
-        [
-          { key: 'date', label: 'Date' },
-          { key: 'orderNumber', label: 'Order #' },
-          { key: 'customer', label: 'Customer' },
-          { key: 'reason', label: 'Reason' },
-          { key: 'amount', label: 'Refund', align: 'right' },
-        ],
-        refundedOrders.slice(0, 50).map((o) => ({
-          date: formatDate(new Date(o.updatedAt)),
-          orderNumber: o.orderNumber,
-          customer: o.customerName,
-          reason: o.refundReason || 'N/A',
-          amount: Math.abs(o.payments.find((p) => p.status === 'refunded')?.amount || 0),
-        })),
-        {
-          formatters: { amount: formatPrintCurrency },
-        }
       );
-
     printContent({
       title: 'Returns Report',
       subtitle: dateSubtitle,
@@ -835,15 +570,14 @@ export default function ReturnsPage() {
   const handleExportCSV = () => {
     const filename = `returns-report-${dateRange.start}-to-${dateRange.end}`;
     downloadAsCSV(
-      refundedOrders.map((o) => ({
+      refundedOrders.map(o => ({
         Date: formatDate(new Date(o.updatedAt)),
         'Order Number': o.orderNumber,
         Customer: o.customerName,
         'Return Reason': o.refundReason || 'N/A',
-        'Items Returned': o.items.map((i) => `${i.name} (${i.quantity})`).join('; '),
-        'Refund Amount': Math.abs(o.payments.find((p) => p.status === 'refunded')?.amount || 0),
-        'Refund Method':
-          o.payments.find((p) => p.status === 'refunded')?.method || 'N/A',
+        'Items Returned': o.items.map(i => `${i.name} (${i.quantity})`).join('; '),
+        'Refund Amount': Math.abs(o.payments.find(p => p.status === 'refunded')?.amount || 0),
+        'Refund Method': o.payments.find(p => p.status === 'refunded')?.method || 'N/A',
       })),
       filename
     );
@@ -851,7 +585,14 @@ export default function ReturnsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {toastMessage && (
+        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${
+          toastMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white`}>
+          {toastMessage.message}
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/pos">
@@ -877,36 +618,20 @@ export default function ReturnsPage() {
         </div>
       </div>
 
-      {/* Scan Feedback Banner */}
       {scanFeedback && (
         <div
           className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-pulse ${
-            scanFeedback.type === 'success'
-              ? 'bg-green-500 text-white'
-              : scanFeedback.type === 'error'
-              ? 'bg-red-500 text-white'
-              : 'bg-blue-500 text-white'
+            scanFeedback.type === 'success' ? 'bg-green-500 text-white' :
+            scanFeedback.type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
           }`}
         >
-          {scanFeedback.type === 'scanning' && (
-            <QrCodeIcon className="w-5 h-5 animate-pulse" />
-          )}
-          {scanFeedback.type === 'success' && (
-            <CheckCircleIcon className="w-5 h-5" />
-          )}
-          {scanFeedback.type === 'error' && (
-            <ExclamationTriangleIcon className="w-5 h-5" />
-          )}
+          {scanFeedback.type === 'scanning' && <QrCodeIcon className="w-5 h-5 animate-pulse" />}
+          {scanFeedback.type === 'success' && <CheckCircleIcon className="w-5 h-5" />}
+          {scanFeedback.type === 'error' && <ExclamationTriangleIcon className="w-5 h-5" />}
           <span className="font-medium">{scanFeedback.message}</span>
-          {scanFeedback.orderNumber && (
-            <span className="bg-white/20 px-2 py-0.5 rounded text-sm">
-              {scanFeedback.orderNumber}
-            </span>
-          )}
         </div>
       )}
 
-      {/* Process Return Section */}
       <Card className="border-emerald-200 bg-emerald-50">
         <CardHeader>
           <CardTitle className="text-emerald-800 flex items-center gap-2">
@@ -919,7 +644,6 @@ export default function ReturnsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Smart Search Input */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <MagnifyingGlassIcon className="h-6 w-6 text-gray-400" />
@@ -940,7 +664,6 @@ export default function ReturnsPage() {
                 type="button"
                 onClick={() => setSearchTerm('')}
                 className="absolute inset-y-0 right-12 px-2 flex items-center text-gray-400 hover:text-gray-600"
-                aria-label="Clear search"
               >
                 <XMarkIcon className="h-5 w-5" />
               </button>
@@ -950,30 +673,6 @@ export default function ReturnsPage() {
             </div>
           </div>
 
-          {/* Search hints */}
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1">
-              <ReceiptPercentIcon className="h-3 w-3 text-blue-500" /> Receipt #
-            </span>
-            <span className="flex items-center gap-1">
-              <DocumentTextIcon className="h-3 w-3 text-purple-500" /> Invoice #
-            </span>
-            <span className="flex items-center gap-1 text-orange-500">
-              PO #
-            </span>
-            <span className="flex items-center gap-1">
-              <QrCodeIcon className="h-3 w-3 text-emerald-500" /> Scan barcode
-            </span>
-            <span className="text-gray-400">|</span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">↑↓</kbd> navigate
-            </span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">Enter</kbd> select
-            </span>
-          </div>
-
-          {/* Search Results */}
           {searchResults.length > 0 && (
             <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
@@ -983,10 +682,8 @@ export default function ReturnsPage() {
               </div>
               <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
                 {searchResults.map((order) => {
-                  // Cast to get the matched doc type we added
                   const orderWithMatch = order as PosOrder & { _matchedDoc?: string };
                   const matchedDoc = orderWithMatch._matchedDoc;
-
                   return (
                     <div
                       key={order.id}
@@ -997,17 +694,13 @@ export default function ReturnsPage() {
                       }}
                     >
                       <div className="flex-1 min-w-0">
-                        {/* Document numbers row */}
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          {/* Receipt/Order Number - always show */}
                           <div className="flex items-center gap-1">
                             <ReceiptPercentIcon className="w-4 h-4 text-blue-500" />
                             <span className={`font-semibold ${matchedDoc === 'order' ? 'text-blue-600 bg-blue-50 px-1 rounded' : 'text-gray-900'}`}>
                               {order.orderNumber}
                             </span>
                           </div>
-
-                          {/* Invoice Number - if exists */}
                           {order.invoiceNumber && (
                             <div className="flex items-center gap-1">
                               <DocumentTextIcon className="w-4 h-4 text-purple-500" />
@@ -1016,47 +709,19 @@ export default function ReturnsPage() {
                               </span>
                             </div>
                           )}
-
-                          {/* Customer PO Number - if exists */}
-                          {order.customerPONumber && (
-                            <div className="flex items-center gap-1">
-                              <span className={`text-sm ${matchedDoc === 'customerPO' ? 'text-orange-600 bg-orange-50 px-1 rounded font-medium' : 'text-gray-500'}`}>
-                                PO: {order.customerPONumber}
-                              </span>
-                            </div>
-                          )}
-
                           <Badge variant="info" className="text-xs">{order.items.length} items</Badge>
                         </div>
-
-                        {/* Customer and date */}
                         <p className="text-sm text-gray-500">
                           {order.customerName} • {formatDate(new Date(order.completedAt || order.createdAt))}
                         </p>
-
-                        {/* Show matching items */}
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {order.items.slice(0, 3).map(item => (
-                            <span key={item.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                              {item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name}
-                            </span>
-                          ))}
-                          {order.items.length > 3 && (
-                            <span className="text-xs text-gray-400">+{order.items.length - 3} more</span>
-                          )}
-                        </div>
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-lg font-bold text-emerald-600">{formatJMD(order.total)}</p>
-                        <Button
-                          size="sm"
-                          className="mt-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedOrder(order);
-                            setShowReturnModal(true);
-                          }}
-                        >
+                        <Button size="sm" className="mt-2" onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedOrder(order);
+                          setShowReturnModal(true);
+                        }}>
                           Return Items
                         </Button>
                       </div>
@@ -1067,35 +732,21 @@ export default function ReturnsPage() {
             </div>
           )}
 
-          {/* No results message */}
-          {searchTerm && searchResults.length === 0 && (
-            <div className="mt-4 bg-white rounded-xl border border-gray-200 p-8 text-center">
-              <MagnifyingGlassIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-600 font-medium">No transactions found</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Try searching by receipt #, invoice #, customer PO #, customer name, or product
-              </p>
-            </div>
-          )}
-
-          {/* Empty state - no search yet */}
           {!searchTerm && (
             <div className="mt-4 bg-white/50 rounded-xl border-2 border-dashed border-emerald-200 p-8 text-center">
               <div className="flex justify-center gap-2 mb-3">
                 <ReceiptPercentIcon className="w-10 h-10 text-blue-300" />
-                <DocumentTextIcon className="w-10 h-10 text-purple-300" />
                 <QrCodeIcon className="w-10 h-10 text-emerald-300" />
               </div>
               <p className="text-emerald-700 font-medium">Ready to Process Returns</p>
               <p className="text-sm text-emerald-600/70 mt-1">
-                Enter a receipt #, invoice #, customer PO # or scan a product barcode
+                Enter a receipt #, invoice # or scan a barcode
               </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Date Range Filter */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
@@ -1113,24 +764,10 @@ export default function ReturnsPage() {
               onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
               className="w-40"
             />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const now = new Date();
-                setDateRange({
-                  start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
-                  end: now.toISOString().split('T')[0],
-                });
-              }}
-            >
-              This Month
-            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -1141,9 +778,7 @@ export default function ReturnsPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Total Refunded</p>
-            <p className="text-2xl font-bold text-orange-600">
-              {formatJMD(returnSummary.totalRefundAmount)}
-            </p>
+            <p className="text-2xl font-bold text-orange-600">{formatJMD(returnSummary.totalRefundAmount)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -1154,95 +789,6 @@ export default function ReturnsPage() {
         </Card>
       </div>
 
-      {/* Returns by Reason */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Returns by Reason</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {Object.keys(returnSummary.reasonMap).length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(returnSummary.reasonMap).map(([reason, count]) => (
-                <div key={reason} className="flex items-center justify-between">
-                  <span className="text-gray-700">{reason}</span>
-                  <div className="flex items-center gap-4">
-                    <div className="w-32 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-red-500 h-2 rounded-full"
-                        style={{
-                          width:
-                            returnSummary.totalReturns > 0
-                              ? `${(count / returnSummary.totalReturns) * 100}%`
-                              : '0%',
-                        }}
-                      />
-                    </div>
-                    <span className="font-medium w-8 text-right">{count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">No returns in this period</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Return History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Return History ({refundedOrders.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {refundedOrders.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Date</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Order #</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Customer</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Reason</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Refund</th>
-                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-700">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {refundedOrders.map((order) => {
-                    const refundPayment = order.payments.find((p) => p.status === 'refunded');
-                    return (
-                      <tr key={order.id} className="border-b last:border-b-0 hover:bg-gray-50">
-                        <td className="py-3 px-4 text-gray-700">
-                          {formatDate(new Date(order.updatedAt))}
-                        </td>
-                        <td className="py-3 px-4 font-medium text-gray-900">{order.orderNumber}</td>
-                        <td className="py-3 px-4 text-gray-700">{order.customerName}</td>
-                        <td className="py-3 px-4 text-gray-700">{order.refundReason || 'N/A'}</td>
-                        <td className="py-3 px-4 text-right font-medium text-red-600">
-                          {formatJMD(Math.abs(refundPayment?.amount || 0))}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <Badge variant="danger">
-                            <CheckCircleIcon className="w-3 h-3 mr-1 inline" />
-                            Refunded
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <ExclamationTriangleIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No returns recorded in this period</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Return Modal */}
       {showReturnModal && selectedOrder && (
         <ProcessReturnModal
           order={selectedOrder}
@@ -1254,20 +800,6 @@ export default function ReturnsPage() {
           getReturnableQuantity={getReturnableQuantity}
         />
       )}
-
-      {/* Supervisor PIN Modal for Return Authorization */}
-      <SupervisorPinModal
-        isOpen={showSupervisorModal}
-        onClose={handleSupervisorModalClose}
-        onApprove={handleSupervisorApproval}
-        action="return"
-        actionDescription={pendingReturn
-          ? `Process refund of ${formatJMD(pendingReturn.refundAmount)} for order ${selectedOrder?.orderNumber || ''}`
-          : 'Authorize return'
-        }
-        amount={pendingReturn?.refundAmount}
-        currency="JMD"
-      />
     </div>
   );
 }
