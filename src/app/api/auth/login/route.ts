@@ -129,6 +129,12 @@ export async function POST(request: NextRequest) {
       companies,
     });
 
+    // ── Single-session enforcement ─────────────────────────────────────
+    // Delete ALL existing sessions for this user so that any other
+    // browser / device is forced to re-authenticate. This prevents
+    // account sharing (one subscription used on many machines).
+    await prisma.session.deleteMany({ where: { userId: user.id } });
+
     // Create a session record
     const session = await prisma.session.create({
       data: {

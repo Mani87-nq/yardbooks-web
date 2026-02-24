@@ -131,6 +131,10 @@ export async function POST(request: NextRequest) {
       companies,
     });
 
+    // ── Single-session enforcement ─────────────────────────────────────
+    // Delete ALL existing sessions so only one device can be active.
+    await prisma.session.deleteMany({ where: { userId } });
+
     const session = await prisma.session.create({
       data: {
         userId,
