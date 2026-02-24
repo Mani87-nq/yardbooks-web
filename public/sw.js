@@ -10,7 +10,7 @@
  * - Navigation: Network-first with offline fallback page
  */
 
-const CACHE_VERSION = 'yaadbooks-v1';
+const CACHE_VERSION = 'yaadbooks-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
@@ -106,6 +106,11 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request, API_CACHE, 5 * 60));
     return;
+  }
+
+  // Large media files — pass through to network (don't cache 30 MB videos)
+  if (isLargeMedia(url.pathname)) {
+    return; // Let the browser handle it natively
   }
 
   // Static assets — cache first
@@ -386,8 +391,16 @@ async function saveMutationQueue(queue) {
 // ─── HELPERS ──────────────────────────────────────────────────
 
 function isStaticAsset(pathname) {
-  return /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname) ||
+  return /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|mp4|webm|ogg|mp3|wav|pdf)$/.test(pathname) ||
     pathname.startsWith('/_next/static/');
+}
+
+/**
+ * Large media files (video/audio) should NOT be cached by the SW.
+ * Caching a 30 MB video via blob() wastes memory and can fail.
+ */
+function isLargeMedia(pathname) {
+  return /\.(mp4|webm|ogg|mp3|wav)$/.test(pathname);
 }
 
 function offlineHTML() {
