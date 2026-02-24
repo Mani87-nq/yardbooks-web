@@ -35,8 +35,9 @@ export async function POST(request: NextRequest) {
       maxAge: 0,
     });
     
-    // Clear access token cookie
+    // Clear access token cookie (must match httpOnly setting used when setting it)
     response.cookies.set('accessToken', '', {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
       maxAge: 0,
     });
     response.cookies.set('accessToken', '', {
+      httpOnly: true,
       path: '/',
       maxAge: 0,
     });

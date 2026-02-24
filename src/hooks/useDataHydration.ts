@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
-import { api, setAccessToken } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import type { Company, Customer, Product, Invoice, Expense } from '@/types';
 import type { Notification } from '@/types/notifications';
 
@@ -69,9 +69,9 @@ export function useDataHydration() {
         setIsLoading(true);
         setError(null);
 
-        // Ensure the in-memory access token is seeded from the cookie so
-        // the api client can attach it as a Bearer header.
-        ensureAccessTokenFromCookie();
+        // The accessToken cookie is httpOnly — the browser sends it
+        // automatically with every same-origin request. No need to seed
+        // the in-memory api-client; getAuthUser() reads the cookie server-side.
 
         // ── Step 1: Fetch user profile + company memberships ─────────
         let meData: MeResponse;
@@ -209,18 +209,6 @@ export function useDataHydration() {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
-
-/**
- * Read the accessToken cookie and push it into the in-memory api-client
- * so that the Bearer header is attached to requests.
- */
-function ensureAccessTokenFromCookie() {
-  if (typeof document === 'undefined') return;
-  const match = document.cookie.match(/(?:^|;\s*)accessToken=([^;]*)/);
-  if (match?.[1]) {
-    setAccessToken(decodeURIComponent(match[1]));
-  }
-}
 
 function isApiError(err: unknown): err is { status: number } {
   return typeof err === 'object' && err !== null && 'status' in err;

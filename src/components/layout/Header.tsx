@@ -59,11 +59,9 @@ export function Header() {
       });
       
       if (response.ok) {
-        // Clear any client-side state
-        document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        
-        // Redirect to login
+        // Cookies are httpOnly — server cleared them in the logout response.
+        // Clear in-memory token and redirect to login.
+        setAccessToken(null);
         router.push('/login');
         router.refresh();
       }

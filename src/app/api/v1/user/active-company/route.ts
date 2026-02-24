@@ -102,10 +102,11 @@ export async function PATCH(request: NextRequest) {
         getRefreshTokenCookieOptions()
       );
       response.cookies.set('accessToken', newAccessToken, {
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax' as const,
         path: '/',
-        maxAge: 7 * 24 * 60 * 60,
+        maxAge: 15 * 60, // 15 minutes — matches JWT expiry
       });
 
       return response;
