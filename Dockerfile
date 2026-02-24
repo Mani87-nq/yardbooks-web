@@ -52,5 +52,8 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run prisma db push at startup to sync schema (additive changes only), then start server
-CMD npx prisma db push --skip-generate 2>&1 || echo "Prisma db push skipped" && node server.js
+# Health check — Coolify and Docker use this to detect unhealthy containers
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "const http = require('http'); const req = http.get('http://localhost:3000/api/health', (res) => { if (res.statusCode !== 200) process.exit(1); }); req.on('error', () => process.exit(1));"
+
+CMD ["node", "server.js"]

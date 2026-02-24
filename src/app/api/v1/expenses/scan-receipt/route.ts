@@ -116,6 +116,23 @@ export async function POST(request: NextRequest) {
       return badRequest('Either image file or ocrText is required');
     }
 
+    // ── File upload validation ───────────────────────────────────────
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'application/pdf',
+    ];
+
+    if (image.size > MAX_FILE_SIZE) {
+      return badRequest(`File too large. Maximum size is 5 MB (received ${(image.size / 1024 / 1024).toFixed(1)} MB).`);
+    }
+
+    if (!ALLOWED_MIME_TYPES.includes(image.type)) {
+      return badRequest(`Invalid file type "${image.type}". Accepted: JPEG, PNG, WebP, PDF.`);
+    }
+
     // For now, return instructions for integration.
     // In production, this would call Claude Vision API or Google Cloud Vision:
     //

@@ -4,6 +4,11 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Validate environment variables early — crash with a clear message
+    // instead of cryptic runtime errors when a var is missing.
+    const { validateEnv } = await import('./lib/env');
+    validateEnv();
+
     await import('../sentry.server.config');
   }
 

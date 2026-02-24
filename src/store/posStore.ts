@@ -1146,17 +1146,14 @@ export const usePosStore = create<PosState>()(
     {
       name: 'yaadbooks-pos-web',
       storage: createJSONStorage(() => localStorage),
+      // Only persist non-sensitive configuration data.
+      // Orders, sessions, carts, and returns contain customer PII and
+      // payment details — these must NOT be stored in cleartext localStorage.
       partialize: (state) => ({
-        orders: state.orders,
-        sessions: state.sessions,
         terminals: state.terminals,
         settings: state.settings,
-        zReports: state.zReports,
-        returns: state.returns,
         gridSettings: state.gridSettings,
         gridShortcuts: state.gridShortcuts,
-        currentCart: state.currentCart,
-        currentSessionId: state.currentSessionId,
         currentTerminalId: state.currentTerminalId,
       }),
     }

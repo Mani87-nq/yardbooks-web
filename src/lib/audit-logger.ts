@@ -126,6 +126,9 @@ const SENSITIVE_FIELDS = new Set([
   'secret',
   'apiKey',
   'bankAccountNumber',
+  'twoFactorSecret',
+  'twoFactorBackupCodes',
+  'accessToken',
 ]);
 
 function sanitize(data: Record<string, unknown>): Record<string, unknown> {
