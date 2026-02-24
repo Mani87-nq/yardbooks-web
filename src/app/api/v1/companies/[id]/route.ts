@@ -26,13 +26,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
+// Map human-readable parish names to Prisma enum values
+const PARISH_NAME_TO_ENUM: Record<string, string> = {
+  'Kingston': 'KINGSTON', 'St. Andrew': 'ST_ANDREW', 'St. Thomas': 'ST_THOMAS',
+  'Portland': 'PORTLAND', 'St. Mary': 'ST_MARY', 'St. Ann': 'ST_ANN',
+  'Trelawny': 'TRELAWNY', 'St. James': 'ST_JAMES', 'Hanover': 'HANOVER',
+  'Westmoreland': 'WESTMORELAND', 'St. Elizabeth': 'ST_ELIZABETH',
+  'Manchester': 'MANCHESTER', 'Clarendon': 'CLARENDON', 'St. Catherine': 'ST_CATHERINE',
+};
+
+function toParishEnum(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  if (Object.values(PARISH_NAME_TO_ENUM).includes(value)) return value;
+  return PARISH_NAME_TO_ENUM[value] ?? undefined;
+}
+
 const updateCompanySchema = z.object({
   businessName: z.string().min(1).max(200).optional(),
-  tradingName: z.string().max(200).optional(),
-  trnNumber: z.string().max(20).optional(),
-  gctNumber: z.string().max(20).optional(),
-  phone: z.string().max(20).optional(),
-  email: z.string().email().optional(),
+  tradingName: z.string().max(200).nullable().optional(),
+  trnNumber: z.string().max(20).nullable().optional(),
+  gctNumber: z.string().max(20).nullable().optional(),
+  gctRegistered: z.boolean().optional(),
+  phone: z.string().max(20).nullable().optional(),
+  email: z.string().email().nullable().optional().or(z.literal('')),
+  website: z.string().max(200).nullable().optional(),
+  industry: z.string().max(100).nullable().optional(),
+  address: z.string().max(500).nullable().optional(),
+  parish: z.string().max(50).nullable().optional(),
+  fiscalYearEnd: z.number().int().min(1).max(12).optional(),
 });
 
 export async function PUT(request: NextRequest, context: RouteContext) {
@@ -53,7 +74,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const parsed = updateCompanySchema.safeParse(body);
     if (!parsed.success) return badRequest('Validation failed');
 
-    const company = await prisma.company.update({ where: { id }, data: parsed.data });
+    const { address, parish, ...rest } = parsed.data;
+    const data: Record<string, unknown> = { ...rest };
+
+    // Map flat address/parish to DB columns
+    if (address !== undefined) data.addressStreet = address || null;
+    if (parish !== undefined) data.addressParish = toParishEnum(parish) as any;
+    // Normalize empty strings to null for optional fields
+    if (rest.email === '') data.email = null;
+
+    const company = await prisma.company.update({ where: { id }, data });
     return NextResponse.json(company);
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to update company');
