@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Modal, ModalBo
 import { useAppStore } from '@/store/appStore';
 import { formatJMD } from '@/lib/utils';
 import { api } from '@/lib/api-client';
+import { useInvoice, useUpdateInvoice, useDeleteInvoice } from '@/hooks/api/useInvoices';
 import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
 import {
   ArrowLeftIcon,
@@ -26,7 +27,10 @@ interface PageProps {
 
 export default function InvoiceDetailPage({ params }: PageProps) {
   const { id } = use(params);
-  const { invoices, customers, updateInvoice, deleteInvoice, activeCompany } = useAppStore();
+  const { data: invoice, isLoading: isFetchingInvoice } = useInvoice(id);
+  const updateInvoiceMutation = useUpdateInvoice();
+  const deleteInvoiceMutation = useDeleteInvoice();
+  const { activeCompany } = useAppStore();
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -38,7 +42,13 @@ export default function InvoiceDetailPage({ params }: PageProps) {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [emailSending, setEmailSending] = useState(false);
 
-  const invoice = invoices.find((inv) => inv.id === id);
+  if (isFetchingInvoice) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-gray-500">Loading invoice...</p>
+      </div>
+    );
+  }
 
   if (!invoice) {
     return (
@@ -51,7 +61,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
     );
   }
 
-  const customer = invoice.customer || customers.find((c) => c.id === invoice.customerId);
+  const customer = invoice.customer;
 
   const handleOpenEmailModal = () => {
     setEmailTo(customer?.email || '');
@@ -84,8 +94,8 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
         message: emailMessage,
       });
 
-      if (invoice.status === 'draft') {
-        updateInvoice(invoice.id, { status: 'sent', updatedAt: new Date() });
+      if (invoice.status === 'DRAFT' || invoice.status === 'draft') {
+        await updateInvoiceMutation.mutateAsync({ id: invoice.id, data: { status: 'SENT' } });
       }
 
       setShowEmailModal(false);
@@ -97,36 +107,41 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
     }
   };
 
-  const handleRecordPayment = () => {
+  const handleRecordPayment = async () => {
     const amount = parseFloat(paymentAmount);
     if (!amount || amount <= 0) {
       alert('Please enter a valid payment amount');
       return;
     }
-    if (amount > invoice.balance) {
+    const currentBalance = Number(invoice.balance);
+    if (amount > currentBalance) {
       alert('Payment amount cannot exceed balance');
       return;
     }
 
-    const newAmountPaid = invoice.amountPaid + amount;
-    const newBalance = invoice.total - newAmountPaid;
-    const newStatus = newBalance <= 0 ? 'paid' : 'partial';
+    const newAmountPaid = Number(invoice.amountPaid) + amount;
+    const newBalance = Number(invoice.total) - newAmountPaid;
+    const newStatus = newBalance <= 0 ? 'PAID' : 'PARTIAL';
 
-    updateInvoice(invoice.id, {
-      amountPaid: newAmountPaid,
-      balance: newBalance,
-      status: newStatus,
-      paidDate: newBalance <= 0 ? new Date(paymentDate) : undefined,
-      updatedAt: new Date(),
-    });
-
-    setShowPaymentModal(false);
-    setPaymentAmount('');
+    try {
+      await updateInvoiceMutation.mutateAsync({
+        id: invoice.id,
+        data: { status: newStatus },
+      });
+      setShowPaymentModal(false);
+      setPaymentAmount('');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to record payment');
+    }
   };
 
-  const handleDeleteInvoice = () => {
-    deleteInvoice(invoice.id);
-    window.location.href = '/invoices';
+  const handleDeleteInvoice = async () => {
+    try {
+      await deleteInvoiceMutation.mutateAsync(invoice.id);
+      window.location.href = '/invoices';
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete invoice');
+    }
   };
 
   const handlePrintInvoice = () => {
@@ -166,7 +181,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
         <div style="text-align:right;">
           <p style="font-size:12px;color:#6b7280;margin:2px 0;">Issue Date: ${format(new Date(invoice.issueDate), 'MMM dd, yyyy')}</p>
           <p style="font-size:12px;color:#6b7280;margin:2px 0;">Due Date: ${format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</p>
-          <p style="font-size:14px;font-weight:500;margin-top:5px;color:${invoice.status === 'paid' ? '#16a34a' : invoice.status === 'overdue' ? '#dc2626' : '#6b7280'};">
+          <p style="font-size:14px;font-weight:500;margin-top:5px;color:${invoice.status.toUpperCase() === 'PAID' ? '#16a34a' : invoice.status.toUpperCase() === 'OVERDUE' ? '#dc2626' : '#6b7280'};">
             Status: ${invoice.status.toUpperCase()}
           </p>
         </div>
@@ -217,7 +232,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'paid':
         return 'success';
       case 'sent':
@@ -249,7 +264,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">{invoice.invoiceNumber}</h1>
               <Badge variant={getStatusColor(invoice.status)}>
-                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1).toLowerCase()}
               </Badge>
             </div>
             <p className="text-gray-500">{customer?.name || 'Unknown Customer'}</p>
@@ -307,7 +322,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Due Date</p>
-            <p className={`text-lg font-semibold ${invoice.status === 'overdue' ? 'text-red-600' : 'text-gray-900'}`}>
+            <p className={`text-lg font-semibold ${invoice.status.toUpperCase() === 'OVERDUE' ? 'text-red-600' : 'text-gray-900'}`}>
               {format(new Date(invoice.dueDate), 'MMM dd, yyyy')}
             </p>
           </div>

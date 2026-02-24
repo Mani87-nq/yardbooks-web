@@ -3,9 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatJMD } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  useGLAccounts,
+  useCreateGLAccount,
+  useUpdateGLAccount,
+  useDeleteGLAccount,
+} from '@/hooks/api';
 import type { GLAccount } from '@/types/generalLedger';
 import {
   PlusIcon,
@@ -38,7 +42,27 @@ export default function ChartOfAccountsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<GLAccount | null>(null);
 
-  const { glAccounts, addGLAccount, updateGLAccount, deleteGLAccount } = useAppStore();
+  const [saveError, setSaveError] = useState('');
+
+  // API hooks
+  const { data: glAccountsResponse, isLoading } = useGLAccounts();
+  const createGLAccount = useCreateGLAccount();
+  const updateGLAccountMut = useUpdateGLAccount();
+  const deleteGLAccountMut = useDeleteGLAccount();
+
+  // Map from API (UPPERCASE type) to local (lowercase type)
+  const TYPE_MAP_FROM_API: Record<string, string> = {
+    ASSET: 'asset', LIABILITY: 'liability', EQUITY: 'equity', INCOME: 'revenue', EXPENSE: 'expense',
+  };
+  const TYPE_MAP_TO_API: Record<string, string> = {
+    asset: 'ASSET', liability: 'LIABILITY', equity: 'EQUITY', revenue: 'INCOME', expense: 'EXPENSE',
+  };
+
+  const glAccounts: GLAccount[] = ((glAccountsResponse as any)?.data ?? []).map((a: any) => ({
+    ...a,
+    type: TYPE_MAP_FROM_API[a.type] ?? a.type?.toLowerCase() ?? 'asset',
+    balance: Number(a.currentBalance ?? a.balance ?? 0),
+  }));
 
   const [formData, setFormData] = useState({
     accountNumber: '',
@@ -97,7 +121,8 @@ export default function ChartOfAccountsPage() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaveError('');
     if (!formData.accountNumber.trim()) {
       alert('Please enter an account number');
       return;
@@ -107,38 +132,46 @@ export default function ChartOfAccountsPage() {
       return;
     }
 
-    const accountData = {
-      accountNumber: formData.accountNumber,
-      name: formData.name,
-      type: formData.type,
-      subType: formData.subType || undefined,
-      description: formData.description || undefined,
-      parentAccountId: formData.parentAccountId || undefined,
-      isActive: formData.isActive,
-      updatedAt: new Date(),
-    };
-
-    if (editingAccount) {
-      updateGLAccount(editingAccount.id, accountData);
-    } else {
-      addGLAccount({
-        id: uuidv4(),
-        ...accountData,
-        balance: 0,
-        createdAt: new Date(),
-      });
+    try {
+      if (editingAccount) {
+        await updateGLAccountMut.mutateAsync({
+          id: editingAccount.id,
+          data: {
+            name: formData.name,
+            description: formData.description || undefined,
+            isActive: formData.isActive,
+          },
+        });
+      } else {
+        await createGLAccount.mutateAsync({
+          accountNumber: formData.accountNumber,
+          name: formData.name,
+          type: TYPE_MAP_TO_API[formData.type] ?? formData.type.toUpperCase(),
+          description: formData.description || undefined,
+          parentAccountId: formData.parentAccountId || undefined,
+          isActive: formData.isActive,
+        });
+      }
+      setShowModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save account';
+      alert(message);
     }
-    setShowModal(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const account = glAccounts.find(a => a.id === id);
     if (account?.balance !== 0) {
       alert('Cannot delete an account with a balance');
       return;
     }
     if (confirm('Are you sure you want to delete this account?')) {
-      deleteGLAccount(id);
+      try {
+        await deleteGLAccountMut.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete account';
+        alert(message);
+      }
     }
   };
 
