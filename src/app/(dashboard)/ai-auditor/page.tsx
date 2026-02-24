@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { api } from '@/lib/api-client';
+import { formatDate } from '@/lib/utils';
 import {
   SparklesIcon,
   ShieldCheckIcon,
@@ -45,222 +45,74 @@ export default function AIAuditorPage() {
   const [auditResults, setAuditResults] = useState<AuditCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const {
-    invoices,
-    expenses,
-    journalEntries,
-    employees,
-    payrollRuns,
-    products,
-    bankAccounts,
-    bankTransactions,
-    fixedAssets,
-    activeCompany,
-  } = useAppStore();
+  // Map category names from the API to icons and IDs
+  const categoryConfig: Record<string, { id: string; icon: React.ElementType }> = {
+    'GCT Compliance': { id: 'gct', icon: ReceiptPercentIcon },
+    'Payroll & Statutory': { id: 'payroll', icon: UserGroupIcon },
+    'Income Tax': { id: 'income-tax', icon: BanknotesIcon },
+    'Accounting Standards': { id: 'accounting', icon: BuildingLibraryIcon },
+    'Inventory Management': { id: 'inventory', icon: CubeIcon },
+  };
 
   const runAudit = async () => {
     setIsRunning(true);
+    setSelectedCategory(null);
 
-    // Simulate AI processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const res = await api.post<{
+        findings: Array<{
+          category: string;
+          name: string;
+          status: 'pass' | 'warning' | 'fail';
+          description: string;
+          details: string;
+          recommendation?: string;
+          impact?: string;
+        }>;
+        error?: string;
+      }>('/api/v1/ai/audit');
 
-    // Perform compliance checks
-    const results: AuditCategory[] = [
-      {
-        id: 'gct',
-        name: 'GCT Compliance',
-        icon: ReceiptPercentIcon,
-        checks: [
-          {
-            id: 'gct-registration',
-            category: 'GCT',
-            name: 'GCT Registration',
-            description: 'Business is registered for GCT with TAJ',
-            status: activeCompany?.gctNumber ? 'pass' : 'fail',
-            details: activeCompany?.gctNumber
-              ? `GCT #: ${activeCompany.gctNumber}`
-              : 'No GCT registration number found',
-            recommendation: !activeCompany?.gctNumber
-              ? 'Register for GCT with Tax Administration Jamaica if annual revenue exceeds J$10M threshold'
-              : undefined,
-            regulation: 'GCT Act Section 14',
-          },
-          {
-            id: 'gct-rate',
-            category: 'GCT',
-            name: 'Standard GCT Rate Applied',
-            description: 'Invoices use correct 15% GCT rate',
-            status: 'pass',
-            details: 'All taxable invoices apply the standard 15% GCT rate',
-            regulation: 'GCT Act Schedule I',
-          },
-          {
-            id: 'gct-filing',
-            category: 'GCT',
-            name: 'GCT Filing Timeliness',
-            description: 'Monthly GCT returns filed by 14th of following month',
-            status: 'warning',
-            details: 'Unable to verify filing status - manual verification recommended',
-            recommendation: 'Ensure GCT returns are filed by the 14th of each month via TAJ e-Services',
-            regulation: 'GCT Act Section 20',
-          },
-        ],
-      },
-      {
-        id: 'payroll',
-        name: 'Payroll & Statutory',
-        icon: UserGroupIcon,
-        checks: [
-          {
-            id: 'paye-deductions',
-            category: 'Payroll',
-            name: 'PAYE Calculations',
-            description: 'Income tax deductions calculated correctly',
-            status: payrollRuns.length > 0 ? 'pass' : 'pending',
-            details: payrollRuns.length > 0
-              ? `${payrollRuns.length} payroll runs processed with PAYE deductions`
-              : 'No payroll runs to verify',
-            regulation: 'Income Tax Act Section 5',
-          },
-          {
-            id: 'nis-contributions',
-            category: 'Payroll',
-            name: 'NIS Contributions',
-            description: 'NIS employee and employer contributions calculated at correct rates',
-            status: employees.some(e => e.nisNumber) ? 'pass' : 'warning',
-            details: `${employees.filter(e => e.nisNumber).length}/${employees.length} employees have NIS numbers`,
-            recommendation: 'Ensure all employees have valid NIS numbers registered',
-            regulation: 'NIS Act',
-          },
-          {
-            id: 'nht-contributions',
-            category: 'Payroll',
-            name: 'NHT Contributions',
-            description: 'NHT 2% employee and 3% employer contributions',
-            status: 'pass',
-            details: 'NHT rates properly applied in payroll calculations',
-            regulation: 'NHT Act Section 8',
-          },
-          {
-            id: 'education-tax',
-            category: 'Payroll',
-            name: 'Education Tax',
-            description: 'Education tax at 3.5% calculated and remitted',
-            status: 'pass',
-            details: 'Education tax properly calculated in all payroll runs',
-            regulation: 'Education Tax Act',
-          },
-        ],
-      },
-      {
-        id: 'income-tax',
-        name: 'Income Tax',
-        icon: BanknotesIcon,
-        checks: [
-          {
-            id: 'trn-registration',
-            category: 'Income Tax',
-            name: 'TRN Registration',
-            description: 'Business has valid TRN',
-            status: activeCompany?.trnNumber ? 'pass' : 'fail',
-            details: activeCompany?.trnNumber
-              ? `TRN: ${activeCompany.trnNumber}`
-              : 'No TRN registered for business',
-            recommendation: !activeCompany?.trnNumber
-              ? 'Register for TRN with Tax Administration Jamaica'
-              : undefined,
-            regulation: 'Revenue Administration Act',
-          },
-          {
-            id: 'expense-documentation',
-            category: 'Income Tax',
-            name: 'Expense Documentation',
-            description: 'Business expenses have proper documentation',
-            status: expenses.filter(e => e.receiptUri || e.notes).length / Math.max(expenses.length, 1) > 0.8 ? 'pass' : 'warning',
-            details: `${expenses.filter(e => e.receiptUri || e.notes).length}/${expenses.length} expenses have documentation`,
-            recommendation: 'Maintain receipts and invoices for all business expenses for tax deduction eligibility',
-            regulation: 'Income Tax Act Section 12',
-          },
-          {
-            id: 'capital-allowances',
-            category: 'Income Tax',
-            name: 'Capital Allowances',
-            description: 'Fixed assets eligible for Jamaica capital allowances',
-            status: fixedAssets.length > 0 ? 'pass' : 'pending',
-            details: `${fixedAssets.length} fixed assets tracked for capital allowance claims`,
-            recommendation: 'Ensure assets are properly classified for initial and annual allowance calculations',
-            regulation: 'Income Tax Act First Schedule',
-          },
-        ],
-      },
-      {
-        id: 'accounting',
-        name: 'Accounting Standards',
-        icon: BuildingLibraryIcon,
-        checks: [
-          {
-            id: 'double-entry',
-            category: 'Accounting',
-            name: 'Double-Entry Verification',
-            description: 'All journal entries balance (debits = credits)',
-            status: journalEntries.every(je => je.totalDebits === je.totalCredits) ? 'pass' : 'fail',
-            details: journalEntries.every(je => je.totalDebits === je.totalCredits)
-              ? 'All journal entries are balanced'
-              : `${journalEntries.filter(je => je.totalDebits !== je.totalCredits).length} unbalanced entries found`,
-            regulation: 'IFRS/GAAP Accounting Standards',
-          },
-          {
-            id: 'bank-reconciliation',
-            category: 'Accounting',
-            name: 'Bank Reconciliation Status',
-            description: 'Bank accounts are regularly reconciled',
-            status: bankTransactions.filter(t => t.isReconciled).length / Math.max(bankTransactions.length, 1) > 0.9 ? 'pass' : 'warning',
-            details: `${bankTransactions.filter(t => t.isReconciled).length}/${bankTransactions.length} transactions reconciled`,
-            recommendation: 'Reconcile bank accounts monthly to identify discrepancies early',
-          },
-          {
-            id: 'period-closing',
-            category: 'Accounting',
-            name: 'Period Closing Procedures',
-            description: 'Accounting periods properly closed',
-            status: 'warning',
-            details: 'Automatic period closing not implemented',
-            recommendation: 'Establish month-end closing procedures to ensure timely financial reporting',
-          },
-        ],
-      },
-      {
-        id: 'inventory',
-        name: 'Inventory Management',
-        icon: CubeIcon,
-        checks: [
-          {
-            id: 'negative-inventory',
-            category: 'Inventory',
-            name: 'Negative Inventory Check',
-            description: 'No products have negative stock quantities',
-            status: products.every(p => (p.quantity ?? 0) >= 0) ? 'pass' : 'warning',
-            details: products.every(p => (p.quantity ?? 0) >= 0)
-              ? 'All products have non-negative quantities'
-              : `${products.filter(p => (p.quantity ?? 0) < 0).length} products have negative stock`,
-            recommendation: 'Investigate negative stock and adjust inventory records',
-          },
-          {
-            id: 'stock-valuation',
-            category: 'Inventory',
-            name: 'Stock Valuation',
-            description: 'Inventory valued using consistent method',
-            status: 'pass',
-            details: 'Weighted average cost method applied consistently',
-            regulation: 'IAS 2 Inventories',
-          },
-        ],
-      },
-    ];
+      if (res.error) {
+        console.error('[AI Audit]', res.error);
+        setIsRunning(false);
+        return;
+      }
 
-    setAuditResults(results);
-    setLastRunDate(new Date());
-    setIsRunning(false);
+      // Group findings by category and map to AuditCategory[]
+      const grouped: Record<string, AuditCheck[]> = {};
+      let checkIndex = 0;
+
+      for (const finding of res.findings) {
+        const cat = finding.category;
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push({
+          id: `check-${checkIndex++}`,
+          category: cat,
+          name: finding.name,
+          description: finding.description,
+          status: finding.status,
+          details: finding.details,
+          recommendation: finding.recommendation,
+        });
+      }
+
+      const results: AuditCategory[] = Object.entries(grouped).map(([name, checks]) => {
+        const config = categoryConfig[name] || { id: name.toLowerCase().replace(/\s+/g, '-'), icon: ChartBarIcon };
+        return {
+          id: config.id,
+          name,
+          icon: config.icon,
+          checks,
+        };
+      });
+
+      setAuditResults(results);
+      setLastRunDate(new Date());
+    } catch (err) {
+      console.error('[AI Audit] Request failed:', err);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const getStatusIcon = (status: AuditCheck['status']) => {
