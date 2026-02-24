@@ -36,6 +36,8 @@ const PUBLIC_ROUTES = [
   '/api/billing/checkout',
   '/api/billing/webhook',
   '/api/health',
+  '/api/v1/payments/wipay/callback', // WiPay callback redirect
+  '/payment/',            // Payment result pages (success/failed/error)
 ];
 
 // Routes that should redirect to dashboard if already authenticated
@@ -45,11 +47,21 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ============================================
+  // CSP NONCE — generated per request
+  // ============================================
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+
+  // ============================================
   // AUTHENTICATION CHECK
   // ============================================
 
   // Check if route is public
-  const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+  const isPublicRoute =
+    PUBLIC_ROUTES.some(route => pathname.startsWith(route)) ||
+    // Invoice pay endpoint: /api/v1/invoices/[id]/pay (public for customer payments)
+    /^\/api\/v1\/invoices\/[^/]+\/pay$/.test(pathname);
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
   // Get access token from Authorization header or cookie
@@ -105,7 +117,7 @@ export async function middleware(request: NextRequest) {
           isAuthenticated = true;
 
           // Forward the response and set the new cookies from the refresh endpoint
-          const response = NextResponse.next();
+          const response = NextResponse.next({ request: { headers: requestHeaders } });
 
           // Set the new access token cookie
           if (data.accessToken) {
@@ -125,7 +137,7 @@ export async function middleware(request: NextRequest) {
           }
 
           // Add security headers to this response
-          addSecurityHeaders(response);
+          addSecurityHeaders(response, nonce);
           return response;
         }
         // Refresh failed (session deleted or expired) → fall through to redirect
@@ -153,8 +165,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Continue with request and add security headers
-  const response = NextResponse.next();
-  addSecurityHeaders(response);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  addSecurityHeaders(response, nonce);
   return response;
 }
 
@@ -162,7 +174,7 @@ export async function middleware(request: NextRequest) {
 // SECURITY HEADERS (extracted to avoid duplication)
 // ============================================
 
-function addSecurityHeaders(response: NextResponse) {
+function addSecurityHeaders(response: NextResponse, nonce: string) {
   // Prevent clickjacking
   response.headers.set('X-Frame-Options', 'DENY');
 
@@ -186,16 +198,17 @@ function addSecurityHeaders(response: NextResponse) {
     'camera=(), microphone=(), geolocation=(), payment=()'
   );
 
-  // Content Security Policy
-  // In development, allow eval for Next.js hot-reload
+  // Content Security Policy — nonce-based for scripts (replaces unsafe-inline)
+  // style-src keeps 'unsafe-inline' because Tailwind/CSS-in-JS requires it
+  // and style injection is far lower risk than script injection.
   const isDev = process.env.NODE_ENV === 'development';
   const csp = [
     `default-src 'self'`,
-    `script-src 'self'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : " 'unsafe-inline'"}`,
+    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob: https:`,
     `font-src 'self' https://fonts.gstatic.com`,
-    `connect-src 'self'${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
+    `connect-src 'self' https://*.ingest.sentry.io https://us.i.posthog.com${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
     `frame-ancestors 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
