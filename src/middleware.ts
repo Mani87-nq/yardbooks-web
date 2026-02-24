@@ -232,6 +232,6 @@ function addSecurityHeaders(response: NextResponse, nonce: string) {
 // Apply to all routes except static assets
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp4|webm|ogg|mp3|wav|pdf|woff|woff2|ttf|eot)$).*)',
   ],
 };
