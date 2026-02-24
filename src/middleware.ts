@@ -40,6 +40,7 @@ const PUBLIC_ROUTES = [
   '/api/health',
   '/api/chat',                       // Public AI chatbot (landing page)
   '/api/v1/contact',                 // Public contact form submission
+  '/api/v1/referrals/validate',      // Public referral code validation (signup)
   '/api/v1/payments/wipay/callback', // WiPay callback redirect
   '/payment/',            // Payment result pages (success/failed/error)
 ];
