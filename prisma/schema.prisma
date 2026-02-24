@@ -546,6 +546,7 @@ model User {
   // Relations
   companyMemberships CompanyMember[]
   sessions           Session[]
+  oauthAccounts      OAuthAccount[]
   auditLogs          AuditLog[]          @relation("AuditUser")
   ownedCompanies     Company[]           @relation("CompanyOwner")
   createdJournals    JournalEntry[]      @relation("JournalCreatedBy")
@@ -571,6 +572,23 @@ model Session {
   @@index([userId])
   @@index([token])
   @@index([expiresAt])
+}
+
+/// OAuth provider accounts (Google, etc.)
+model OAuthAccount {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String    // "google", "apple", etc.
+  providerAccountId String    // Provider's unique user ID
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 /// Exchange rate history - rates are stored as 1 foreign currency = X JMD
