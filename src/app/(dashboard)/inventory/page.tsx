@@ -50,6 +50,8 @@ export default function InventoryPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductAPI | null>(null);
   const [saveError, setSaveError] = useState('');
+  const [showCostOfGoods, setShowCostOfGoods] = useState(false);
+  const [showCostOfGoods, setShowCostOfGoods] = useState(false);
 
   // API hooks
   const { data: productsResponse, isLoading, error: fetchError, refetch } = useProducts({
@@ -190,6 +192,7 @@ export default function InventoryPage() {
     lowStock: products.filter(p => p.quantity <= (p.reorderLevel || 0) && p.quantity > 0).length,
     outOfStock: products.filter(p => p.quantity === 0).length,
     totalValue: products.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0),
+    costOfGoods: products.reduce((sum, p) => sum + ((p.costPrice || 0) * p.quantity), 0),
   };
 
   const unitDisplay = (unit: string) => unit?.toLowerCase() || 'each';
@@ -260,8 +263,28 @@ export default function InventoryPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Value</p>
-            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(stats.totalValue)}</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm text-gray-500">{showCostOfGoods ? 'Cost of Goods' : 'Total Value'}</p>
+              <button
+                onClick={() => setShowCostOfGoods(!showCostOfGoods)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  showCostOfGoods ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+                title={showCostOfGoods ? 'Switch to Retail Value' : 'Switch to Cost of Goods'}
+              >
+                <span
+                  className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                    showCostOfGoods ? 'translate-x-5' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            <p className={`text-2xl font-bold ${showCostOfGoods ? 'text-emerald-600' : 'text-blue-600'}`}>
+              {isLoading ? '-' : formatJMD(showCostOfGoods ? stats.costOfGoods : stats.totalValue)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {showCostOfGoods ? 'Investment on hand' : 'Retail value'}
+            </p>
           </div>
         </Card>
       </div>
