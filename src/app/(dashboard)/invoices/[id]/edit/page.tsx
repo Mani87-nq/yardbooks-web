@@ -4,8 +4,9 @@ import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Select, Textarea } from '@/components/ui';
-import { useAppStore, useActiveCustomers, useActiveProducts } from '@/store/appStore';
+import { useActiveCustomers, useActiveProducts } from '@/store/appStore';
 import { formatJMD, GCT_RATES } from '@/lib/utils';
+import { useInvoice, useUpdateInvoice } from '@/hooks/api/useInvoices';
 import { v4 as uuidv4 } from 'uuid';
 import type { InvoiceItem, GCTRate, InvoiceStatus } from '@/types';
 import {
@@ -21,11 +22,10 @@ interface PageProps {
 export default function EditInvoicePage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const { invoices, updateInvoice, activeCompany } = useAppStore();
+  const { data: invoice, isLoading: isFetchingInvoice } = useInvoice(id);
+  const updateInvoiceMutation = useUpdateInvoice();
   const customers = useActiveCustomers();
   const products = useActiveProducts();
-
-  const invoice = invoices.find((inv) => inv.id === id);
 
   const [customerId, setCustomerId] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -38,26 +38,43 @@ export default function EditInvoicePage({ params }: PageProps) {
   const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>('fixed');
   const [customerPONumber, setCustomerPONumber] = useState('');
   const [items, setItems] = useState<Partial<InvoiceItem>[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFormReady, setIsFormReady] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (invoice) {
+    if (invoice && !isFormReady) {
       setCustomerId(invoice.customerId);
       setInvoiceNumber(invoice.invoiceNumber);
       setIssueDate(new Date(invoice.issueDate).toISOString().split('T')[0]);
       setDueDate(new Date(invoice.dueDate).toISOString().split('T')[0]);
-      setStatus(invoice.status);
+      setStatus((invoice.status?.toLowerCase() || 'draft') as InvoiceStatus);
       setNotes(invoice.notes || '');
       setTerms(invoice.terms || '');
-      setDiscount(invoice.discount || 0);
-      setDiscountType(invoice.discountType || 'fixed');
+      setDiscount(Number(invoice.discount) || 0);
+      setDiscountType((invoice.discountType?.toLowerCase() || 'fixed') as 'fixed' | 'percentage');
       setCustomerPONumber(invoice.customerPONumber || '');
-      setItems(invoice.items.length > 0 ? invoice.items : [
-        { id: uuidv4(), description: '', quantity: 1, unitPrice: 0, gctRate: 'standard' as GCTRate, gctAmount: 0, total: 0 },
-      ]);
-      setIsLoading(false);
+      const invoiceItems = invoice.items?.length > 0
+        ? invoice.items.map((item: any) => ({
+            ...item,
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unitPrice),
+            gctAmount: Number(item.gctAmount),
+            total: Number(item.total),
+            gctRate: (item.gctRate?.toLowerCase() || 'standard') as GCTRate,
+          }))
+        : [{ id: uuidv4(), description: '', quantity: 1, unitPrice: 0, gctRate: 'standard' as GCTRate, gctAmount: 0, total: 0 }];
+      setItems(invoiceItems);
+      setIsFormReady(true);
     }
-  }, [invoice]);
+  }, [invoice, isFormReady]);
+
+  if (isFetchingInvoice) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
 
   if (!invoice) {
     return (
@@ -70,7 +87,7 @@ export default function EditInvoicePage({ params }: PageProps) {
     );
   }
 
-  if (isLoading) {
+  if (!isFormReady) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-gray-500">Loading...</p>
@@ -142,7 +159,7 @@ export default function EditInvoicePage({ params }: PageProps) {
   const discountAmount = discountType === 'percentage' ? (subtotal + gctAmount) * (discount / 100) : discount;
   const total = subtotal + gctAmount - discountAmount;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!customerId) {
       alert('Please select a customer');
       return;
@@ -153,30 +170,28 @@ export default function EditInvoicePage({ params }: PageProps) {
       return;
     }
 
-    const customer = customers.find((c) => c.id === customerId);
-    const balance = total - invoice.amountPaid;
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    updateInvoice(invoice.id, {
-      invoiceNumber,
-      customerId,
-      customer,
-      items: items as InvoiceItem[],
-      subtotal,
-      gctAmount,
-      discount: discountAmount,
-      discountType,
-      total,
-      balance: Math.max(balance, 0),
-      status: balance <= 0 && invoice.amountPaid > 0 ? 'paid' : status,
-      issueDate: new Date(issueDate),
-      dueDate: new Date(dueDate),
-      notes,
-      terms,
-      customerPONumber: customerPONumber || undefined,
-      updatedAt: new Date(),
-    });
+    try {
+      const amountPaid = Number(invoice.amountPaid) || 0;
+      const balance = total - amountPaid;
+      const resolvedStatus = balance <= 0 && amountPaid > 0 ? 'PAID' : status.toUpperCase();
 
-    router.push(`/invoices/${invoice.id}`);
+      const updatedData = {
+        status: resolvedStatus,
+        dueDate: new Date(dueDate).toISOString(),
+        notes: notes || undefined,
+        terms: terms || undefined,
+      };
+
+      await updateInvoiceMutation.mutateAsync({ id: invoice.id, data: updatedData });
+      router.push(`/invoices/${invoice.id}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update invoice');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -435,16 +450,16 @@ export default function EditInvoicePage({ params }: PageProps) {
               <span className="font-semibold">Total</span>
               <span className="text-xl font-bold text-emerald-600">{formatJMD(total)}</span>
             </div>
-            {invoice.amountPaid > 0 && (
+            {Number(invoice.amountPaid) > 0 && (
               <>
                 <div className="flex justify-between pt-2">
                   <span className="text-gray-500">Amount Paid</span>
-                  <span className="font-medium text-emerald-600">-{formatJMD(invoice.amountPaid)}</span>
+                  <span className="font-medium text-emerald-600">-{formatJMD(Number(invoice.amountPaid))}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Balance Due</span>
                   <span className="text-lg font-bold text-orange-600">
-                    {formatJMD(Math.max(total - invoice.amountPaid, 0))}
+                    {formatJMD(Math.max(total - Number(invoice.amountPaid), 0))}
                   </span>
                 </div>
               </>
@@ -458,8 +473,8 @@ export default function EditInvoicePage({ params }: PageProps) {
         <Link href={`/invoices/${invoice.id}`}>
           <Button variant="outline">Cancel</Button>
         </Link>
-        <Button onClick={handleSubmit}>
-          Save Changes
+        <Button onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
     </div>

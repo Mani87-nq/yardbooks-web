@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Select, Textarea } from '@/components/ui';
 import { useAppStore, useActiveCustomers, useActiveProducts } from '@/store/appStore';
 import { formatJMD, GCT_RATES } from '@/lib/utils';
+import { useCreateInvoice } from '@/hooks/api/useInvoices';
 import { v4 as uuidv4 } from 'uuid';
 import type { Invoice, InvoiceItem, GCTRate } from '@/types';
 import {
@@ -17,9 +18,11 @@ import {
 
 export default function NewInvoicePage() {
   const router = useRouter();
-  const { addInvoice, activeCompany, settings } = useAppStore();
+  const { activeCompany, settings } = useAppStore();
   const customers = useActiveCustomers();
   const products = useActiveProducts();
+  const createInvoice = useCreateInvoice();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [customerId, setCustomerId] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
@@ -81,39 +84,40 @@ export default function NewInvoicePage() {
   const gctAmount = items.reduce((sum, item) => sum + (item.gctAmount || 0), 0);
   const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
 
-  const handleSubmit = (status: 'draft' | 'sent') => {
+  const handleSubmit = async (status: 'draft' | 'sent') => {
     if (!customerId) {
       alert('Please select a customer');
       return;
     }
 
-    const customer = customers.find((c) => c.id === customerId);
-    const invoiceNumber = `${settings.invoicePrefix}${String(Date.now()).slice(-6)}`;
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    const invoice: Invoice = {
-      id: uuidv4(),
-      companyId: activeCompany?.id || '',
-      invoiceNumber,
-      customerId,
-      customer,
-      items: items as InvoiceItem[],
-      subtotal,
-      gctAmount,
-      discount: 0,
-      discountType: 'fixed',
-      total,
-      amountPaid: 0,
-      balance: total,
-      status,
-      issueDate: new Date(issueDate),
-      dueDate: new Date(dueDate),
-      notes,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      const invoiceData = {
+        customerId,
+        items: (items as InvoiceItem[]).map(({ id, ...item }) => ({
+          ...item,
+          gctRate: (item.gctRate || 'standard').toUpperCase(),
+        })),
+        subtotal,
+        gctAmount,
+        discount: 0,
+        discountType: 'FIXED' as const,
+        total,
+        status: status.toUpperCase() as 'DRAFT' | 'SENT',
+        issueDate: new Date(issueDate).toISOString(),
+        dueDate: new Date(dueDate).toISOString(),
+        notes: notes || undefined,
+      };
 
-    addInvoice(invoice);
-    router.push('/invoices');
+      await createInvoice.mutateAsync(invoiceData);
+      router.push('/invoices');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to create invoice');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -289,11 +293,11 @@ export default function NewInvoicePage() {
         <Link href="/invoices">
           <Button variant="outline">Cancel</Button>
         </Link>
-        <Button variant="secondary" onClick={() => handleSubmit('draft')}>
-          Save as Draft
+        <Button variant="secondary" onClick={() => handleSubmit('draft')} disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : 'Save as Draft'}
         </Button>
-        <Button onClick={() => handleSubmit('sent')}>
-          Create & Send
+        <Button onClick={() => handleSubmit('sent')} disabled={isSubmitting}>
+          {isSubmitting ? 'Creating...' : 'Create & Send'}
         </Button>
       </div>
     </div>

@@ -2,9 +2,15 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate, formatDateTime } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  useBankAccounts,
+  useCreateBankAccount,
+  useUpdateBankAccount,
+  useDeleteBankAccount,
+  useBankTransactions,
+  useCreateBankTransaction,
+} from '@/hooks/api';
 import type { BankAccount, BankTransaction, BankReconciliation } from '@/types/banking';
 import {
   PlusIcon,
@@ -53,8 +59,30 @@ export default function BankingPage() {
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
 
-  const { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount,
-    bankTransactions, addBankTransaction, updateBankTransaction, activeCompany } = useAppStore();
+  const [saveError, setSaveError] = useState('');
+
+  // API hooks
+  const { data: accountsResponse, isLoading: accountsLoading } = useBankAccounts();
+  const { data: transactionsResponse, isLoading: txnsLoading } = useBankTransactions(
+    selectedAccount?.id || undefined
+  );
+  const createAccount = useCreateBankAccount();
+  const updateAccount = useUpdateBankAccount();
+  const deleteAccount = useDeleteBankAccount();
+  const createTransaction = useCreateBankTransaction();
+
+  const bankAccounts: BankAccount[] = ((accountsResponse as any)?.data ?? []).map((a: any) => ({
+    ...a,
+    accountType: (a.accountType ?? '').toLowerCase(),
+    currentBalance: Number(a.currentBalance ?? 0),
+    availableBalance: Number(a.availableBalance ?? a.currentBalance ?? 0),
+  }));
+
+  const bankTransactions: BankTransaction[] = ((transactionsResponse as any)?.data ?? []).map((t: any) => ({
+    ...t,
+    amount: Number(t.amount ?? 0),
+    balance: t.balance != null ? Number(t.balance) : undefined,
+  }));
 
   const [accountForm, setAccountForm] = useState({
     accountName: '',
@@ -128,7 +156,8 @@ export default function BankingPage() {
     setShowAccountModal(true);
   };
 
-  const handleSaveAccount = () => {
+  const handleSaveAccount = async () => {
+    setSaveError('');
     if (!accountForm.accountName.trim()) {
       alert('Please enter account name');
       return;
@@ -138,34 +167,44 @@ export default function BankingPage() {
       return;
     }
 
-    const accountData = {
-      accountName: accountForm.accountName,
-      bankName: accountForm.bankName,
-      accountNumber: accountForm.accountNumber,
-      accountType: accountForm.accountType,
-      currency: accountForm.currency,
-      currentBalance: parseFloat(accountForm.currentBalance) || 0,
-      availableBalance: parseFloat(accountForm.currentBalance) || 0,
-      isActive: accountForm.isActive,
-      updatedAt: new Date(),
-    };
+    const accountType = accountForm.accountType.toUpperCase() as string;
 
-    if (editingAccount) {
-      updateBankAccount(editingAccount.id, accountData);
-    } else {
-      addBankAccount({
-        id: uuidv4(),
-        companyId: activeCompany?.id ?? '',
-        ...accountData,
-        createdAt: new Date(),
-      });
+    try {
+      if (editingAccount) {
+        await updateAccount.mutateAsync({
+          id: editingAccount.id,
+          data: {
+            accountName: accountForm.accountName,
+            isActive: accountForm.isActive,
+            currentBalance: parseFloat(accountForm.currentBalance) || 0,
+          },
+        });
+      } else {
+        await createAccount.mutateAsync({
+          accountName: accountForm.accountName,
+          bankName: accountForm.bankName,
+          accountNumber: accountForm.accountNumber,
+          accountType,
+          currency: accountForm.currency,
+          currentBalance: parseFloat(accountForm.currentBalance) || 0,
+          isActive: accountForm.isActive,
+        });
+      }
+      setShowAccountModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save account';
+      alert(message);
     }
-    setShowAccountModal(false);
   };
 
-  const handleDeleteAccount = (id: string) => {
+  const handleDeleteAccount = async (id: string) => {
     if (confirm('Are you sure you want to delete this account?')) {
-      deleteBankAccount(id);
+      try {
+        await deleteAccount.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete account';
+        alert(message);
+      }
     }
   };
 
@@ -183,7 +222,7 @@ export default function BankingPage() {
     setShowTransactionModal(true);
   };
 
-  const handleSaveTransaction = () => {
+  const handleSaveTransaction = async () => {
     if (!transactionForm.accountId) {
       alert('Please select an account');
       return;
@@ -199,31 +238,21 @@ export default function BankingPage() {
 
     const rawAmount = parseFloat(transactionForm.amount);
     const amount = transactionForm.type === 'withdrawal' ? -rawAmount : rawAmount;
-    const account = bankAccounts.find(a => a.id === transactionForm.accountId);
 
-    if (account) {
-      const newBalance = account.currentBalance + amount;
-      const txnDate = new Date(transactionForm.date);
-
-      addBankTransaction({
-        id: uuidv4(),
+    try {
+      await createTransaction.mutateAsync({
         bankAccountId: transactionForm.accountId,
-        transactionDate: txnDate,
-        postDate: txnDate,
-        amount,
-        balance: newBalance,
+        transactionDate: transactionForm.date,
         description: transactionForm.description,
+        amount,
         reference: transactionForm.reference || undefined,
         category: transactionForm.category || undefined,
-        isReconciled: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
-
-      updateBankAccount(account.id, { currentBalance: newBalance, availableBalance: newBalance });
+      setShowTransactionModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save transaction';
+      alert(message);
     }
-
-    setShowTransactionModal(false);
   };
 
   const handleOpenReconcileModal = (account: BankAccount) => {

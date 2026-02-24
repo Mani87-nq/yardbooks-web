@@ -3,21 +3,38 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api-client';
 
+export interface InvoiceCustomer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string | { street: string; city: string; parish?: string };
+  [key: string]: unknown;
+}
+
 interface Invoice {
   id: string;
   invoiceNumber: string;
   customerId: string;
-  customer: { id: string; name: string };
+  customer: InvoiceCustomer;
   subtotal: number;
   gctAmount: number;
   discount: number;
+  discountType: string;
   total: number;
+  amountPaid: number;
   balance: number;
   status: string;
   issueDate: string;
   dueDate: string;
+  paidDate?: string;
+  notes?: string;
+  terms?: string;
+  customerPONumber?: string;
   items: InvoiceItem[];
+  payments?: unknown[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 interface InvoiceItem {

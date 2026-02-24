@@ -3,9 +3,16 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDate, formatDateTime } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  useJournalEntries,
+  useGLAccounts,
+  useCreateJournalEntry,
+  useUpdateJournalEntry,
+  useDeleteJournalEntry,
+  usePostJournalEntry,
+  useVoidJournalEntry,
+} from '@/hooks/api';
 import type { JournalEntry, JournalEntryLine } from '@/types/generalLedger';
 import {
   PlusIcon,
@@ -29,7 +36,42 @@ export default function JournalEntriesPage() {
     { accountId: '', debit: 0, credit: 0, description: '' },
   ]);
 
-  const { journalEntries, glAccounts, addJournalEntry, updateJournalEntry, deleteJournalEntry, updateGLAccount } = useAppStore();
+  // API hooks
+  const { data: entriesResponse, isLoading: entriesLoading } = useJournalEntries({ limit: 100 });
+  const { data: glAccountsResponse } = useGLAccounts();
+  const createJournalEntry = useCreateJournalEntry();
+  const updateJournalEntryMut = useUpdateJournalEntry();
+  const deleteJournalEntryMut = useDeleteJournalEntry();
+  const postJournalEntry = usePostJournalEntry();
+  const voidJournalEntry = useVoidJournalEntry();
+
+  // Map from API (UPPERCASE) to local (lowercase) status/type
+  const STATUS_MAP_FROM_API: Record<string, string> = {
+    DRAFT: 'draft', POSTED: 'posted', VOID: 'void',
+  };
+  const TYPE_MAP_FROM_API: Record<string, string> = {
+    ASSET: 'asset', LIABILITY: 'liability', EQUITY: 'equity', INCOME: 'revenue', EXPENSE: 'expense',
+  };
+
+  const journalEntries: JournalEntry[] = ((entriesResponse as any)?.data ?? []).map((e: any) => ({
+    ...e,
+    status: STATUS_MAP_FROM_API[e.status] ?? e.status?.toLowerCase() ?? 'draft',
+    totalDebits: Number(e.totalDebits ?? 0),
+    totalCredits: Number(e.totalCredits ?? 0),
+    lines: (e.lines ?? []).map((l: any) => ({
+      ...l,
+      debit: Number(l.debitAmount ?? 0),
+      credit: Number(l.creditAmount ?? 0),
+      accountName: l.accountName || l.account?.name || '',
+      accountNumber: l.accountCode || l.account?.accountNumber || '',
+    })),
+  }));
+
+  const glAccounts: Array<{ id: string; accountNumber: string; name: string; type: string; isActive: boolean; balance: number; [key: string]: unknown }> = ((glAccountsResponse as any)?.data ?? []).map((a: any) => ({
+    ...a,
+    type: TYPE_MAP_FROM_API[a.type] ?? a.type?.toLowerCase() ?? 'asset',
+    balance: Number(a.currentBalance ?? a.balance ?? 0),
+  }));
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -126,7 +168,7 @@ export default function JournalEntriesPage() {
   const totalCredits = lines.reduce((sum, l) => sum + (Number(l.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.description.trim()) {
       alert('Please enter a description');
       return;
@@ -140,43 +182,38 @@ export default function JournalEntriesPage() {
       return;
     }
 
-    const entryLines: JournalEntryLine[] = lines.map((l, i) => ({
-      id: uuidv4(),
+    const apiLines = lines.map((l, i) => ({
       accountId: l.accountId!,
-      accountName: glAccounts.find(a => a.id === l.accountId)?.name || '',
-      accountNumber: glAccounts.find(a => a.id === l.accountId)?.accountNumber || '',
-      debit: Number(l.debit) || 0,
-      credit: Number(l.credit) || 0,
-      description: l.description,
+      accountName: glAccounts.find((a: any) => a.id === l.accountId)?.name || '',
+      accountCode: glAccounts.find((a: any) => a.id === l.accountId)?.accountNumber || '',
+      debitAmount: Number(l.debit) || 0,
+      creditAmount: Number(l.credit) || 0,
+      description: l.description || undefined,
+      lineNumber: i + 1,
     }));
 
-    const entryData = {
-      date: new Date(formData.date),
+    const payload: Record<string, unknown> = {
+      date: formData.date,
       reference: formData.reference || undefined,
       description: formData.description,
       notes: formData.notes || undefined,
-      lines: entryLines,
-      totalDebits,
-      totalCredits,
-      updatedAt: new Date(),
+      lines: apiLines,
     };
 
-    if (editingEntry) {
-      updateJournalEntry(editingEntry.id, entryData);
-    } else {
-      addJournalEntry({
-        id: uuidv4(),
-        entryNumber: generateEntryNumber(),
-        ...entryData,
-        status: 'draft',
-        createdAt: new Date(),
-        createdBy: 'Current User',
-      });
+    try {
+      if (editingEntry) {
+        await updateJournalEntryMut.mutateAsync({ id: editingEntry.id, data: payload });
+      } else {
+        await createJournalEntry.mutateAsync(payload);
+      }
+      setShowModal(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save journal entry';
+      alert(message);
     }
-    setShowModal(false);
   };
 
-  const handlePost = (entry: JournalEntry) => {
+  const handlePost = async (entry: JournalEntry) => {
     if (entry.status !== 'draft') {
       alert('Only draft entries can be posted');
       return;
@@ -185,60 +222,41 @@ export default function JournalEntriesPage() {
       return;
     }
 
-    // Update GL account balances
-    entry.lines.forEach(line => {
-      const account = glAccounts.find(a => a.id === line.accountId);
-      if (account) {
-        const isDebitNormal = ['asset', 'expense'].includes(account.type);
-        const balanceChange = isDebitNormal
-          ? line.debit - line.credit
-          : line.credit - line.debit;
-        updateGLAccount(account.id, {
-          balance: (account.balance || 0) + balanceChange,
-        });
-      }
-    });
-
-    updateJournalEntry(entry.id, {
-      status: 'posted',
-      postedAt: new Date(),
-      postedBy: 'Current User',
-    });
+    try {
+      await postJournalEntry.mutateAsync(entry.id);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to post journal entry';
+      alert(message);
+    }
   };
 
-  const handleVoid = (entry: JournalEntry) => {
+  const handleVoid = async (entry: JournalEntry) => {
     if (entry.status === 'void') return;
     if (!confirm('Void this journal entry? This will reverse any posted amounts.')) {
       return;
     }
 
-    // Reverse GL account balances if posted
-    if (entry.status === 'posted') {
-      entry.lines.forEach(line => {
-        const account = glAccounts.find(a => a.id === line.accountId);
-        if (account) {
-          const isDebitNormal = ['asset', 'expense'].includes(account.type);
-          const balanceChange = isDebitNormal
-            ? line.credit - line.debit
-            : line.debit - line.credit;
-          updateGLAccount(account.id, {
-            balance: (account.balance || 0) + balanceChange,
-          });
-        }
-      });
+    try {
+      await voidJournalEntry.mutateAsync(entry.id);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to void journal entry';
+      alert(message);
     }
-
-    updateJournalEntry(entry.id, { status: 'void' });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const entry = journalEntries.find(e => e.id === id);
     if (entry?.status === 'posted') {
       alert('Cannot delete a posted entry. Void it instead.');
       return;
     }
     if (confirm('Are you sure you want to delete this entry?')) {
-      deleteJournalEntry(id);
+      try {
+        await deleteJournalEntryMut.mutateAsync(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to delete journal entry';
+        alert(message);
+      }
     }
   };
 

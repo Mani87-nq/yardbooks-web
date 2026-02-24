@@ -121,6 +121,18 @@ export function useCreateJournalEntry() {
   });
 }
 
+export function useUpdateJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      api.put<JournalEntry>(`/api/v1/journal-entries/${id}`, data),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['journalEntries'] });
+      qc.invalidateQueries({ queryKey: ['journalEntries', vars.id] });
+    },
+  });
+}
+
 export function useDeleteJournalEntry() {
   const qc = useQueryClient();
   return useMutation({
@@ -128,6 +140,28 @@ export function useDeleteJournalEntry() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['journalEntries'] });
       qc.invalidateQueries({ queryKey: ['glAccounts'] });
+    },
+  });
+}
+
+export function usePostJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<JournalEntry>(`/api/v1/journal-entries/${id}/post`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['journalEntries'] });
+      qc.invalidateQueries({ queryKey: ['glAccounts'] }); // balances change on post
+    },
+  });
+}
+
+export function useVoidJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<JournalEntry>(`/api/v1/journal-entries/${id}/void`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['journalEntries'] });
+      qc.invalidateQueries({ queryKey: ['glAccounts'] }); // balances change on void
     },
   });
 }
