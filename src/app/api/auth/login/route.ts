@@ -186,10 +186,11 @@ export async function POST(request: NextRequest) {
     // Set refresh token as httpOnly cookie
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
     
-    // Set access token cookie for middleware + client-side hydration.
-    // NOT httpOnly so ensureAccessTokenFromCookie() can read it client-side.
+    // Set access token cookie for middleware + API route auth.
+    // httpOnly: true prevents XSS from stealing the token via document.cookie.
+    // The browser sends this cookie automatically with same-origin requests.
     response.cookies.set('accessToken', accessToken, {
-      httpOnly: false,
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',

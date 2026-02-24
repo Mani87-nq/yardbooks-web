@@ -123,10 +123,10 @@ export async function middleware(request: NextRequest) {
           // Forward the response and set the new cookies from the refresh endpoint
           const response = NextResponse.next({ request: { headers: requestHeaders } });
 
-          // Set the new access token cookie (not httpOnly for client-side hydration)
+          // Set the new access token cookie (httpOnly to prevent XSS token theft)
           if (data.accessToken) {
             response.cookies.set('accessToken', data.accessToken, {
-              httpOnly: false,
+              httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               path: '/',

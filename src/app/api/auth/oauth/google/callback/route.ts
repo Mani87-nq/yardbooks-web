@@ -336,11 +336,11 @@ export async function GET(request: NextRequest) {
     // Set refresh token as httpOnly cookie
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, getRefreshTokenCookieOptions());
 
-    // Set access token cookie for middleware + client-side hydration.
-    // NOT httpOnly so ensureAccessTokenFromCookie() can seed the in-memory
-    // API client on the first dashboard load (same as login page behaviour).
+    // Set access token cookie (httpOnly to prevent XSS token theft).
+    // The browser sends this cookie automatically with same-origin requests;
+    // getAuthUser() in auth middleware reads it server-side.
     response.cookies.set('accessToken', accessToken, {
-      httpOnly: false,
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
