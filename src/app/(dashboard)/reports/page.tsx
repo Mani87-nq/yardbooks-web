@@ -20,6 +20,9 @@ import {
   CalendarIcon,
   BuildingLibraryIcon,
   PrinterIcon,
+  ScaleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 import { printContent, generateTable, generateStatCards, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
 
@@ -80,6 +83,41 @@ const REPORTS = [
     icon: BuildingLibraryIcon,
     color: 'bg-gray-100 text-gray-600',
   },
+  {
+    id: 'trial_balance',
+    name: 'Trial Balance',
+    description: 'Debits and credits by account',
+    icon: CalculatorIcon,
+    color: 'bg-teal-100 text-teal-600',
+  },
+  {
+    id: 'general_ledger',
+    name: 'General Ledger',
+    description: 'All transactions by account',
+    icon: DocumentTextIcon,
+    color: 'bg-amber-100 text-amber-600',
+  },
+  {
+    id: 'cash_flow',
+    name: 'Cash Flow',
+    description: 'Cash inflows and outflows',
+    icon: BanknotesIcon,
+    color: 'bg-sky-100 text-sky-600',
+  },
+  {
+    id: 'ar_aging',
+    name: 'AR Aging',
+    description: 'Accounts receivable aging',
+    icon: UserGroupIcon,
+    color: 'bg-rose-100 text-rose-600',
+  },
+  {
+    id: 'ap_aging',
+    name: 'AP Aging',
+    description: 'Accounts payable aging',
+    icon: BanknotesIcon,
+    color: 'bg-violet-100 text-violet-600',
+  },
 ];
 
 export default function ReportsPage() {
@@ -88,6 +126,7 @@ export default function ReportsPage() {
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
   });
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
 
   const { invoices, expenses, customers, products, glAccounts, activeCompany } = useAppStore();
   const { orders } = usePosStore();
@@ -205,6 +244,53 @@ export default function ReportsPage() {
     queryFn: () => api.get<any>(`/api/v1/reports/balance-sheet?asOfDate=${dateRange.end}`),
     enabled: selectedReport === 'balance_sheet',
   });
+
+  // Trial Balance Data
+  const { data: tbApiData, isLoading: tbLoading } = useQuery({
+    queryKey: ['report-trial-balance', dateRange.end],
+    queryFn: () => api.get<any>(`/api/v1/reports/trial-balance?asOfDate=${dateRange.end}`),
+    enabled: selectedReport === 'trial_balance',
+  });
+
+  // General Ledger Data
+  const { data: glApiData, isLoading: glLoading } = useQuery({
+    queryKey: ['report-general-ledger', dateRange.start, dateRange.end],
+    queryFn: () => api.get<any>(`/api/v1/reports/general-ledger?startDate=${dateRange.start}&endDate=${dateRange.end}`),
+    enabled: selectedReport === 'general_ledger',
+  });
+
+  // Cash Flow Statement Data
+  const { data: cfApiData, isLoading: cfLoading } = useQuery({
+    queryKey: ['report-cash-flow', dateRange.start, dateRange.end],
+    queryFn: () => api.get<any>(`/api/v1/reports/cash-flow?startDate=${dateRange.start}&endDate=${dateRange.end}`),
+    enabled: selectedReport === 'cash_flow',
+  });
+
+  // AR Aging Data
+  const { data: arApiData, isLoading: arLoading } = useQuery({
+    queryKey: ['report-ar-aging', dateRange.end],
+    queryFn: () => api.get<any>(`/api/v1/reports/ar-aging?asOfDate=${dateRange.end}`),
+    enabled: selectedReport === 'ar_aging',
+  });
+
+  // AP Aging Data
+  const { data: apApiData, isLoading: apLoading } = useQuery({
+    queryKey: ['report-ap-aging', dateRange.end],
+    queryFn: () => api.get<any>(`/api/v1/reports/ap-aging?asOfDate=${dateRange.end}`),
+    enabled: selectedReport === 'ap_aging',
+  });
+
+  const toggleAccountExpanded = (accountKey: string) => {
+    setExpandedAccounts(prev => {
+      const next = new Set(prev);
+      if (next.has(accountKey)) {
+        next.delete(accountKey);
+      } else {
+        next.add(accountKey);
+      }
+      return next;
+    });
+  };
 
   // Print handler
   const handlePrint = () => {
@@ -357,6 +443,218 @@ export default function ReportsPage() {
         }
         break;
       }
+      case 'trial_balance': {
+        const tbData = tbApiData;
+        if (tbData?.grouped) {
+          const rows: any[] = [];
+          const typeOrder = ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'];
+          typeOrder.forEach(type => {
+            const group = tbData.grouped[type];
+            if (group?.accounts?.length > 0) {
+              rows.push({ label: type, debit: null, credit: null });
+              group.accounts.forEach((a: any) => rows.push({
+                label: `  ${a.accountNumber} — ${a.accountName}`,
+                debit: a.debitBalance,
+                credit: a.creditBalance,
+              }));
+              rows.push({ label: `Total ${type}`, debit: group.totalDebits, credit: group.totalCredits });
+            }
+          });
+
+          content = '<h3 style="margin-bottom:20px;font-weight:600;">Trial Balance</h3>' +
+            (tbData.totals?.isBalanced
+              ? '<p style="color:#059669;font-weight:600;margin-bottom:16px;">&#10003; Trial Balance is balanced</p>'
+              : '<p style="color:#dc2626;font-weight:600;margin-bottom:16px;">&#10007; Trial Balance is NOT balanced</p>'
+            ) +
+            generateTable(
+              [
+                { key: 'label', label: 'Account' },
+                { key: 'debit', label: 'Debit', align: 'right' },
+                { key: 'credit', label: 'Credit', align: 'right' },
+              ],
+              rows.filter((r: any) => r.debit !== null),
+              {
+                formatters: { debit: formatPrintCurrency, credit: formatPrintCurrency },
+                summaryRow: {
+                  label: 'Grand Total',
+                  debit: tbData.totals?.totalDebits || 0,
+                  credit: tbData.totals?.totalCredits || 0,
+                },
+              }
+            );
+        }
+        break;
+      }
+      case 'general_ledger': {
+        const glData = glApiData;
+        if (glData?.accounts?.length > 0) {
+          let tableHtml = '<h3 style="margin-bottom:20px;font-weight:600;">General Ledger</h3>';
+          glData.accounts.forEach((acct: any) => {
+            tableHtml += `<h4 style="margin-top:24px;margin-bottom:8px;font-weight:600;">${acct.accountNumber} — ${acct.accountName} (${acct.accountType})</h4>`;
+            tableHtml += `<p style="font-size:13px;color:#6b7280;">Opening Balance: ${formatPrintCurrency(acct.openingBalance)} | Closing Balance: ${formatPrintCurrency(acct.closingBalance)}</p>`;
+            if (acct.transactions?.length > 0) {
+              tableHtml += generateTable(
+                [
+                  { key: 'date', label: 'Date' },
+                  { key: 'entryNumber', label: 'Entry #' },
+                  { key: 'description', label: 'Description' },
+                  { key: 'debit', label: 'Debit', align: 'right' },
+                  { key: 'credit', label: 'Credit', align: 'right' },
+                  { key: 'balance', label: 'Balance', align: 'right' },
+                ],
+                acct.transactions.map((t: any) => ({
+                  date: t.date,
+                  entryNumber: t.entryNumber || '-',
+                  description: t.description || '-',
+                  debit: t.debit,
+                  credit: t.credit,
+                  balance: t.balance,
+                })),
+                { formatters: { debit: formatPrintCurrency, credit: formatPrintCurrency, balance: formatPrintCurrency } }
+              );
+            }
+          });
+          content = tableHtml;
+        }
+        break;
+      }
+      case 'cash_flow': {
+        const cfData = cfApiData;
+        if (cfData) {
+          const rows: any[] = [];
+
+          // Operating
+          rows.push({ label: 'OPERATING ACTIVITIES', amount: null });
+          if (cfData.operating?.netIncome !== undefined) {
+            rows.push({ label: '  Net Income', amount: cfData.operating.netIncome });
+          }
+          cfData.operating?.adjustments?.forEach((adj: any) => {
+            rows.push({ label: `  ${adj.description}`, amount: adj.amount });
+          });
+          rows.push({ label: 'Net Cash from Operations', amount: cfData.operating?.total || 0 });
+
+          // Investing
+          rows.push({ label: 'INVESTING ACTIVITIES', amount: null });
+          cfData.investing?.items?.forEach((item: any) => {
+            rows.push({ label: `  ${item.description}`, amount: item.amount });
+          });
+          rows.push({ label: 'Net Cash from Investing', amount: cfData.investing?.total || 0 });
+
+          // Financing
+          rows.push({ label: 'FINANCING ACTIVITIES', amount: null });
+          cfData.financing?.items?.forEach((item: any) => {
+            rows.push({ label: `  ${item.description}`, amount: item.amount });
+          });
+          rows.push({ label: 'Net Cash from Financing', amount: cfData.financing?.total || 0 });
+
+          // Summary
+          rows.push({ label: 'Net Cash Change', amount: cfData.summary?.netCashChange || 0 });
+          rows.push({ label: 'Opening Cash', amount: cfData.summary?.openingCash || 0 });
+          rows.push({ label: 'Closing Cash', amount: cfData.summary?.closingCash || 0 });
+
+          content = '<h3 style="margin-bottom:20px;font-weight:600;">Cash Flow Statement</h3>' + generateTable(
+            [
+              { key: 'label', label: 'Description' },
+              { key: 'amount', label: 'Amount', align: 'right' },
+            ],
+            rows.filter((r: any) => r.amount !== null),
+            {
+              formatters: {
+                amount: (v: number) => `<span style="color:${v >= 0 ? '#059669' : '#dc2626'}">${formatPrintCurrency(Math.abs(v))}</span>`
+              },
+            }
+          );
+        }
+        break;
+      }
+      case 'ar_aging': {
+        const arData = arApiData;
+        if (arData) {
+          content = generateStatCards([
+            { label: 'Current', value: formatPrintCurrency(arData.totals?.current || 0), color: '#059669' },
+            { label: '1-30 Days', value: formatPrintCurrency(arData.totals?.days1to30 || 0), color: '#ea580c' },
+            { label: '31-60 Days', value: formatPrintCurrency(arData.totals?.days31to60 || 0), color: '#dc2626' },
+            { label: '61-90 Days', value: formatPrintCurrency(arData.totals?.days61to90 || 0), color: '#b91c1c' },
+            { label: '90+ Days', value: formatPrintCurrency(arData.totals?.days90plus || 0), color: '#7f1d1d' },
+            { label: 'Total', value: formatPrintCurrency(arData.totals?.total || 0) },
+          ]) + generateTable(
+            [
+              { key: 'customerName', label: 'Customer' },
+              { key: 'current', label: 'Current', align: 'right' },
+              { key: 'days1to30', label: '1-30', align: 'right' },
+              { key: 'days31to60', label: '31-60', align: 'right' },
+              { key: 'days61to90', label: '61-90', align: 'right' },
+              { key: 'days90plus', label: '90+', align: 'right' },
+              { key: 'total', label: 'Total', align: 'right' },
+            ],
+            arData.customers || [],
+            {
+              formatters: {
+                current: formatPrintCurrency,
+                days1to30: formatPrintCurrency,
+                days31to60: formatPrintCurrency,
+                days61to90: formatPrintCurrency,
+                days90plus: formatPrintCurrency,
+                total: formatPrintCurrency,
+              },
+              summaryRow: {
+                customerName: 'Total',
+                current: arData.totals?.current || 0,
+                days1to30: arData.totals?.days1to30 || 0,
+                days31to60: arData.totals?.days31to60 || 0,
+                days61to90: arData.totals?.days61to90 || 0,
+                days90plus: arData.totals?.days90plus || 0,
+                total: arData.totals?.total || 0,
+              },
+            }
+          );
+        }
+        break;
+      }
+      case 'ap_aging': {
+        const apData = apApiData;
+        if (apData) {
+          content = generateStatCards([
+            { label: 'Current', value: formatPrintCurrency(apData.totals?.current || 0), color: '#059669' },
+            { label: '1-30 Days', value: formatPrintCurrency(apData.totals?.days1to30 || 0), color: '#ea580c' },
+            { label: '31-60 Days', value: formatPrintCurrency(apData.totals?.days31to60 || 0), color: '#dc2626' },
+            { label: '61-90 Days', value: formatPrintCurrency(apData.totals?.days61to90 || 0), color: '#b91c1c' },
+            { label: '90+ Days', value: formatPrintCurrency(apData.totals?.days90plus || 0), color: '#7f1d1d' },
+            { label: 'Total', value: formatPrintCurrency(apData.totals?.total || 0) },
+          ]) + generateTable(
+            [
+              { key: 'vendorName', label: 'Vendor' },
+              { key: 'current', label: 'Current', align: 'right' },
+              { key: 'days1to30', label: '1-30', align: 'right' },
+              { key: 'days31to60', label: '31-60', align: 'right' },
+              { key: 'days61to90', label: '61-90', align: 'right' },
+              { key: 'days90plus', label: '90+', align: 'right' },
+              { key: 'total', label: 'Total', align: 'right' },
+            ],
+            apData.vendors || [],
+            {
+              formatters: {
+                current: formatPrintCurrency,
+                days1to30: formatPrintCurrency,
+                days31to60: formatPrintCurrency,
+                days61to90: formatPrintCurrency,
+                days90plus: formatPrintCurrency,
+                total: formatPrintCurrency,
+              },
+              summaryRow: {
+                vendorName: 'Total',
+                current: apData.totals?.current || 0,
+                days1to30: apData.totals?.days1to30 || 0,
+                days31to60: apData.totals?.days31to60 || 0,
+                days61to90: apData.totals?.days61to90 || 0,
+                days90plus: apData.totals?.days90plus || 0,
+                total: apData.totals?.total || 0,
+              },
+            }
+          );
+        }
+        break;
+      }
     }
 
     printContent({
@@ -413,6 +711,90 @@ export default function ReportsPage() {
           })),
           filename
         );
+        break;
+      }
+      case 'trial_balance': {
+        const tbData = tbApiData;
+        if (tbData?.accounts?.length > 0) {
+          downloadAsCSV(
+            tbData.accounts.map((a: any) => ({
+              'Account Number': a.accountNumber,
+              'Account Name': a.accountName,
+              'Account Type': a.accountType,
+              'Debit Balance': a.debitBalance,
+              'Credit Balance': a.creditBalance,
+            })),
+            filename
+          );
+        } else {
+          handlePrint();
+        }
+        break;
+      }
+      case 'general_ledger': {
+        const glData = glApiData;
+        if (glData?.accounts?.length > 0) {
+          const rows: any[] = [];
+          glData.accounts.forEach((acct: any) => {
+            acct.transactions?.forEach((t: any) => {
+              rows.push({
+                'Account Number': acct.accountNumber,
+                'Account Name': acct.accountName,
+                'Account Type': acct.accountType,
+                'Date': t.date,
+                'Entry #': t.entryNumber || '',
+                'Description': t.description || '',
+                'Reference': t.reference || '',
+                'Debit': t.debit,
+                'Credit': t.credit,
+                'Balance': t.balance,
+              });
+            });
+          });
+          downloadAsCSV(rows, filename);
+        } else {
+          handlePrint();
+        }
+        break;
+      }
+      case 'ar_aging': {
+        const arData = arApiData;
+        if (arData?.customers?.length > 0) {
+          downloadAsCSV(
+            arData.customers.map((c: any) => ({
+              'Customer': c.customerName,
+              'Current': c.current,
+              '1-30 Days': c.days1to30,
+              '31-60 Days': c.days31to60,
+              '61-90 Days': c.days61to90,
+              '90+ Days': c.days90plus,
+              'Total': c.total,
+            })),
+            filename
+          );
+        } else {
+          handlePrint();
+        }
+        break;
+      }
+      case 'ap_aging': {
+        const apData = apApiData;
+        if (apData?.vendors?.length > 0) {
+          downloadAsCSV(
+            apData.vendors.map((v: any) => ({
+              'Vendor': v.vendorName,
+              'Current': v.current,
+              '1-30 Days': v.days1to30,
+              '31-60 Days': v.days31to60,
+              '61-90 Days': v.days61to90,
+              '90+ Days': v.days90plus,
+              'Total': v.total,
+            })),
+            filename
+          );
+        } else {
+          handlePrint();
+        }
         break;
       }
       default:
@@ -876,6 +1258,560 @@ export default function ReportsPage() {
                     <span className="text-gray-900">{formatJMD(bsSections.totalLiabilitiesAndEquity || 0)}</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      case 'trial_balance': {
+        if (tbLoading) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+              <span className="text-gray-500">Loading Trial Balance...</span>
+            </div>
+          );
+        }
+
+        const tbData = tbApiData;
+        if (!tbData?.grouped) {
+          return (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No financial data available. Create transactions to see your Trial Balance.
+              </CardContent>
+            </Card>
+          );
+        }
+
+        const typeOrder = ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'];
+        const typeColors: Record<string, string> = {
+          ASSET: 'text-blue-700',
+          LIABILITY: 'text-red-700',
+          EQUITY: 'text-purple-700',
+          INCOME: 'text-emerald-700',
+          EXPENSE: 'text-orange-700',
+        };
+
+        return (
+          <div className="space-y-4">
+            {/* Balance Indicator */}
+            {tbData.totals && (
+              <div className={`p-3 rounded-lg text-sm font-medium ${
+                tbData.totals.isBalanced
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {tbData.totals.isBalanced
+                  ? '✓ Trial Balance is balanced — Total Debits equal Total Credits'
+                  : `✗ Trial Balance is NOT balanced — Debits: ${formatJMD(tbData.totals.totalDebits)}, Credits: ${formatJMD(tbData.totals.totalCredits)}`
+                }
+              </div>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Trial Balance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  {/* Table Header */}
+                  <div className="flex justify-between py-2 border-b-2 border-gray-300 font-semibold text-sm text-gray-700">
+                    <span className="flex-1">Account</span>
+                    <span className="w-32 text-right">Debit</span>
+                    <span className="w-32 text-right">Credit</span>
+                  </div>
+
+                  {typeOrder.map(type => {
+                    const group = tbData.grouped[type];
+                    if (!group?.accounts?.length) return null;
+
+                    return (
+                      <div key={type}>
+                        <h3 className={`font-semibold text-sm uppercase tracking-wide pt-4 pb-1 ${typeColors[type] || 'text-gray-700'}`}>
+                          {type}
+                        </h3>
+                        {group.accounts.map((a: any) => (
+                          <div key={a.accountNumber} className="flex justify-between py-1.5 pl-4">
+                            <span className="text-sm text-gray-600 flex-1">{a.accountNumber} — {a.accountName}</span>
+                            <span className="text-sm font-medium w-32 text-right">
+                              {a.debitBalance > 0 ? formatJMD(a.debitBalance) : '-'}
+                            </span>
+                            <span className="text-sm font-medium w-32 text-right">
+                              {a.creditBalance > 0 ? formatJMD(a.creditBalance) : '-'}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between py-1.5 pl-4 border-t border-gray-100 font-semibold text-sm">
+                          <span className="flex-1">Total {type}</span>
+                          <span className="w-32 text-right">{formatJMD(group.totalDebits)}</span>
+                          <span className="w-32 text-right">{formatJMD(group.totalCredits)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Grand Total */}
+                  <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
+                    <span className="flex-1">Grand Total</span>
+                    <span className="w-32 text-right">{formatJMD(tbData.totals?.totalDebits || 0)}</span>
+                    <span className="w-32 text-right">{formatJMD(tbData.totals?.totalCredits || 0)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      case 'general_ledger': {
+        if (glLoading) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+              <span className="text-gray-500">Loading General Ledger...</span>
+            </div>
+          );
+        }
+
+        const glData = glApiData;
+        if (!glData?.accounts?.length) {
+          return (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No transactions found for this period. Create journal entries to see the General Ledger.
+              </CardContent>
+            </Card>
+          );
+        }
+
+        return (
+          <div className="space-y-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>General Ledger</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 mb-4">
+                  {glData.accounts.length} account{glData.accounts.length !== 1 ? 's' : ''} with activity. Click an account to expand transactions.
+                </p>
+                <div className="space-y-1">
+                  {glData.accounts.map((acct: any) => {
+                    const acctKey = acct.accountNumber;
+                    const isExpanded = expandedAccounts.has(acctKey);
+
+                    return (
+                      <div key={acctKey} className="border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Account Summary Row */}
+                        <button
+                          onClick={() => toggleAccountExpanded(acctKey)}
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? (
+                              <ChevronDownIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            ) : (
+                              <ChevronRightIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            )}
+                            <div>
+                              <span className="font-semibold text-sm text-gray-900">{acct.accountNumber} — {acct.accountName}</span>
+                              <span className="ml-2 text-xs text-gray-400">({acct.accountType})</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6 text-sm">
+                            <div className="text-right">
+                              <span className="text-gray-500">Debits: </span>
+                              <span className="font-medium">{formatJMD(acct.periodDebits)}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-gray-500">Credits: </span>
+                              <span className="font-medium">{formatJMD(acct.periodCredits)}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-gray-500">Balance: </span>
+                              <span className="font-bold">{formatJMD(acct.closingBalance)}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {acct.transactionCount} txn{acct.transactionCount !== 1 ? 's' : ''}
+                            </Badge>
+                          </div>
+                        </button>
+
+                        {/* Expanded Transaction Table */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-200 bg-gray-50 p-3">
+                            <div className="flex justify-between text-xs text-gray-500 mb-2 px-2">
+                              <span>Opening Balance: <strong className="text-gray-700">{formatJMD(acct.openingBalance)}</strong></span>
+                              <span>Closing Balance: <strong className="text-gray-700">{formatJMD(acct.closingBalance)}</strong></span>
+                            </div>
+                            {acct.transactions?.length > 0 ? (
+                              <div className="bg-white rounded border border-gray-200 overflow-hidden">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="bg-gray-100 text-gray-600">
+                                      <th className="text-left py-2 px-3 font-medium">Date</th>
+                                      <th className="text-left py-2 px-3 font-medium">Entry #</th>
+                                      <th className="text-left py-2 px-3 font-medium">Description</th>
+                                      <th className="text-right py-2 px-3 font-medium">Debit</th>
+                                      <th className="text-right py-2 px-3 font-medium">Credit</th>
+                                      <th className="text-right py-2 px-3 font-medium">Balance</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {acct.transactions.map((txn: any, idx: number) => (
+                                      <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
+                                        <td className="py-1.5 px-3 text-gray-600">{txn.date}</td>
+                                        <td className="py-1.5 px-3 text-gray-600">{txn.entryNumber || '-'}</td>
+                                        <td className="py-1.5 px-3 text-gray-700">{txn.description || '-'}</td>
+                                        <td className="py-1.5 px-3 text-right font-medium">
+                                          {txn.debit > 0 ? formatJMD(txn.debit) : '-'}
+                                        </td>
+                                        <td className="py-1.5 px-3 text-right font-medium">
+                                          {txn.credit > 0 ? formatJMD(txn.credit) : '-'}
+                                        </td>
+                                        <td className="py-1.5 px-3 text-right font-bold">{formatJMD(txn.balance)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-400 text-center py-4">No transactions in this period.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      case 'cash_flow': {
+        if (cfLoading) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+              <span className="text-gray-500">Loading Cash Flow Statement...</span>
+            </div>
+          );
+        }
+
+        const cfData = cfApiData;
+        if (!cfData) {
+          return (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No cash flow data available for this period.
+              </CardContent>
+            </Card>
+          );
+        }
+
+        const renderCfItem = (description: string, amount: number) => (
+          <div key={description} className="flex justify-between py-1.5 pl-6">
+            <span className="text-sm text-gray-600">{description}</span>
+            <span className={`text-sm font-medium ${amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {amount < 0 ? `(${formatJMD(Math.abs(amount))})` : formatJMD(amount)}
+            </span>
+          </div>
+        );
+
+        return (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cash Flow Statement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  {/* Operating Activities */}
+                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-2">Operating Activities</h3>
+                  {cfData.operating?.netIncome !== undefined && renderCfItem('Net Income', cfData.operating.netIncome)}
+                  {cfData.operating?.adjustments?.map((adj: any) => renderCfItem(adj.description, adj.amount))}
+                  <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Net Cash from Operations</span>
+                    <span className={cfData.operating?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
+                      {cfData.operating?.total < 0
+                        ? `(${formatJMD(Math.abs(cfData.operating?.total || 0))})`
+                        : formatJMD(cfData.operating?.total || 0)}
+                    </span>
+                  </div>
+
+                  {/* Investing Activities */}
+                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Investing Activities</h3>
+                  {cfData.investing?.items?.map((item: any) => renderCfItem(item.description, item.amount))}
+                  <div className="flex justify-between py-3 bg-amber-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Net Cash from Investing</span>
+                    <span className={cfData.investing?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
+                      {cfData.investing?.total < 0
+                        ? `(${formatJMD(Math.abs(cfData.investing?.total || 0))})`
+                        : formatJMD(cfData.investing?.total || 0)}
+                    </span>
+                  </div>
+
+                  {/* Financing Activities */}
+                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Financing Activities</h3>
+                  {cfData.financing?.items?.map((item: any) => renderCfItem(item.description, item.amount))}
+                  <div className="flex justify-between py-3 bg-purple-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                    <span>Net Cash from Financing</span>
+                    <span className={cfData.financing?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
+                      {cfData.financing?.total < 0
+                        ? `(${formatJMD(Math.abs(cfData.financing?.total || 0))})`
+                        : formatJMD(cfData.financing?.total || 0)}
+                    </span>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="mt-6 space-y-2">
+                    <div className="flex justify-between py-3 bg-gray-100 -mx-4 px-4 rounded-lg font-bold">
+                      <span>Net Cash Change</span>
+                      <span className={cfData.summary?.netCashChange >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                        {cfData.summary?.netCashChange < 0
+                          ? `(${formatJMD(Math.abs(cfData.summary?.netCashChange || 0))})`
+                          : formatJMD(cfData.summary?.netCashChange || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-2 px-4 -mx-4">
+                      <span className="text-sm text-gray-600">Opening Cash Balance</span>
+                      <span className="text-sm font-medium">{formatJMD(cfData.summary?.openingCash || 0)}</span>
+                    </div>
+                    <div className="flex justify-between py-4 bg-emerald-50 -mx-4 px-4 rounded-lg font-bold text-lg">
+                      <span>Closing Cash Balance</span>
+                      <span className="text-emerald-700">{formatJMD(cfData.summary?.closingCash || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      case 'ar_aging': {
+        if (arLoading) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+              <span className="text-gray-500">Loading AR Aging Report...</span>
+            </div>
+          );
+        }
+
+        const arData = arApiData;
+        if (!arData) {
+          return (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No accounts receivable data available.
+              </CardContent>
+            </Card>
+          );
+        }
+
+        const bucketColors = [
+          'bg-emerald-100 text-emerald-600',
+          'bg-yellow-100 text-yellow-600',
+          'bg-orange-100 text-orange-600',
+          'bg-red-100 text-red-600',
+          'bg-red-200 text-red-800',
+          'bg-gray-100 text-gray-700',
+        ];
+
+        return (
+          <div className="space-y-4">
+            {/* Summary Stat Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+              {[
+                { label: 'Current', value: arData.totals?.current || 0, colorIdx: 0 },
+                { label: '1-30 Days', value: arData.totals?.days1to30 || 0, colorIdx: 1 },
+                { label: '31-60 Days', value: arData.totals?.days31to60 || 0, colorIdx: 2 },
+                { label: '61-90 Days', value: arData.totals?.days61to90 || 0, colorIdx: 3 },
+                { label: '90+ Days', value: arData.totals?.days90plus || 0, colorIdx: 4 },
+                { label: 'Total', value: arData.totals?.total || 0, colorIdx: 5 },
+              ].map((bucket) => (
+                <Card key={bucket.label}>
+                  <CardContent className="p-3">
+                    <p className="text-xs text-gray-500">{bucket.label}</p>
+                    <p className={`text-lg font-bold ${bucketColors[bucket.colorIdx].split(' ')[1]}`}>
+                      {formatJMD(bucket.value)}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="flex gap-4 text-sm text-gray-500">
+              <span>{arData.customerCount || 0} customer{(arData.customerCount || 0) !== 1 ? 's' : ''}</span>
+              <span>{arData.invoiceCount || 0} invoice{(arData.invoiceCount || 0) !== 1 ? 's' : ''}</span>
+            </div>
+
+            {/* Customer Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Receivables by Customer</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {arData.customers?.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-gray-200 text-gray-600">
+                          <th className="text-left py-2 px-3 font-semibold">Customer</th>
+                          <th className="text-right py-2 px-3 font-semibold">Current</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-yellow-50">1-30</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-orange-50">31-60</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-red-50">61-90</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-red-100">90+</th>
+                          <th className="text-right py-2 px-3 font-semibold">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {arData.customers.map((c: any, idx: number) => (
+                          <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-2 px-3 font-medium text-gray-900">{c.customerName}</td>
+                            <td className="py-2 px-3 text-right">{c.current > 0 ? formatJMD(c.current) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-yellow-50">{c.days1to30 > 0 ? formatJMD(c.days1to30) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-orange-50">{c.days31to60 > 0 ? formatJMD(c.days31to60) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-50">{c.days61to90 > 0 ? formatJMD(c.days61to90) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-100">{c.days90plus > 0 ? formatJMD(c.days90plus) : '-'}</td>
+                            <td className="py-2 px-3 text-right font-bold">{formatJMD(c.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                          <td className="py-2 px-3">Total</td>
+                          <td className="py-2 px-3 text-right">{formatJMD(arData.totals?.current || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-yellow-50">{formatJMD(arData.totals?.days1to30 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-orange-50">{formatJMD(arData.totals?.days31to60 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-50">{formatJMD(arData.totals?.days61to90 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-100">{formatJMD(arData.totals?.days90plus || 0)}</td>
+                          <td className="py-2 px-3 text-right">{formatJMD(arData.totals?.total || 0)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-400 py-6">No outstanding receivables.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      case 'ap_aging': {
+        if (apLoading) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+              <span className="text-gray-500">Loading AP Aging Report...</span>
+            </div>
+          );
+        }
+
+        const apData = apApiData;
+        if (!apData) {
+          return (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No accounts payable data available.
+              </CardContent>
+            </Card>
+          );
+        }
+
+        const apBucketColors = [
+          'bg-emerald-100 text-emerald-600',
+          'bg-yellow-100 text-yellow-600',
+          'bg-orange-100 text-orange-600',
+          'bg-red-100 text-red-600',
+          'bg-red-200 text-red-800',
+          'bg-gray-100 text-gray-700',
+        ];
+
+        return (
+          <div className="space-y-4">
+            {/* Summary Stat Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+              {[
+                { label: 'Current', value: apData.totals?.current || 0, colorIdx: 0 },
+                { label: '1-30 Days', value: apData.totals?.days1to30 || 0, colorIdx: 1 },
+                { label: '31-60 Days', value: apData.totals?.days31to60 || 0, colorIdx: 2 },
+                { label: '61-90 Days', value: apData.totals?.days61to90 || 0, colorIdx: 3 },
+                { label: '90+ Days', value: apData.totals?.days90plus || 0, colorIdx: 4 },
+                { label: 'Total', value: apData.totals?.total || 0, colorIdx: 5 },
+              ].map((bucket) => (
+                <Card key={bucket.label}>
+                  <CardContent className="p-3">
+                    <p className="text-xs text-gray-500">{bucket.label}</p>
+                    <p className={`text-lg font-bold ${apBucketColors[bucket.colorIdx].split(' ')[1]}`}>
+                      {formatJMD(bucket.value)}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="flex gap-4 text-sm text-gray-500">
+              <span>{apData.vendorCount || 0} vendor{(apData.vendorCount || 0) !== 1 ? 's' : ''}</span>
+              <span>{apData.expenseCount || 0} expense{(apData.expenseCount || 0) !== 1 ? 's' : ''}</span>
+            </div>
+
+            {/* Vendor Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payables by Vendor</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {apData.vendors?.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-gray-200 text-gray-600">
+                          <th className="text-left py-2 px-3 font-semibold">Vendor</th>
+                          <th className="text-right py-2 px-3 font-semibold">Current</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-yellow-50">1-30</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-orange-50">31-60</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-red-50">61-90</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-red-100">90+</th>
+                          <th className="text-right py-2 px-3 font-semibold">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {apData.vendors.map((v: any, idx: number) => (
+                          <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-2 px-3 font-medium text-gray-900">{v.vendorName}</td>
+                            <td className="py-2 px-3 text-right">{v.current > 0 ? formatJMD(v.current) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-yellow-50">{v.days1to30 > 0 ? formatJMD(v.days1to30) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-orange-50">{v.days31to60 > 0 ? formatJMD(v.days31to60) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-50">{v.days61to90 > 0 ? formatJMD(v.days61to90) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-100">{v.days90plus > 0 ? formatJMD(v.days90plus) : '-'}</td>
+                            <td className="py-2 px-3 text-right font-bold">{formatJMD(v.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                          <td className="py-2 px-3">Total</td>
+                          <td className="py-2 px-3 text-right">{formatJMD(apData.totals?.current || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-yellow-50">{formatJMD(apData.totals?.days1to30 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-orange-50">{formatJMD(apData.totals?.days31to60 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-50">{formatJMD(apData.totals?.days61to90 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-100">{formatJMD(apData.totals?.days90plus || 0)}</td>
+                          <td className="py-2 px-3 text-right">{formatJMD(apData.totals?.total || 0)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-400 py-6">No outstanding payables.</p>
+                )}
               </CardContent>
             </Card>
           </div>
