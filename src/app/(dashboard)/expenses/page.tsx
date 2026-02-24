@@ -18,6 +18,8 @@ import {
   ArrowPathIcon,
   ExclamationCircleIcon,
   CameraIcon,
+  PhotoIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 import { getAccessToken } from '@/lib/api-client';
@@ -36,6 +38,7 @@ interface ExpenseAPI {
   reference: string | null;
   notes: string | null;
   isRecurring?: boolean;
+  receiptImageUri?: string | null;
   createdAt: string;
 }
 
@@ -116,6 +119,7 @@ export default function ExpensesPage() {
     notes: '',
     isRecurring: false,
     recurringFrequency: 'monthly' as 'weekly' | 'monthly' | 'quarterly' | 'yearly',
+    receiptImageUri: '' as string,
   });
 
   const handleOpenModal = (expense?: ExpenseAPI) => {
@@ -133,6 +137,7 @@ export default function ExpensesPage() {
         notes: expense.notes || '',
         isRecurring: expense.isRecurring || false,
         recurringFrequency: 'monthly',
+        receiptImageUri: expense.receiptImageUri || '',
       });
     } else {
       setEditingExpense(null);
@@ -147,6 +152,7 @@ export default function ExpensesPage() {
         notes: '',
         isRecurring: false,
         recurringFrequency: 'monthly',
+        receiptImageUri: '',
       });
     }
     setShowModal(true);
@@ -177,6 +183,7 @@ export default function ExpensesPage() {
       reference: formData.reference || undefined,
       notes: formData.notes || undefined,
       isRecurring: formData.isRecurring,
+      receiptImageUri: formData.receiptImageUri || undefined,
       gctAmount: 0,
       gctClaimable: false,
     };
@@ -393,6 +400,7 @@ export default function ExpensesPage() {
               <TableHead>Category</TableHead>
               <TableHead>Vendor</TableHead>
               <TableHead>Payment</TableHead>
+              <TableHead>Receipt</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -400,7 +408,7 @@ export default function ExpensesPage() {
           <TableBody>
             {expenses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={8} className="text-center py-12 text-gray-500">
                   <p className="mb-4">No expenses found</p>
                   <PermissionGate permission="expenses:create">
                     <Button onClick={() => handleOpenModal()}>Add your first expense</Button>
@@ -428,6 +436,25 @@ export default function ExpensesPage() {
                   <TableCell className="text-gray-500">{expense.vendor?.name || '-'}</TableCell>
                   <TableCell className="capitalize text-gray-500">
                     {expense.paymentMethod?.replace('_', ' ') || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {expense.receiptImageUri ? (
+                      <button
+                        onClick={() => window.open(expense.receiptImageUri!, '_blank')}
+                        className="group relative"
+                      >
+                        <img
+                          src={expense.receiptImageUri}
+                          alt="Receipt"
+                          className="w-10 h-10 object-cover rounded border border-gray-200 group-hover:border-emerald-500 transition-colors"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded">
+                          <PhotoIcon className="w-4 h-4 text-white" />
+                        </span>
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-sm">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="font-medium text-red-600">
                     {formatJMD(expense.amount)}
@@ -550,6 +577,55 @@ export default function ExpensesPage() {
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
                 rows={2}
               />
+            </div>
+            {/* Receipt Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Image</label>
+              <div className="flex items-start gap-4">
+                {formData.receiptImageUri ? (
+                  <div className="relative w-24 h-24 rounded-lg border border-gray-300 overflow-hidden">
+                    <img
+                      src={formData.receiptImageUri}
+                      alt="Receipt"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, receiptImageUri: '' })}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <XMarkIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer flex flex-col items-center justify-center w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) {
+                          setSaveError('Image must be less than 5MB');
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData({ ...formData, receiptImageUri: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                      className="hidden"
+                    />
+                    <PhotoIcon className="w-8 h-8 text-gray-400" />
+                    <span className="text-xs text-gray-500 mt-1">Upload</span>
+                  </label>
+                )}
+                <div className="text-xs text-gray-500">
+                  <p>Upload a photo of your receipt or invoice.</p>
+                  <p>Max size: 5MB (JPG, PNG, WebP)</p>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2">
