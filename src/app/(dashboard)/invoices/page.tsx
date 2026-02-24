@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { Card, Button, Input, StatusBadge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter, Textarea } from '@/components/ui';
 import { useInvoices, useUpdateInvoice, useCustomers } from '@/hooks/api';
+import { api } from '@/lib/api-client';
 import { formatJMD, formatDate } from '@/lib/utils';
 import type { Invoice } from '@/types';
 import {
@@ -81,16 +82,21 @@ YaadBooks`);
     }
 
     setEmailSending(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      await api.post(`/api/v1/invoices/${selectedInvoice.id}/send`, {
+        to: emailTo,
+        subject: emailSubject,
+        message: emailMessage,
+      });
 
-    if (selectedInvoice.status === 'draft') {
-      await updateInvoiceMutation.mutateAsync({ id: selectedInvoice.id, data: { status: 'sent' } });
+      setShowEmailModal(false);
+      setSelectedInvoice(null);
+      alert(`Invoice sent to ${emailTo}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to send invoice');
+    } finally {
+      setEmailSending(false);
     }
-
-    setEmailSending(false);
-    setShowEmailModal(false);
-    setSelectedInvoice(null);
-    alert(`Invoice sent to ${emailTo}`);
   };
 
   return (

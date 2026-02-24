@@ -148,7 +148,7 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
           {entry.status === 'draft' && (
             <>
               <Link
-                href={`/accounting/journal/${entry.id}/edit`}
+                href="/accounting/journal"
                 className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
                 <PencilIcon className="w-4 h-4" />

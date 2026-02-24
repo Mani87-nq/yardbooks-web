@@ -154,6 +154,8 @@ export function useDataHydration() {
           glAccountsRes,
           bankAccountsRes,
           fixedAssetsRes,
+          journalEntriesRes,
+          bankTransactionsRes,
         ] = await Promise.all([
           api.get<PaginatedResponse<Customer>>('/api/v1/customers?limit=100'),
           api.get<PaginatedResponse<Product>>('/api/v1/products?limit=100'),
@@ -166,6 +168,8 @@ export function useDataHydration() {
           api.get<{ data: any[] }>('/api/v1/gl-accounts?limit=200').catch(() => ({ data: [] })),
           api.get<{ data: any[] }>('/api/v1/bank-accounts?limit=50').catch(() => ({ data: [] })),
           api.get<PaginatedResponse<any>>('/api/v1/fixed-assets?limit=100').catch(() => ({ data: [] })),
+          api.get<PaginatedResponse<any>>('/api/v1/journal-entries?limit=200').catch(() => ({ data: [] })),
+          api.get<PaginatedResponse<any>>('/api/v1/banking/transactions?limit=200').catch(() => ({ data: [] })),
         ]);
 
         // Populate the store in a single batch
@@ -181,6 +185,8 @@ export function useDataHydration() {
         state.setGLAccounts(glAccountsRes.data);
         state.setBankAccounts(bankAccountsRes.data);
         state.setFixedAssets(fixedAssetsRes.data);
+        state.setJournalEntries(journalEntriesRes.data);
+        state.setBankTransactions(bankTransactionsRes.data);
 
         // Mark hydration complete
         store.setState({ hydrated: true });

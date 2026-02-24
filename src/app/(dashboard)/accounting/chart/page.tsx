@@ -28,7 +28,7 @@ const SUB_TYPES: Record<string, string[]> = {
   asset: ['Current Asset', 'Fixed Asset', 'Other Asset', 'Bank', 'Accounts Receivable'],
   liability: ['Current Liability', 'Long-term Liability', 'Accounts Payable', 'Credit Card'],
   equity: ['Owner Equity', 'Retained Earnings', 'Common Stock'],
-  income: ['Sales Revenue', 'Service Revenue', 'Other Income', 'Interest Income'],
+  revenue: ['Sales Revenue', 'Service Revenue', 'Other Income', 'Interest Income'],
   expense: ['Cost of Goods Sold', 'Operating Expense', 'Payroll Expense', 'Other Expense'],
 };
 

@@ -73,7 +73,7 @@ export default function BankAccountDetailPage({ params }: PageProps) {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/banking/reconciliation/${account.id}`}
+            href="/banking/reconciliation"
             className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             <ArrowPathIcon className="w-4 h-4" />
