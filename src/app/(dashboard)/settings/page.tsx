@@ -1242,12 +1242,13 @@ export default function SettingsPage() {
                     <h3 className="font-medium text-gray-900 mb-3">Available Plans</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {[
-                        { name: 'Solo', price: '$19.99/mo', features: ['1 user', '1 company', 'All features included', 'Email support'] },
-                        { name: 'Team', price: '$14.99/user/mo', features: ['Unlimited users', 'Unlimited companies', 'All features included', 'Priority support'] },
+                        { name: 'Solo', priceMonthly: '$19.99/mo', priceAnnual: '$199.99/yr', annualNote: '~$16.67/mo — save 17%', features: ['1 user', '1 company', 'All features included', 'Email support'] },
+                        { name: 'Team', priceMonthly: '$14.99/user/mo', priceAnnual: '$149.99/user/yr', annualNote: '~$12.50/user/mo — save 17%', features: ['Unlimited users', 'Unlimited companies', 'All features included', 'Priority support'] },
                       ].map((plan) => (
                         <div key={plan.name} className="border rounded-lg p-4">
                           <h4 className="font-medium text-gray-900">{plan.name}</h4>
-                          <p className="text-2xl font-bold text-gray-900 my-2">{plan.price}</p>
+                          <p className="text-2xl font-bold text-gray-900 mt-2">{plan.priceMonthly}</p>
+                          <p className="text-sm text-emerald-600 font-medium mb-2">or {plan.priceAnnual} <span className="text-xs">({plan.annualNote})</span></p>
                           <ul className="space-y-1 text-sm text-gray-600">
                             {plan.features.map((f, i) => (
                               <li key={i}>- {f}</li>

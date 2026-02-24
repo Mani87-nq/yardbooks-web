@@ -45,9 +45,9 @@ const BUSINESS_TYPES = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-const PLANS: Record<string, { name: string; price: string }> = {
-  solo: { name: 'Solo', price: 'Free for 14 days' },
-  team: { name: 'Team', price: 'Free for 14 days' },
+const PLANS: Record<string, { name: string; priceMonthly: string; priceAnnual: string }> = {
+  solo: { name: 'Solo', priceMonthly: '$19.99/mo after trial', priceAnnual: '$199.99/yr after trial' },
+  team: { name: 'Team', priceMonthly: '$14.99/user/mo after trial', priceAnnual: '$149.99/user/yr after trial' },
 };
 
 // Google Icon SVG
@@ -87,9 +87,14 @@ function SignupContent() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  // Get selected plan from URL
+  // Get selected plan and billing interval from URL
   const selectedPlan = searchParams.get('plan') || 'solo';
-  const planInfo = PLANS[selectedPlan] || PLANS.solo;
+  const billingInterval = searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
+  const planData = PLANS[selectedPlan] || PLANS.solo;
+  const planInfo = {
+    name: planData.name,
+    price: billingInterval === 'annual' ? planData.priceAnnual : planData.priceMonthly,
+  };
 
   const [formData, setFormData] = useState({
     // Step 1: Personal Info

@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
 
 const checkoutSchema = z.object({
   planId: z.enum(['solo', 'team']),
+  billingInterval: z.enum(['month', 'year']).optional().default('month'),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
 });
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
-    const { planId, successUrl, cancelUrl } = parsed.data;
+    const { planId, billingInterval, successUrl, cancelUrl } = parsed.data;
 
     const plan = getPlan(planId);
     if (!plan) {
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
       email: user!.email,
       successUrl,
       cancelUrl,
+      billingInterval,
     });
 
     if ('error' in result) {
