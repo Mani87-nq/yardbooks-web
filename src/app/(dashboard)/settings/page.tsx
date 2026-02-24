@@ -9,6 +9,7 @@ import {
 } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { usePosStore } from '@/store/posStore';
+import type { TaxSettings, TaxRate } from '@/types';
 import {
   BuildingOfficeIcon,
   UserCircleIcon,
@@ -29,6 +30,7 @@ import {
   PlusIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline';
 
 // ============================================
@@ -694,6 +696,22 @@ export default function SettingsPage() {
     notes: activeCompany?.invoiceSettings?.notes || '',
   });
 
+  // Default tax rates for Jamaica GCT (15% standard rate)
+  const defaultTaxRates: TaxRate[] = [
+    { id: 'standard', name: 'Standard', rate: 0.15, description: 'Standard GCT rate for most goods and services (15%)', isDefault: true },
+    { id: 'zero', name: 'Zero-rated', rate: 0, description: 'Zero-rated items (exports, basic food items)', isDefault: false },
+  ];
+
+  const [taxSettings, setTaxSettings] = useState<TaxSettings>({
+    enabled: activeCompany?.taxSettings?.enabled ?? true,
+    taxName: activeCompany?.taxSettings?.taxName || 'GCT',
+    defaultRate: activeCompany?.taxSettings?.defaultRate ?? 0.15,
+    rates: activeCompany?.taxSettings?.rates || defaultTaxRates,
+    showTaxOnReceipts: activeCompany?.taxSettings?.showTaxOnReceipts ?? true,
+    showTaxBreakdown: activeCompany?.taxSettings?.showTaxBreakdown ?? true,
+    taxIncludedInPrice: activeCompany?.taxSettings?.taxIncludedInPrice ?? false,
+  });
+
   const handleSaveCompany = () => {
     if (activeCompany) {
       setActiveCompany({
@@ -723,6 +741,17 @@ export default function SettingsPage() {
         updatedAt: new Date(),
       });
       alert('Invoice settings saved!');
+    }
+  };
+
+  const handleSaveTaxSettings = () => {
+    if (activeCompany) {
+      setActiveCompany({
+        ...activeCompany,
+        taxSettings: taxSettings,
+        updatedAt: new Date(),
+      });
+      alert('Tax settings saved!');
     }
   };
 
@@ -757,6 +786,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'company', name: 'Company', icon: BuildingOfficeIcon },
     { id: 'invoices', name: 'Invoices', icon: DocumentTextIcon },
+    { id: 'tax', name: 'Tax / GCT', icon: CalculatorIcon },
     { id: 'profile', name: 'Profile', icon: UserCircleIcon },
     { id: 'team', name: 'Team', icon: UsersIcon },
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
@@ -1064,6 +1094,129 @@ export default function SettingsPage() {
               <div className="flex justify-end">
                 <Button onClick={handleSaveInvoiceSettings}>Save Invoice Settings</Button>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'tax' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tax / GCT Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Tax Enable/Disable */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Enable Tax Collection</p>
+                      <p className="text-sm text-gray-500">Apply tax to products and services</p>
+                    </div>
+                    <button
+                      onClick={() => setTaxSettings({ ...taxSettings, enabled: !taxSettings.enabled })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        taxSettings.enabled ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          taxSettings.enabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {taxSettings.enabled && (
+                    <>
+                      {/* Tax Name */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Tax Name
+                        </label>
+                        <Input
+                          value={taxSettings.taxName}
+                          onChange={(e) => setTaxSettings({ ...taxSettings, taxName: e.target.value })}
+                          placeholder="GCT"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          This name appears on invoices and receipts (e.g., GCT, VAT, Sales Tax)
+                        </p>
+                      </div>
+
+                      {/* Default Tax Rate */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Default Tax Rate (%)
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={(taxSettings.defaultRate * 100).toFixed(2)}
+                          onChange={(e) => setTaxSettings({
+                            ...taxSettings,
+                            defaultRate: parseFloat(e.target.value) / 100
+                          })}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Default rate for new products (Jamaica standard: 15%)
+                        </p>
+                      </div>
+
+                      {/* Tax Display Options */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="showTaxOnReceipts"
+                            checked={taxSettings.showTaxOnReceipts}
+                            onChange={(e) => setTaxSettings({ ...taxSettings, showTaxOnReceipts: e.target.checked })}
+                            className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                          />
+                          <label htmlFor="showTaxOnReceipts" className="text-sm text-gray-700 dark:text-gray-300">
+                            Show tax on receipts and invoices
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="showTaxBreakdown"
+                            checked={taxSettings.showTaxBreakdown}
+                            onChange={(e) => setTaxSettings({ ...taxSettings, showTaxBreakdown: e.target.checked })}
+                            className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                          />
+                          <label htmlFor="showTaxBreakdown" className="text-sm text-gray-700 dark:text-gray-300">
+                            Show detailed tax breakdown
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="taxIncludedInPrice"
+                            checked={taxSettings.taxIncludedInPrice}
+                            onChange={(e) => setTaxSettings({ ...taxSettings, taxIncludedInPrice: e.target.checked })}
+                            className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                          />
+                          <label htmlFor="taxIncludedInPrice" className="text-sm text-gray-700 dark:text-gray-300">
+                            Tax included in price (prices shown are tax-inclusive)
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Jamaica GCT Info */}
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p className="text-sm text-blue-900 dark:text-blue-100">
+                          <strong>Jamaica GCT Rates (2024-2026):</strong> Standard rate is 15% for most goods.
+                          Zero-rated items include basic food items and exports. Ensure compliance with TAJ regulations.
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-end pt-4 border-t">
+                    <Button onClick={handleSaveTaxSettings}>Save Tax Settings</Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
