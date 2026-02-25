@@ -34,17 +34,19 @@ const FILTER_OPTIONS = [
 ];
 
 const TYPE_ICONS: Record<NotificationType, React.ElementType> = {
-  invoice_due: DocumentTextIcon,
-  invoice_overdue: ExclamationTriangleIcon,
-  payment_received: BanknotesIcon,
-  low_stock: CubeIcon,
-  payroll_due: UserGroupIcon,
-  expense_approved: CheckCircleIcon,
-  expense_rejected: XCircleIcon,
-  po_received: ClipboardDocumentListIcon,
-  bank_sync: BuildingLibraryIcon,
-  system: CogIcon,
-  reminder: BellIcon,
+  INVOICE_DUE: DocumentTextIcon,
+  INVOICE_OVERDUE: ExclamationTriangleIcon,
+  PAYMENT_RECEIVED: BanknotesIcon,
+  LOW_STOCK: CubeIcon,
+  PAYROLL_DUE: UserGroupIcon,
+  EXPENSE_APPROVED: CheckCircleIcon,
+  EXPENSE_REJECTED: XCircleIcon,
+  PO_RECEIVED: ClipboardDocumentListIcon,
+  BANK_SYNC: BuildingLibraryIcon,
+  TAX_DEADLINE: DocumentTextIcon,
+  SECURITY_ALERT: ExclamationTriangleIcon,
+  SYSTEM: CogIcon,
+  REMINDER: BellIcon,
 };
 
 export default function NotificationsPage() {
@@ -80,10 +82,10 @@ export default function NotificationsPage() {
 
   const getPriorityColor = (priority: NotificationPriority) => {
     const colors: Record<NotificationPriority, string> = {
-      low: 'text-gray-400',
-      medium: 'text-blue-500',
-      high: 'text-orange-500',
-      urgent: 'text-red-500',
+      LOW: 'text-gray-400',
+      MEDIUM: 'text-blue-500',
+      HIGH: 'text-orange-500',
+      URGENT: 'text-red-500',
     };
     return colors[priority];
   };

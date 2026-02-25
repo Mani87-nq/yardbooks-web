@@ -34,6 +34,8 @@ export async function GET(request: NextRequest) {
         phone: user.phone,
         activeCompanyId: user.activeCompanyId,
         createdAt: user.createdAt,
+        passwordChangedAt: user.passwordChangedAt,
+        twoFactorEnabled: user.twoFactorEnabled,
       },
       companies: user.companyMemberships.map((m) => ({
         id: m.company.id,
