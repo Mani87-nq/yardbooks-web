@@ -38,7 +38,8 @@ type SourceModule =
   | 'FIXED_ASSET'
   | 'DEPRECIATION'
   | 'GCT'
-  | 'YEAR_END';
+  | 'YEAR_END'
+  | 'POS';
 
 // ─── Account Resolution ──────────────────────────────────────────
 
@@ -553,6 +554,107 @@ export async function postPayrollRun(params: {
 }
 
 /**
+ * POST: POS Return Completed (reversal of sale)
+ *
+ * When a POS return is processed:
+ *   DR  Sales Revenue (4000)           — return subtotal (reverse credit)
+ *   DR  GCT Payable (2100)             — GCT on return (reverse credit)
+ *   DR  Inventory (1200)               — restock cost (if items restocked)
+ *   CR  Cash (1000) or Bank (1020)     — refund amount
+ *   CR  COGS (5000)                    — restock cost reversal (if restocked)
+ */
+export async function postPosReturnCompleted(params: {
+  companyId: string;
+  userId: string;
+  returnId: string;
+  returnNumber: string;
+  orderNumber: string;
+  customerName: string;
+  date: Date;
+  subtotal: number;
+  gctAmount: number;
+  totalRefund: number;
+  refundMethod: string;
+  totalRestockCost: number;
+  tx?: any;
+}): Promise<PostResult> {
+  const {
+    companyId, userId, returnId, returnNumber, orderNumber, customerName, date,
+    subtotal, gctAmount, totalRefund, refundMethod, totalRestockCost,
+  } = params;
+
+  const lines: JournalLineDraft[] = [];
+
+  // ── Debits (reversing the original sale credits) ──
+
+  // Reverse Sales Revenue
+  if (subtotal > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.SALES_REVENUE,
+      description: `Return ${returnNumber} — reversal of sales`,
+      debitAmount: Math.round(subtotal * 100) / 100,
+      creditAmount: 0,
+    });
+  }
+
+  // Reverse GCT Payable
+  if (gctAmount > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.GCT_PAYABLE,
+      description: `GCT reversal — Return ${returnNumber}`,
+      debitAmount: Math.round(gctAmount * 100) / 100,
+      creditAmount: 0,
+    });
+  }
+
+  // Inventory restock (debit inventory asset)
+  if (totalRestockCost > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.INVENTORY,
+      description: `Inventory restock — Return ${returnNumber}`,
+      debitAmount: Math.round(totalRestockCost * 100) / 100,
+      creditAmount: 0,
+    });
+  }
+
+  // ── Credits (reversing the original sale debits) ──
+
+  // Refund to customer (cash or bank)
+  const refundAccount =
+    refundMethod === 'CASH' ? SYSTEM_ACCOUNTS.CASH : SYSTEM_ACCOUNTS.BANK_ACCOUNT;
+
+  lines.push({
+    accountNumber: refundAccount,
+    description: `Refund — Return ${returnNumber}`,
+    debitAmount: 0,
+    creditAmount: Math.round(totalRefund * 100) / 100,
+  });
+
+  // Reverse COGS (credit — reduces expense)
+  if (totalRestockCost > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.COST_OF_GOODS_SOLD,
+      description: `COGS reversal — Return ${returnNumber}`,
+      debitAmount: 0,
+      creditAmount: Math.round(totalRestockCost * 100) / 100,
+    });
+  }
+
+  return postJournalEntry({
+    companyId,
+    userId,
+    date,
+    description: `POS Return ${returnNumber} — Order ${orderNumber} — ${customerName}`,
+    reference: returnNumber,
+    sourceModule: 'POS',
+    sourceDocumentId: returnId,
+    sourceDocumentType: 'PosReturn',
+    lines,
+    tx: params.tx,
+  });
+}
+
+/**
  * POST: Invoice Cancelled / Voided
  *
  * Reverses the original invoice journal entry:
@@ -617,6 +719,131 @@ export async function postInvoiceCancelled(params: {
     sourceModule: 'INVOICE',
     sourceDocumentId: invoiceId,
     sourceDocumentType: 'InvoiceVoid',
+    lines,
+    tx: params.tx,
+  });
+}
+
+/**
+ * POST: POS Order Completed
+ *
+ * When a POS order is fully paid and completed:
+ *   DR  Cash (1000)               — cash payment portion
+ *   DR  Bank Account (1020)       — card/digital payment portion
+ *   DR  Discount Given (4900)     — order-level discount (if any)
+ *   DR  Cost of Goods Sold (5000) — total product cost (if tracked)
+ *   CR  Sales Revenue (4000)      — gross subtotal (before discount)
+ *   CR  GCT Payable (2100)        — GCT collected
+ *   CR  Inventory (1200)          — total product cost (if tracked)
+ *
+ * Unlike invoice posting (which goes through AR), POS sales are
+ * immediate — cash/bank is debited directly.
+ */
+export async function postPosOrderCompleted(params: {
+  companyId: string;
+  userId: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  date: Date;
+  subtotal: number;
+  gctAmount: number;
+  orderDiscountAmount: number;
+  total: number;
+  cashAmount: number;
+  nonCashAmount: number;
+  totalCost: number;
+  tx?: any;
+}): Promise<PostResult> {
+  const {
+    companyId, userId, orderId, orderNumber, customerName, date,
+    subtotal, gctAmount, orderDiscountAmount,
+    cashAmount, nonCashAmount, totalCost,
+  } = params;
+
+  const lines: JournalLineDraft[] = [];
+
+  // ── Debits ──
+
+  // Cash received
+  if (cashAmount > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.CASH,
+      description: `POS Cash — Order ${orderNumber}`,
+      debitAmount: Math.round(cashAmount * 100) / 100,
+      creditAmount: 0,
+    });
+  }
+
+  // Non-cash payments (card, JamDEX, Lynk, WiPay, bank transfer, etc.)
+  if (nonCashAmount > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.BANK_ACCOUNT,
+      description: `POS Card/Digital — Order ${orderNumber}`,
+      debitAmount: Math.round(nonCashAmount * 100) / 100,
+      creditAmount: 0,
+    });
+  }
+
+  // Discount given (contra-revenue)
+  if (orderDiscountAmount > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.DISCOUNT_GIVEN,
+      description: `Discount — Order ${orderNumber}`,
+      debitAmount: Math.round(orderDiscountAmount * 100) / 100,
+      creditAmount: 0,
+    });
+  }
+
+  // COGS (if products have cost price data)
+  if (totalCost > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.COST_OF_GOODS_SOLD,
+      description: `COGS — Order ${orderNumber}`,
+      debitAmount: Math.round(totalCost * 100) / 100,
+      creditAmount: 0,
+    });
+  }
+
+  // ── Credits ──
+
+  // Sales Revenue (gross subtotal before order-level discount)
+  lines.push({
+    accountNumber: SYSTEM_ACCOUNTS.SALES_REVENUE,
+    description: `POS Sales — Order ${orderNumber}`,
+    debitAmount: 0,
+    creditAmount: Math.round(subtotal * 100) / 100,
+  });
+
+  // GCT collected
+  if (gctAmount > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.GCT_PAYABLE,
+      description: `GCT — Order ${orderNumber}`,
+      debitAmount: 0,
+      creditAmount: Math.round(gctAmount * 100) / 100,
+    });
+  }
+
+  // Inventory reduction (mirrors COGS debit)
+  if (totalCost > 0) {
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.INVENTORY,
+      description: `Inventory sold — Order ${orderNumber}`,
+      debitAmount: 0,
+      creditAmount: Math.round(totalCost * 100) / 100,
+    });
+  }
+
+  return postJournalEntry({
+    companyId,
+    userId,
+    date,
+    description: `POS Sale — Order ${orderNumber} — ${customerName}`,
+    reference: orderNumber,
+    sourceModule: 'POS',
+    sourceDocumentId: orderId,
+    sourceDocumentType: 'PosOrder',
     lines,
     tx: params.tx,
   });

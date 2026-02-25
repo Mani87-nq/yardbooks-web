@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { notFound, badRequest, internalError } from '@/lib/api-error';
+import { postPosOrderCompleted } from '@/lib/accounting/engine';
 const POS_PAYMENT_METHODS = [
   'CASH', 'JAM_DEX', 'LYNK_WALLET', 'WIPAY',
   'CARD_VISA', 'CARD_MASTERCARD', 'CARD_OTHER',
@@ -135,6 +136,87 @@ export async function POST(request: NextRequest, context: RouteContext) {
         const totalChangeGiven = Math.round((Number(order.changeGiven) + changeGiven) * 100) / 100;
         const isFullyPaid = newAmountDue <= 0;
 
+        // ─── On full payment: GL Journal + Inventory Deduction ───
+        let glTransactionId: string | null = null;
+
+        if (isFullyPaid) {
+          // 1. Determine cash vs non-cash split from ALL completed payments
+          const allPayments = await tx.posPayment.findMany({
+            where: { orderId: id, status: 'COMPLETED' },
+          });
+          let cashTotal = 0;
+          let nonCashTotal = 0;
+          for (const p of allPayments) {
+            const amt = Number(p.amount);
+            if (p.method === 'CASH') {
+              cashTotal += amt;
+            } else {
+              nonCashTotal += amt;
+            }
+          }
+
+          // 2. Inventory deduction + COGS calculation
+          let totalCost = 0;
+          const orderItems = await tx.posOrderItem.findMany({
+            where: { orderId: id },
+          });
+
+          for (const item of orderItems) {
+            if (item.productId && !item.inventoryDeducted) {
+              const product = await tx.product.findUnique({
+                where: { id: item.productId },
+                select: { costPrice: true, quantity: true },
+              });
+
+              if (product) {
+                // Accumulate COGS
+                totalCost += Number(item.quantity) * Number(product.costPrice);
+
+                // Deduct inventory quantity
+                await tx.product.update({
+                  where: { id: item.productId },
+                  data: { quantity: { decrement: Number(item.quantity) } },
+                });
+
+                // Mark item as inventory-deducted
+                await tx.posOrderItem.update({
+                  where: { id: item.id },
+                  data: { inventoryDeducted: true },
+                });
+              }
+            }
+          }
+
+          totalCost = Math.round(totalCost * 100) / 100;
+
+          // 3. Post GL journal entry (best-effort — order still completes if this fails)
+          try {
+            const glResult = await postPosOrderCompleted({
+              companyId: companyId!,
+              userId: user!.sub,
+              orderId: id,
+              orderNumber: order.orderNumber,
+              customerName: order.customerName,
+              date: new Date(),
+              subtotal: Number(order.subtotal),
+              gctAmount: Number(order.gctAmount),
+              orderDiscountAmount: Number(order.orderDiscountAmount),
+              total: Number(order.total),
+              cashAmount: cashTotal,
+              nonCashAmount: nonCashTotal,
+              totalCost,
+              tx,
+            });
+
+            if (glResult.success && glResult.journalEntryId) {
+              glTransactionId = glResult.journalEntryId;
+            }
+          } catch {
+            // GL posting failed — order still completes, glTransactionId stays null
+            console.error(`[POS] GL posting failed for order ${order.orderNumber}`);
+          }
+        }
+
         const updatedOrder = await tx.posOrder.update({
           where: { id },
           data: {
@@ -143,6 +225,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             changeGiven: totalChangeGiven,
             status: isFullyPaid ? 'COMPLETED' : 'PARTIALLY_PAID',
             completedAt: isFullyPaid ? new Date() : null,
+            ...(glTransactionId ? { glTransactionId } : {}),
           },
           include: { items: true, payments: true },
         });
