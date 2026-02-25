@@ -4,7 +4,8 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { usePosStore } from '@/store/posStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   ArrowLeftIcon,
   ArrowDownTrayIcon,
@@ -18,7 +19,7 @@ import {
   DocumentTextIcon,
   ReceiptRefundIcon,
 } from '@heroicons/react/24/outline';
-import { printContent, generateTable, generateStatCards, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
+import { printContent, generateTable, generateStatCards, downloadAsCSV } from '@/lib/print';
 import { useAppStore } from '@/store/appStore';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import type { PaymentMethodType, PosOrder } from '@/types/pos';
@@ -50,6 +51,7 @@ function ProcessReturnModal({
   ) => void;
   getReturnableQuantity: (orderId: string, itemId: string) => number;
 }) {
+  const { fc } = useCurrency();
   const [selectedItems, setSelectedItems] = useState<{ [itemId: string]: { quantity: number; condition: 'resellable' | 'damaged' | 'defective' } }>({});
   const [reasonCategory, setReasonCategory] = useState<'defective' | 'wrong_item' | 'changed_mind' | 'price_adjustment' | 'duplicate' | 'other'>('changed_mind');
   const [customReason, setCustomReason] = useState('');
@@ -159,7 +161,7 @@ function ProcessReturnModal({
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{item.name}</p>
                         <p className="text-sm text-gray-500">
-                          {formatJMD(item.unitPrice)} x {item.quantity} = {formatJMD(item.lineTotal)}
+                          {fc(item.unitPrice)} x {item.quantity} = {fc(item.lineTotal)}
                         </p>
                         {alreadyReturned > 0 && (
                           <p className="text-xs text-orange-600 mt-1">
@@ -278,7 +280,7 @@ function ProcessReturnModal({
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <span className="text-emerald-800 font-medium">Total Refund Amount</span>
-              <span className="text-2xl font-bold text-emerald-600">{formatJMD(refundTotal)}</span>
+              <span className="text-2xl font-bold text-emerald-600">{fc(refundTotal)}</span>
             </div>
             <p className="text-sm text-emerald-700 mt-1">
               {Object.keys(selectedItems).length} item(s) selected for return
@@ -302,6 +304,7 @@ function ProcessReturnModal({
 }
 
 export default function ReturnsPage() {
+  const { fc, fcp } = useCurrency();
   const [searchTerm, setSearchTerm] = useState('');
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<PosOrder | null>(null);
@@ -438,7 +441,7 @@ export default function ReturnsPage() {
       setShowReturnModal(false);
       setSelectedOrder(null);
       setSearchTerm('');
-      showToast('success', `Return processed! Refund: ${formatJMD(result.totalRefund)}`);
+      showToast('success', `Return processed! Refund: ${fc(result.totalRefund)}`);
     } else {
       showToast('error', 'Failed to process return. Please check the items and quantities.');
     }
@@ -448,8 +451,8 @@ export default function ReturnsPage() {
     const dateSubtitle = `${formatDate(new Date(dateRange.start))} - ${formatDate(new Date(dateRange.end))}`;
     const content = generateStatCards([
       { label: 'Total Returns', value: String(returnSummary.totalReturns), color: '#dc2626' },
-      { label: 'Total Refunded', value: formatPrintCurrency(returnSummary.totalRefundAmount), color: '#ea580c' },
-      { label: 'Average Refund', value: formatPrintCurrency(returnSummary.avgRefund), color: '#7c3aed' },
+      { label: 'Total Refunded', value: fcp(returnSummary.totalRefundAmount), color: '#ea580c' },
+      { label: 'Average Refund', value: fcp(returnSummary.avgRefund), color: '#7c3aed' },
     ]);
     printContent({
       title: 'Returns Report',
@@ -583,7 +586,7 @@ export default function ReturnsPage() {
                       </p>
                     </div>
                     <div className="text-right ml-4">
-                      <p className="text-lg font-bold text-emerald-600">{formatJMD(order.total)}</p>
+                      <p className="text-lg font-bold text-emerald-600">{fc(order.total)}</p>
                       <Button size="sm" className="mt-2" onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); setShowReturnModal(true); }}>
                         Return Items
                       </Button>
@@ -625,13 +628,13 @@ export default function ReturnsPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Total Refunded</p>
-            <p className="text-2xl font-bold text-orange-600">{formatJMD(returnSummary.totalRefundAmount)}</p>
+            <p className="text-2xl font-bold text-orange-600">{fc(returnSummary.totalRefundAmount)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Average Refund</p>
-            <p className="text-2xl font-bold text-purple-600">{formatJMD(returnSummary.avgRefund)}</p>
+            <p className="text-2xl font-bold text-purple-600">{fc(returnSummary.avgRefund)}</p>
           </CardContent>
         </Card>
       </div>

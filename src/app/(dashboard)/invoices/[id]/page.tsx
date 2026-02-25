@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Modal, ModalBody, ModalFooter, Input, Textarea } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { api } from '@/lib/api-client';
 import { useInvoice, useUpdateInvoice, useDeleteInvoice } from '@/hooks/api/useInvoices';
-import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
+import { printContent, generateTable, formatTRN } from '@/lib/print';
 import { PermissionGate } from '@/components/PermissionGate';
 import {
   ArrowLeftIcon,
@@ -27,6 +27,7 @@ interface PageProps {
 }
 
 export default function InvoiceDetailPage({ params }: PageProps) {
+  const { fc, fcp } = useCurrency();
   const { id } = use(params);
   const { data: invoice, isLoading: isFetchingInvoice, refetch: refetchInvoice } = useInvoice(id);
   const updateInvoiceMutation = useUpdateInvoice();
@@ -69,7 +70,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
     setEmailSubject(`Invoice ${invoice.invoiceNumber} from ${activeCompany?.businessName || 'YaadBooks'}`);
     setEmailMessage(`Dear ${customer?.name || 'Valued Customer'},
 
-Please find attached invoice ${invoice.invoiceNumber} for ${formatJMD(invoice.total)}.
+Please find attached invoice ${invoice.invoiceNumber} for ${fc(invoice.total)}.
 
 Payment is due by ${format(new Date(invoice.dueDate), 'MMMM dd, yyyy')}.
 
@@ -167,9 +168,9 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
       })),
       {
         formatters: {
-          unitPrice: formatPrintCurrency,
-          gct: formatPrintCurrency,
-          total: formatPrintCurrency,
+          unitPrice: fcp,
+          gct: fcp,
+          total: fcp,
         },
       }
     );
@@ -182,6 +183,8 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
         <div>
           <h2 style="color:${primaryColor};font-size:24px;margin:0;">INVOICE</h2>
           <p style="font-size:18px;font-weight:600;margin:5px 0;">${invoice.invoiceNumber}</p>
+          ${activeCompany?.trnNumber ? `<p style="font-size:12px;color:#6b7280;margin:2px 0;">TRN: ${formatTRN(activeCompany.trnNumber)}</p>` : ''}
+          ${activeCompany?.gctRegistered && activeCompany?.gctNumber ? `<p style="font-size:12px;color:#6b7280;margin:2px 0;">GCT Reg: ${activeCompany.gctNumber}</p>` : ''}
         </div>
         <div style="text-align:right;">
           <p style="font-size:12px;color:#6b7280;margin:2px 0;">Issue Date: ${format(new Date(invoice.issueDate), 'MMM dd, yyyy')}</p>
@@ -206,12 +209,12 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
     const totalsSection = `
       <div style="margin-top:20px;margin-left:auto;width:250px;">
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="padding:8px 0;color:#6b7280;">Subtotal</td><td style="padding:8px 0;text-align:right;">${formatPrintCurrency(invoice.subtotal)}</td></tr>
-          <tr><td style="padding:8px 0;color:#6b7280;">GCT</td><td style="padding:8px 0;text-align:right;">${formatPrintCurrency(invoice.gctAmount)}</td></tr>
-          ${invoice.discount > 0 ? `<tr><td style="padding:8px 0;color:#6b7280;">Discount</td><td style="padding:8px 0;text-align:right;color:#dc2626;">-${formatPrintCurrency(invoice.discount)}</td></tr>` : ''}
-          <tr style="border-top:2px solid #e5e7eb;"><td style="padding:12px 0;font-weight:700;font-size:16px;">Total</td><td style="padding:12px 0;text-align:right;font-weight:700;font-size:16px;color:${primaryColor};">${formatPrintCurrency(invoice.total)}</td></tr>
-          ${invoice.amountPaid > 0 ? `<tr><td style="padding:8px 0;color:#6b7280;">Amount Paid</td><td style="padding:8px 0;text-align:right;color:#16a34a;">-${formatPrintCurrency(invoice.amountPaid)}</td></tr>` : ''}
-          ${invoice.balance > 0 ? `<tr style="background:#fef3c7;"><td style="padding:12px 8px;font-weight:600;">Balance Due</td><td style="padding:12px 8px;text-align:right;font-weight:700;color:#d97706;">${formatPrintCurrency(invoice.balance)}</td></tr>` : ''}
+          <tr><td style="padding:8px 0;color:#6b7280;">Subtotal</td><td style="padding:8px 0;text-align:right;">${fcp(invoice.subtotal)}</td></tr>
+          <tr><td style="padding:8px 0;color:#6b7280;">GCT</td><td style="padding:8px 0;text-align:right;">${fcp(invoice.gctAmount)}</td></tr>
+          ${invoice.discount > 0 ? `<tr><td style="padding:8px 0;color:#6b7280;">Discount</td><td style="padding:8px 0;text-align:right;color:#dc2626;">-${fcp(invoice.discount)}</td></tr>` : ''}
+          <tr style="border-top:2px solid #e5e7eb;"><td style="padding:12px 0;font-weight:700;font-size:16px;">Total</td><td style="padding:12px 0;text-align:right;font-weight:700;font-size:16px;color:${primaryColor};">${fcp(invoice.total)}</td></tr>
+          ${invoice.amountPaid > 0 ? `<tr><td style="padding:8px 0;color:#6b7280;">Amount Paid</td><td style="padding:8px 0;text-align:right;color:#16a34a;">-${fcp(invoice.amountPaid)}</td></tr>` : ''}
+          ${invoice.balance > 0 ? `<tr style="background:#fef3c7;"><td style="padding:12px 8px;font-weight:600;">Balance Due</td><td style="padding:12px 8px;text-align:right;font-weight:700;color:#d97706;">${fcp(invoice.balance)}</td></tr>` : ''}
         </table>
       </div>
     `;
@@ -232,6 +235,8 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
     printContent({
       title: '',
       companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      companyGct: activeCompany?.gctRegistered ? activeCompany?.gctNumber : undefined,
       content: headerSection + billToSection + '<h3 style="margin:20px 0 10px;font-weight:600;font-size:14px;">Items</h3>' + itemsTable + totalsSection + notesSection + footerSection,
     });
   };
@@ -313,20 +318,20 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total</p>
-            <p className="text-2xl font-bold text-gray-900">{formatJMD(invoice.total)}</p>
+            <p className="text-2xl font-bold text-gray-900">{fc(invoice.total)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Paid</p>
-            <p className="text-2xl font-bold text-emerald-600">{formatJMD(invoice.amountPaid)}</p>
+            <p className="text-2xl font-bold text-emerald-600">{fc(invoice.amountPaid)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Balance</p>
             <p className={`text-2xl font-bold ${invoice.balance > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
-              {formatJMD(invoice.balance)}
+              {fc(invoice.balance)}
             </p>
           </div>
         </Card>
@@ -388,6 +393,18 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
                   <span className="font-medium">{invoice.customerPONumber}</span>
                 </div>
               )}
+              {activeCompany?.trnNumber && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">TRN</span>
+                  <span className="font-medium">{formatTRN(activeCompany.trnNumber)}</span>
+                </div>
+              )}
+              {activeCompany?.gctRegistered && activeCompany?.gctNumber && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">GCT Reg</span>
+                  <span className="font-medium">{activeCompany.gctNumber}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -401,21 +418,23 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Subtotal</span>
-                <span className="font-medium">{formatJMD(invoice.subtotal)}</span>
+                <span className="font-medium">{fc(invoice.subtotal)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">GCT (15%)</span>
-                <span className="font-medium">{formatJMD(invoice.gctAmount)}</span>
-              </div>
+              {activeCompany?.gctRegistered && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">GCT</span>
+                  <span className="font-medium">{fc(invoice.gctAmount)}</span>
+                </div>
+              )}
               {invoice.discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">Discount</span>
-                  <span className="font-medium text-red-600">-{formatJMD(invoice.discount)}</span>
+                  <span className="font-medium text-red-600">-{fc(invoice.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between pt-2 border-t border-gray-100">
                 <span className="font-semibold">Total</span>
-                <span className="font-bold text-emerald-600">{formatJMD(invoice.total)}</span>
+                <span className="font-bold text-emerald-600">{fc(invoice.total)}</span>
               </div>
             </div>
           </CardContent>
@@ -444,9 +463,9 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
                   <tr key={item.id}>
                     <td className="py-3 text-gray-900">{item.description}</td>
                     <td className="py-3 text-right text-gray-600">{item.quantity}</td>
-                    <td className="py-3 text-right text-gray-600">{formatJMD(item.unitPrice)}</td>
-                    <td className="py-3 text-right text-gray-600">{formatJMD(item.gctAmount)}</td>
-                    <td className="py-3 text-right font-medium text-gray-900">{formatJMD(item.total)}</td>
+                    <td className="py-3 text-right text-gray-600">{fc(item.unitPrice)}</td>
+                    <td className="py-3 text-right text-gray-600">{fc(item.gctAmount)}</td>
+                    <td className="py-3 text-right font-medium text-gray-900">{fc(item.total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -540,11 +559,11 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-500">Invoice Total</span>
-                <span className="font-medium">{formatJMD(invoice.total)}</span>
+                <span className="font-medium">{fc(invoice.total)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Balance Due</span>
-                <span className="font-bold text-orange-600">{formatJMD(invoice.balance)}</span>
+                <span className="font-bold text-orange-600">{fc(invoice.balance)}</span>
               </div>
             </div>
             <Input

@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useFixedAssets,
   useAssetCategories,
@@ -25,6 +26,7 @@ import {
   BuildingOfficeIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 const DEPRECIATION_METHODS = [
@@ -83,6 +85,7 @@ const getStatusVariant = (status: string): 'success' | 'warning' | 'default' | '
 };
 
 export default function FixedAssetsPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -251,7 +254,7 @@ export default function FixedAssetsPage() {
         periodStartDate: periodStart.toISOString(),
         periodEndDate: periodEnd.toISOString(),
       });
-      alert(`Depreciation calculated for ${result.summary.assetsProcessed} assets.\nBook: ${formatJMD(result.summary.totalBookDepreciation)}\nTax: ${formatJMD(result.summary.totalTaxAllowance)}`);
+      alert(`Depreciation calculated for ${result.summary.assetsProcessed} assets.\nBook: ${fc(result.summary.totalBookDepreciation)}\nTax: ${fc(result.summary.totalTaxAllowance)}`);
       setShowDepreciationModal(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to run depreciation';
@@ -354,19 +357,19 @@ export default function FixedAssetsPage() {
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Cost</p>
-                <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(totalCost)}</p>
+                <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(totalCost)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Book Value</p>
-                <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : formatJMD(totalBookValue)}</p>
+                <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : fc(totalBookValue)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Depreciation</p>
-                <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : formatJMD(totalDepreciation)}</p>
+                <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : fc(totalDepreciation)}</p>
               </div>
             </Card>
           </div>
@@ -380,25 +383,25 @@ export default function FixedAssetsPage() {
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Cost (Tax Base)</p>
-                <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : formatJMD(totalCost)}</p>
+                <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : fc(totalCost)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Written Down Value</p>
-                <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(totalTaxWDV)}</p>
+                <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(totalTaxWDV)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Initial Allowances</p>
-                <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : formatJMD(totalInitialAllowanceClaimed)}</p>
+                <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : fc(totalInitialAllowanceClaimed)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
                 <p className="text-sm text-gray-500">Total Claimed</p>
-                <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : formatJMD(totalAccumulatedAllowances)}</p>
+                <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : fc(totalAccumulatedAllowances)}</p>
               </div>
             </Card>
           </div>
@@ -461,9 +464,9 @@ export default function FixedAssetsPage() {
                           <td className="px-4 py-3 font-medium text-emerald-600">{cls.class}</td>
                           <td className="px-4 py-3 font-medium text-gray-900">{cls.name}</td>
                           <td className="px-4 py-3 text-right">{cls.assetCount}</td>
-                          <td className="px-4 py-3 text-right">{formatJMD(cls.totalCost)}</td>
-                          <td className="px-4 py-3 text-right font-medium text-blue-600">{formatJMD(cls.totalWDV)}</td>
-                          <td className="px-4 py-3 text-right font-medium text-orange-600">{formatJMD(cls.totalClaimed)}</td>
+                          <td className="px-4 py-3 text-right">{fc(cls.totalCost)}</td>
+                          <td className="px-4 py-3 text-right font-medium text-blue-600">{fc(cls.totalWDV)}</td>
+                          <td className="px-4 py-3 text-right font-medium text-orange-600">{fc(cls.totalClaimed)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -471,9 +474,9 @@ export default function FixedAssetsPage() {
                       <tr>
                         <td colSpan={2} className="px-4 py-3 font-semibold">Total</td>
                         <td className="px-4 py-3 text-right font-semibold">{allowanceClassSummary.reduce((sum, c) => sum + c.assetCount, 0)}</td>
-                        <td className="px-4 py-3 text-right font-semibold">{formatJMD(allowanceClassSummary.reduce((sum, c) => sum + c.totalCost, 0))}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-blue-600">{formatJMD(allowanceClassSummary.reduce((sum, c) => sum + c.totalWDV, 0))}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-orange-600">{formatJMD(allowanceClassSummary.reduce((sum, c) => sum + c.totalClaimed, 0))}</td>
+                        <td className="px-4 py-3 text-right font-semibold">{fc(allowanceClassSummary.reduce((sum, c) => sum + c.totalCost, 0))}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-blue-600">{fc(allowanceClassSummary.reduce((sum, c) => sum + c.totalWDV, 0))}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-orange-600">{fc(allowanceClassSummary.reduce((sum, c) => sum + c.totalClaimed, 0))}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -514,6 +517,11 @@ export default function FixedAssetsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -596,12 +604,12 @@ export default function FixedAssetsPage() {
                     <TableCell className="text-gray-500">
                       {asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : asset.acquisitionDate ? formatDate(new Date(asset.acquisitionDate)) : '-'}
                     </TableCell>
-                    <TableCell className="font-medium">{formatJMD(asset.purchaseCost ?? asset.acquisitionCost ?? 0)}</TableCell>
+                    <TableCell className="font-medium">{fc(asset.purchaseCost ?? asset.acquisitionCost ?? 0)}</TableCell>
                     <TableCell className="text-orange-600">
-                      {formatJMD(asset.bookAccumulatedDepreciation ?? 0)}
+                      {fc(asset.bookAccumulatedDepreciation ?? 0)}
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600">
-                      {formatJMD(asset.bookNetBookValue ?? 0)}
+                      {fc(asset.bookNetBookValue ?? 0)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(asset.status)}>

@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   ArrowDownTrayIcon,
   PrinterIcon,
@@ -11,7 +12,7 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import { printContent, generateTable, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
+import { printContent, generateTable, downloadAsCSV } from '@/lib/print';
 import type { GLAccountType } from '@/types/generalLedger';
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,7 @@ const DEBIT_NORMAL_TYPES: Set<GLAccountType> = new Set(['asset', 'expense']);
 // ---------------------------------------------------------------------------
 
 export default function TrialBalancePage() {
+  const { fc, fcp } = useCurrency();
   const [asOfDate, setAsOfDate] = useState(
     () => new Date().toISOString().split('T')[0],
   );
@@ -252,8 +254,8 @@ export default function TrialBalancePage() {
 
     const content = generateTable(tableHeaders, tableData, {
       formatters: {
-        debit: (v: number) => (v > 0 ? formatPrintCurrency(v) : '-'),
-        credit: (v: number) => (v > 0 ? formatPrintCurrency(v) : '-'),
+        debit: (v: number) => (v > 0 ? fcp(v) : '-'),
+        credit: (v: number) => (v > 0 ? fcp(v) : '-'),
       },
       summaryRow: {
         accountNumber: '',
@@ -266,7 +268,7 @@ export default function TrialBalancePage() {
 
     const balanceNote = isBalanced
       ? '<p style="margin-top:16px;color:#059669;font-weight:600;">Trial balance is in balance.</p>'
-      : `<p style="margin-top:16px;color:#dc2626;font-weight:600;">Trial balance is out of balance by ${formatPrintCurrency(Math.abs(totalDebits - totalCredits))}.</p>`;
+      : `<p style="margin-top:16px;color:#dc2626;font-weight:600;">Trial balance is out of balance by ${fcp(Math.abs(totalDebits - totalCredits))}.</p>`;
 
     printContent({
       title: 'Trial Balance',
@@ -353,7 +355,7 @@ export default function TrialBalancePage() {
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Total Debits</p>
             <p className="text-2xl font-bold text-blue-600">
-              {formatJMD(totalDebits)}
+              {fc(totalDebits)}
             </p>
           </CardContent>
         </Card>
@@ -363,7 +365,7 @@ export default function TrialBalancePage() {
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Total Credits</p>
             <p className="text-2xl font-bold text-emerald-600">
-              {formatJMD(totalCredits)}
+              {fc(totalCredits)}
             </p>
           </CardContent>
         </Card>
@@ -388,7 +390,7 @@ export default function TrialBalancePage() {
                   </span>
                   <p className="text-xs text-amber-600">
                     Difference:{' '}
-                    {formatJMD(Math.abs(totalDebits - totalCredits))}
+                    {fc(Math.abs(totalDebits - totalCredits))}
                   </p>
                 </div>
               </div>
@@ -489,14 +491,14 @@ export default function TrialBalancePage() {
                             className={`text-right px-6 py-3 font-semibold ${group.color}`}
                           >
                             {group.totalDebit > 0
-                              ? formatJMD(group.totalDebit)
+                              ? fc(group.totalDebit)
                               : '-'}
                           </td>
                           <td
                             className={`text-right px-6 py-3 font-semibold ${group.color}`}
                           >
                             {group.totalCredit > 0
-                              ? formatJMD(group.totalCredit)
+                              ? fc(group.totalCredit)
                               : '-'}
                           </td>
                         </tr>
@@ -519,7 +521,7 @@ export default function TrialBalancePage() {
                               <td className="text-right px-6 py-3 text-sm font-medium tabular-nums">
                                 {account.debit > 0 ? (
                                   <span className="text-gray-900">
-                                    {formatJMD(account.debit)}
+                                    {fc(account.debit)}
                                   </span>
                                 ) : (
                                   <span className="text-gray-300">-</span>
@@ -528,7 +530,7 @@ export default function TrialBalancePage() {
                               <td className="text-right px-6 py-3 text-sm font-medium tabular-nums">
                                 {account.credit > 0 ? (
                                   <span className="text-gray-900">
-                                    {formatJMD(account.credit)}
+                                    {fc(account.credit)}
                                   </span>
                                 ) : (
                                   <span className="text-gray-300">-</span>
@@ -551,10 +553,10 @@ export default function TrialBalancePage() {
                       Total
                     </td>
                     <td className="text-right px-6 py-4 font-bold text-gray-900 text-sm tabular-nums">
-                      {formatJMD(totalDebits)}
+                      {fc(totalDebits)}
                     </td>
                     <td className="text-right px-6 py-4 font-bold text-gray-900 text-sm tabular-nums">
-                      {formatJMD(totalCredits)}
+                      {fc(totalCredits)}
                     </td>
                   </tr>
 
@@ -580,7 +582,7 @@ export default function TrialBalancePage() {
                             <ExclamationTriangleIcon className="w-5 h-5 text-amber-500" />
                             <span className="text-sm font-semibold text-amber-700">
                               Out of balance by{' '}
-                              {formatJMD(Math.abs(totalDebits - totalCredits))}
+                              {fc(Math.abs(totalDebits - totalCredits))}
                             </span>
                           </>
                         )}

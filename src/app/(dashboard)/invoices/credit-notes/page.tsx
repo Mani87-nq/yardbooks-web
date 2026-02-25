@@ -4,7 +4,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalBody, ModalFooter, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Select, Textarea } from '@/components/ui';
 import { api } from '@/lib/api-client';
 import { useCustomers, useInvoices } from '@/hooks/api';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -17,6 +18,7 @@ import {
   ClockIcon,
   CurrencyDollarIcon,
   ReceiptRefundIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 // ============================================
@@ -61,6 +63,7 @@ function getStatusBadge(status: CreditNoteStatus) {
 // ============================================
 
 export default function CreditNotesPage() {
+  const { fc } = useCurrency();
   // Fetch customers & invoices from API for dropdowns
   const { data: customersResponse } = useCustomers({ limit: 200 });
   const { data: invoicesResponse } = useInvoices({ limit: 200 });
@@ -350,7 +353,7 @@ export default function CreditNotesPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Amount</p>
-                    <p className="text-lg font-bold text-emerald-600">{formatJMD(cn.amount)}</p>
+                    <p className="text-lg font-bold text-emerald-600">{fc(cn.amount)}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-sm text-gray-500">Reason</p>
@@ -486,7 +489,7 @@ export default function CreditNotesPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Value</p>
-                <p className="text-2xl font-bold text-blue-600">{formatJMD(stats.totalValue)}</p>
+                <p className="text-2xl font-bold text-blue-600">{fc(stats.totalValue)}</p>
               </div>
             </div>
           </div>
@@ -501,6 +504,11 @@ export default function CreditNotesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -557,7 +565,7 @@ export default function CreditNotesPage() {
                   <TableCell className="max-w-[200px] truncate text-gray-600">
                     {cn.reason}
                   </TableCell>
-                  <TableCell className="font-medium">{formatJMD(cn.amount)}</TableCell>
+                  <TableCell className="font-medium">{fc(cn.amount)}</TableCell>
                   <TableCell className="text-gray-500">{formatDate(cn.createdAt)}</TableCell>
                   <TableCell>{getStatusBadge(cn.status)}</TableCell>
                   <TableCell>
@@ -642,7 +650,7 @@ export default function CreditNotesPage() {
                   { value: '', label: 'Select an invoice...' },
                   ...selectedCustomerInvoices.map((inv: any) => ({
                     value: inv.invoiceNumber,
-                    label: `${inv.invoiceNumber} - ${formatJMD(inv.total)}`,
+                    label: `${inv.invoiceNumber} - ${fc(inv.total)}`,
                   })),
                 ]}
                 value={formData.invoiceRef}

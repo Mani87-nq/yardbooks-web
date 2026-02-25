@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { api } from '@/lib/api-client';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   BuildingLibraryIcon,
   CheckCircleIcon,
@@ -19,6 +20,7 @@ import Link from 'next/link';
 
 export default function BankReconciliationPage() {
   const { bankAccounts, bankTransactions, journalEntries, glAccounts, updateBankTransaction } = useAppStore();
+  const { fc } = useCurrency();
 
   // Selected bank account
   const [selectedAccountId, setSelectedAccountId] = useState<string>(bankAccounts[0]?.id ?? '');
@@ -246,7 +248,7 @@ export default function BankReconciliationPage() {
               <div className="flex items-center gap-2">
                 <BuildingLibraryIcon className="w-4 h-4 text-gray-400" />
                 <span className="text-gray-500">Book Balance:</span>
-                <span className="font-semibold text-gray-900">{formatJMD(bookBalance)}</span>
+                <span className="font-semibold text-gray-900">{fc(bookBalance)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
@@ -317,7 +319,7 @@ export default function BankReconciliationPage() {
                             <span className={`text-sm font-semibold whitespace-nowrap ml-2 ${
                               isDeposit ? 'text-emerald-600' : 'text-red-600'
                             }`}>
-                              {isDeposit ? '+' : ''}{formatJMD(txn.amount)}
+                              {isDeposit ? '+' : ''}{fc(txn.amount)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -343,7 +345,7 @@ export default function BankReconciliationPage() {
                   {checkedStatementItems.size} of {statementTransactions.filter((t) => !t.isReconciled).length} selected
                 </span>
                 <span className="font-medium text-gray-700">
-                  Selected Total: {formatJMD(
+                  Selected Total: {fc(
                     statementTransactions
                       .filter((t) => checkedStatementItems.has(t.id))
                       .reduce((sum, t) => sum + t.amount, 0)
@@ -403,7 +405,7 @@ export default function BankReconciliationPage() {
                             <span className={`text-sm font-semibold whitespace-nowrap ml-2 ${
                               isDebit ? 'text-emerald-600' : 'text-red-600'
                             }`}>
-                              {isDebit ? '+' : '-'}{formatJMD(amount)}
+                              {isDebit ? '+' : '-'}{fc(amount)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -427,7 +429,7 @@ export default function BankReconciliationPage() {
                   {checkedBookItems.size} of {bookEntries.length} selected
                 </span>
                 <span className="font-medium text-gray-700">
-                  Selected Total: {formatJMD(
+                  Selected Total: {fc(
                     bookEntries
                       .filter((je) => checkedBookItems.has(je.id))
                       .reduce((sum, je) => {
@@ -462,7 +464,7 @@ export default function BankReconciliationPage() {
                   <>
                     <XCircleIcon className="w-5 h-5 text-red-600" />
                     <Badge variant="danger" size="md">
-                      Unreconciled ({formatJMD(Math.abs(difference))} difference)
+                      Unreconciled ({fc(Math.abs(difference))} difference)
                     </Badge>
                   </>
                 )}
@@ -477,25 +479,25 @@ export default function BankReconciliationPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between py-2">
                     <span className="text-sm text-gray-600">Bank Statement Balance</span>
-                    <span className="text-sm font-semibold text-gray-900">{formatJMD(parsedStatementBalance)}</span>
+                    <span className="text-sm font-semibold text-gray-900">{fc(parsedStatementBalance)}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-t border-gray-100">
                     <span className="text-sm text-gray-600">
                       Add: Outstanding Deposits
                       <span className="text-xs text-gray-400 ml-1">(in books, not on statement)</span>
                     </span>
-                    <span className="text-sm font-semibold text-emerald-600">+{formatJMD(outstandingDeposits)}</span>
+                    <span className="text-sm font-semibold text-emerald-600">+{fc(outstandingDeposits)}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-t border-gray-100">
                     <span className="text-sm text-gray-600">
                       Less: Outstanding Checks
                       <span className="text-xs text-gray-400 ml-1">(in books, not on statement)</span>
                     </span>
-                    <span className="text-sm font-semibold text-red-600">-{formatJMD(outstandingChecks)}</span>
+                    <span className="text-sm font-semibold text-red-600">-{fc(outstandingChecks)}</span>
                   </div>
                   <div className="flex items-center justify-between py-3 border-t-2 border-gray-300 bg-gray-50 rounded-lg px-3 -mx-3">
                     <span className="text-sm font-bold text-gray-900">Adjusted Bank Balance</span>
-                    <span className="text-lg font-bold text-gray-900">{formatJMD(adjustedBankBalance)}</span>
+                    <span className="text-lg font-bold text-gray-900">{fc(adjustedBankBalance)}</span>
                   </div>
                 </div>
               </div>
@@ -506,7 +508,7 @@ export default function BankReconciliationPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between py-2">
                     <span className="text-sm text-gray-600">Book Balance (from GL)</span>
-                    <span className="text-sm font-semibold text-gray-900">{formatJMD(bookBalance)}</span>
+                    <span className="text-sm font-semibold text-gray-900">{fc(bookBalance)}</span>
                   </div>
                   <div className="py-2 border-t border-gray-100">
                     {/* Spacer to align with bank side */}
@@ -529,7 +531,7 @@ export default function BankReconciliationPage() {
                           ? 'text-red-600'
                           : 'text-gray-900'
                     }`}>
-                      {formatJMD(difference)}
+                      {fc(difference)}
                     </span>
                   </div>
                 </div>

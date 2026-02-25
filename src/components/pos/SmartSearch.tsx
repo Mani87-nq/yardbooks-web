@@ -8,21 +8,8 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline';
 import { searchProducts, type SearchableProduct, type SearchResult } from '@/lib/productSearch';
-import { formatJMD, cn } from '@/lib/utils';
-
-// Safe number formatting helper
-const safeFormatJMD = (value: unknown): string => {
-  if (typeof value === 'number' && !isNaN(value)) {
-    return formatJMD(value);
-  }
-  if (typeof value === 'string') {
-    const num = parseFloat(value);
-    if (!isNaN(num)) {
-      return formatJMD(num);
-    }
-  }
-  return formatJMD(0);
-};
+import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface SmartSearchProps<T extends SearchableProduct = SearchableProduct> {
   products: T[];
@@ -50,6 +37,7 @@ export function SmartSearch<T extends SearchableProduct>({
   className,
   recentProductIds = [],
 }: SmartSearchProps<T>) {
+  const { fc } = useCurrency();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -242,7 +230,7 @@ export function SmartSearch<T extends SearchableProduct>({
 
               {/* Price */}
               <div className="text-right flex-shrink-0">
-                <div className="text-lg font-bold text-emerald-600">{safeFormatJMD(result.product.unitPrice)}</div>
+                <div className="text-lg font-bold text-emerald-600">{fc(typeof result.product.unitPrice === 'number' && !isNaN(result.product.unitPrice) ? result.product.unitPrice : 0)}</div>
                 {result.product.category && <div className="text-xs text-gray-400">{result.product.category}</div>}
               </div>
             </button>

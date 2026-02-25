@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ import {
   ClockIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronDownIcon,
   XMarkIcon,
   ArrowPathIcon,
   ReceiptRefundIcon,
@@ -115,17 +116,105 @@ const navigation: NavGroup[] = [
   },
 ];
 
+const STORAGE_KEY = 'yb-sidebar-expanded-groups';
+
+const defaultExpanded: Record<string, boolean> = {
+  Main: true,
+  Sales: true,
+  Operations: false,
+  Accounting: false,
+  'HR & Payroll': false,
+  'Reports & AI': false,
+  System: false,
+};
+
+function loadExpandedState(): Record<string, boolean> {
+  if (typeof window === 'undefined') return defaultExpanded;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // ignore
+  }
+  return defaultExpanded;
+}
+
+function Badge({ type }: { type: string }) {
+  if (type === 'NEW') {
+    return (
+      <span className="ml-auto flex h-4 items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 text-[10px] font-semibold leading-none text-emerald-400 ring-1 ring-emerald-500/25">
+        <span className="h-1 w-1 rounded-full bg-emerald-400" />
+        NEW
+      </span>
+    );
+  }
+  if (type === 'AI') {
+    return (
+      <span className="ml-auto flex h-4 items-center rounded-full bg-violet-500/15 px-1.5 text-[10px] font-semibold leading-none text-violet-400 ring-1 ring-violet-500/25">
+        AI
+      </span>
+    );
+  }
+  return (
+    <span className="ml-auto rounded-full bg-gray-700 px-1.5 py-0.5 text-[10px] font-medium text-gray-300">
+      {type}
+    </span>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar, setSidebarOpen, activeCompany } = useAppStore();
   const { can } = usePermissions();
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(defaultExpanded);
+
+  // Load persisted state on mount
+  useEffect(() => {
+    setExpandedGroups(loadExpandedState());
+  }, []);
+
+  const toggleGroup = useCallback((groupName: string) => {
+    setExpandedGroups((prev) => {
+      const next = { ...prev, [groupName]: !prev[groupName] };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
+  // Auto-expand group if it contains the active route
+  useEffect(() => {
+    if (!pathname) return;
+    for (const group of navigation) {
+      const hasActive = group.items.some(
+        (item) => pathname === item.href || pathname.startsWith(item.href + '/')
+      );
+      if (hasActive && !expandedGroups[group.name]) {
+        setExpandedGroups((prev) => {
+          const next = { ...prev, [group.name]: true };
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          } catch {
+            // ignore
+          }
+          return next;
+        });
+        break;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -133,112 +222,200 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col bg-gray-900 text-white transition-all duration-300 lg:relative',
+          'fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 text-white transition-all duration-300 lg:relative',
+          'border-r border-white/[0.06]',
           sidebarOpen ? 'w-64' : 'w-20',
           !sidebarOpen && 'lg:w-20',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-lg">
+        {/* Header / Logo */}
+        <div className="flex h-16 items-center justify-between px-4 border-b border-white/[0.06]">
+          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+            <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/20">
               YB
+              <div className="absolute inset-0 rounded-lg bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             {sidebarOpen && (
-              <span className="text-lg font-semibold">YaadBooks</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold tracking-tight">YaadBooks</span>
+                <span className="text-[10px] text-gray-500 font-medium leading-none">Business Suite</span>
+              </div>
             )}
           </Link>
           <button
             onClick={toggleSidebar}
-            className="hidden lg:flex items-center justify-center h-8 w-8 rounded-md hover:bg-gray-800"
+            className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors"
           >
             {sidebarOpen ? (
-              <ChevronLeftIcon className="h-5 w-5" />
+              <ChevronLeftIcon className="h-4 w-4" />
             ) : (
-              <ChevronRightIcon className="h-5 w-5" />
+              <ChevronRightIcon className="h-4 w-4" />
             )}
           </button>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden flex items-center justify-center h-8 w-8 rounded-md hover:bg-gray-800"
+            className="lg:hidden flex items-center justify-center h-7 w-7 rounded-md text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors"
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="h-4 w-4" />
           </button>
         </div>
 
         {/* Company Selector */}
         {sidebarOpen && activeCompany && (
-          <div className="border-b border-gray-800 p-4">
-            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+          <div className="border-b border-white/[0.06] px-4 py-3">
+            <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5 font-medium">
               Company
             </div>
-            <div className="text-sm font-medium truncate">
+            <div className="text-sm font-medium text-gray-200 truncate">
               {activeCompany.businessName}
             </div>
           </div>
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
-          {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => !item.permission || can(item.permission));
+        <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-3">
+          {navigation.map((group, groupIndex) => {
+            const visibleItems = group.items.filter(
+              (item) => !item.permission || can(item.permission)
+            );
             if (visibleItems.length === 0) return null;
-            return (
-            <div key={group.name} className="mb-4">
-              {sidebarOpen && (
-                <div className="px-4 mb-2 text-xs text-gray-500 uppercase tracking-wider">
-                  {group.name}
-                </div>
-              )}
-              <ul className="space-y-1 px-2">
-                {group.items
-                  .filter((item) => !item.permission || can(item.permission))
-                  .map((item) => {
-                  const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
 
-                  return (
-                    <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                          isActive
-                            ? 'bg-emerald-600 text-white'
-                            : 'text-gray-300 hover:bg-gray-800 hover:text-white',
-                          !sidebarOpen && 'justify-center'
-                        )}
-                        title={!sidebarOpen ? item.name : undefined}
-                      >
-                        <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {sidebarOpen && (
-                          <>
-                            <span className="flex-1">{item.name}</span>
-                            {item.badge && (
-                              <span className="px-2 py-0.5 text-xs bg-emerald-500 rounded-full">
-                                {item.badge}
-                              </span>
+            const isExpanded = expandedGroups[group.name] ?? false;
+            const hasActiveChild = visibleItems.some(
+              (item) => pathname === item.href || pathname?.startsWith(item.href + '/')
+            );
+
+            return (
+              <div key={group.name}>
+                {/* Group separator line */}
+                {groupIndex > 0 && (
+                  <div className="mx-4 my-1.5 border-t border-white/[0.04]" />
+                )}
+
+                {/* Group header - collapsible (only in expanded sidebar) */}
+                {sidebarOpen ? (
+                  <button
+                    onClick={() => toggleGroup(group.name)}
+                    className={cn(
+                      'flex w-full items-center justify-between px-4 py-1.5 text-[11px] uppercase tracking-wider font-medium transition-colors rounded-md mx-0',
+                      hasActiveChild
+                        ? 'text-gray-300'
+                        : 'text-gray-500 hover:text-gray-300'
+                    )}
+                  >
+                    <span>{group.name}</span>
+                    <ChevronDownIcon
+                      className={cn(
+                        'h-3 w-3 text-gray-600 transition-transform duration-200',
+                        !isExpanded && '-rotate-90'
+                      )}
+                    />
+                  </button>
+                ) : (
+                  /* In collapsed mode, no group headers - just a thin separator is shown above */
+                  null
+                )}
+
+                {/* Group items */}
+                <div
+                  className={cn(
+                    'overflow-hidden transition-all duration-200 ease-in-out',
+                    sidebarOpen && !isExpanded && 'max-h-0 opacity-0',
+                    sidebarOpen && isExpanded && 'max-h-[500px] opacity-100',
+                    !sidebarOpen && 'max-h-[500px] opacity-100'
+                  )}
+                >
+                  <ul className={cn('space-y-0.5 px-2', sidebarOpen && 'mt-0.5')}>
+                    {visibleItems.map((item) => {
+                      const isActive =
+                        pathname === item.href || pathname?.startsWith(item.href + '/');
+
+                      return (
+                        <li key={item.name}>
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              'group/item relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+                              isActive
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : 'text-gray-400 hover:bg-white/[0.05] hover:text-gray-200',
+                              !sidebarOpen && 'justify-center px-0'
                             )}
-                          </>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
+                            title={!sidebarOpen ? item.name : undefined}
+                          >
+                            {/* Active indicator bar */}
+                            {isActive && (
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-400" />
+                            )}
+
+                            <item.icon
+                              className={cn(
+                                'h-[18px] w-[18px] flex-shrink-0 transition-colors duration-150',
+                                isActive
+                                  ? 'text-emerald-400'
+                                  : 'text-gray-500 group-hover/item:text-gray-300'
+                              )}
+                            />
+
+                            {sidebarOpen && (
+                              <>
+                                <span className="flex-1 truncate">{item.name}</span>
+                                {item.badge && <Badge type={item.badge} />}
+                              </>
+                            )}
+
+                            {/* Tooltip for collapsed mode */}
+                            {!sidebarOpen && (
+                              <div className="absolute left-full ml-2 hidden group-hover/item:flex items-center z-50">
+                                <div className="relative flex items-center">
+                                  <div className="absolute -left-1 w-2 h-2 bg-gray-800 rotate-45 border-l border-b border-white/[0.08]" />
+                                  <div className="whitespace-nowrap rounded-md bg-gray-800 border border-white/[0.08] px-3 py-1.5 text-xs font-medium text-gray-200 shadow-xl">
+                                    {item.name}
+                                    {item.badge && (
+                                      <span className={cn(
+                                        'ml-2 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold',
+                                        item.badge === 'AI'
+                                          ? 'bg-violet-500/20 text-violet-400'
+                                          : 'bg-emerald-500/20 text-emerald-400'
+                                      )}>
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            );
           })}
         </nav>
 
         {/* Footer */}
-        {sidebarOpen && (
-          <div className="border-t border-gray-800 p-4">
-            <div className="text-xs text-gray-500 text-center">
-              Made with love in Jamaica
+        <div className="border-t border-white/[0.06] px-4 py-3">
+          {sidebarOpen ? (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-600 font-medium tracking-wide">
+                YaadBooks v1.0
+              </span>
+              <span className="text-xs opacity-60" title="Made in Jamaica">
+                &#x1F1EF;&#x1F1F2;
+              </span>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex justify-center">
+              <span className="text-[10px] opacity-40" title="Made in Jamaica">
+                &#x1F1EF;&#x1F1F2;
+              </span>
+            </div>
+          )}
+        </div>
       </aside>
     </>
   );

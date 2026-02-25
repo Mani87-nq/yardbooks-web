@@ -11,7 +11,8 @@ import {
   type ApiPosOrder,
 } from '@/hooks/api/usePos';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDateTime } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { printReceipt, buildReceiptFromOrder } from '@/lib/pos-receipt';
 import {
   ArrowLeftIcon,
@@ -20,9 +21,11 @@ import {
   PrinterIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 export default function POSOrdersPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -152,6 +155,11 @@ export default function POSOrdersPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -199,7 +207,7 @@ export default function POSOrdersPage() {
                   <TableCell className="text-gray-500">{formatDateTime(order.createdAt)}</TableCell>
                   <TableCell>{order.customerName}</TableCell>
                   <TableCell>{order.itemCount} items</TableCell>
-                  <TableCell className="font-medium">{formatJMD(Number(order.total))}</TableCell>
+                  <TableCell className="font-medium">{fc(Number(order.total))}</TableCell>
                   <TableCell>
                     <StatusBadge status={apiStatusToFrontend(order.status)} />
                   </TableCell>

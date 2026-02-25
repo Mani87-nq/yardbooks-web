@@ -24,6 +24,7 @@ interface MeResponse {
     lastName: string;
     phone: string | null;
     activeCompanyId: string | null;
+    avatarUrl: string | null;
     createdAt: string;
   };
   companies: Array<{
@@ -110,6 +111,7 @@ export function useDataHydration() {
           phone: meData.user.phone ?? undefined,
           role: appRole,
           activeCompanyId: meData.user.activeCompanyId ?? undefined,
+          avatarUrl: meData.user.avatarUrl ?? undefined,
           createdAt: new Date(meData.user.createdAt),
         });
 

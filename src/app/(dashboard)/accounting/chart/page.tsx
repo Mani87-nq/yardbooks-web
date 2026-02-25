@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useGLAccounts,
   useCreateGLAccount,
@@ -18,6 +18,7 @@ import {
   TrashIcon,
   FolderIcon,
   ChevronRightIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 const ACCOUNT_TYPES = [
@@ -37,6 +38,7 @@ const SUB_TYPES: Record<string, string[]> = {
 };
 
 export default function ChartOfAccountsPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
@@ -215,7 +217,7 @@ export default function ChartOfAccountsPage() {
               <div className="p-4">
                 <p className="text-sm text-gray-500">{type.label}</p>
                 <p className="text-xl font-bold text-gray-900">{typeAccounts.length}</p>
-                <p className="text-sm text-gray-500">{formatJMD(total)}</p>
+                <p className="text-sm text-gray-500">{fc(total)}</p>
               </div>
             </Card>
           );
@@ -230,6 +232,11 @@ export default function ChartOfAccountsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -260,7 +267,7 @@ export default function ChartOfAccountsPage() {
                   <CardTitle>{group.label}</CardTitle>
                   <Badge variant="default">{group.accounts.length}</Badge>
                 </div>
-                <span className="font-medium">{formatJMD(group.total)}</span>
+                <span className="font-medium">{fc(group.total)}</span>
               </div>
             </CardHeader>
             <Table>
@@ -294,7 +301,7 @@ export default function ChartOfAccountsPage() {
                       {account.subType || '-'}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatJMD(account.balance || 0)}
+                      {fc(account.balance || 0)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={account.isActive ? 'success' : 'default'}>

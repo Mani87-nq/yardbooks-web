@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge, StatusBadge } from '@/components/ui';
 import { useAppStore, useDashboardStats, useRecentInvoices, useLowStockProducts } from '@/store/appStore';
-import { formatJMD, formatDate, formatRelativeTime } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
+import { StatusBadge } from '@/components/ui/Badge';
 import {
   BanknotesIcon,
   DocumentTextIcon,
@@ -17,277 +18,529 @@ import {
   PlusIcon,
   ChartBarIcon,
   SparklesIcon,
+  DocumentPlusIcon,
+  UserPlusIcon,
+  CalendarDaysIcon,
+  CheckCircleIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 
-// Quick Action Component
+// ============================================
+// CSS-ONLY ENTRANCE ANIMATIONS
+// ============================================
+const fadeSlideUpStyle = (delay: number): React.CSSProperties => ({
+  animation: `fadeSlideUp 0.5s ease-out ${delay}ms both`,
+});
+
+const globalKeyframes = `
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+`;
+
+// ============================================
+// GREETING HELPER
+// ============================================
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function getFormattedDate(): string {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// ============================================
+// QUICK ACTION COMPONENT (PREMIUM)
+// ============================================
 function QuickAction({
   icon: Icon,
   title,
   href,
-  color,
+  bgColor,
+  hoverBorder,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   href: string;
-  color: string;
+  bgColor: string;
+  hoverBorder: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all group"
+      className={`group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 ${hoverBorder} hover:shadow-lg transition-all duration-300 overflow-hidden`}
     >
-      <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+      {/* Subtle background glow on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.04] transition-opacity duration-300 rounded-2xl" style={{ background: 'radial-gradient(circle at center, currentColor, transparent 70%)' }} />
+      <div className={`w-12 h-12 rounded-xl ${bgColor} flex items-center justify-center group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
         <Icon className="w-6 h-6 text-white" />
       </div>
-      <span className="text-sm font-medium text-gray-700">{title}</span>
+      <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">{title}</span>
     </Link>
   );
 }
 
-// Stat Card Component
+// ============================================
+// STAT CARD COMPONENT (PREMIUM)
+// ============================================
 function StatCard({
   title,
   value,
   change,
   changeType,
   icon: Icon,
-  color,
+  iconBg,
+  gradientFrom,
+  gradientTo,
 }: {
   title: string;
   value: string;
   change?: string;
   changeType?: 'positive' | 'negative' | 'neutral';
   icon: React.ComponentType<{ className?: string }>;
-  color: string;
+  iconBg: string;
+  gradientFrom: string;
+  gradientTo: string;
 }) {
   return (
-    <Card>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 p-6 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}
+    >
+      {/* Decorative corner accent */}
+      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.07]" style={{ background: 'currentColor' }} />
+
+      <div className="flex items-start justify-between relative">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-500 tracking-wide uppercase">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight truncate">{value}</p>
           {change && (
-            <div className="flex items-center gap-1 mt-2">
+            <div className="flex items-center gap-1.5 mt-3">
               {changeType === 'positive' && (
-                <ArrowTrendingUpIcon className="w-4 h-4 text-emerald-500" />
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100">
+                  <ArrowTrendingUpIcon className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-xs font-semibold text-emerald-700">{change}</span>
+                </div>
               )}
               {changeType === 'negative' && (
-                <ArrowTrendingDownIcon className="w-4 h-4 text-red-500" />
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 border border-red-100">
+                  <ArrowTrendingDownIcon className="w-3.5 h-3.5 text-red-600" />
+                  <span className="text-xs font-semibold text-red-700">{change}</span>
+                </div>
               )}
-              <span
-                className={`text-sm font-medium ${
-                  changeType === 'positive'
-                    ? 'text-emerald-600'
-                    : changeType === 'negative'
-                    ? 'text-red-600'
-                    : 'text-gray-500'
-                }`}
-              >
-                {change}
-              </span>
+              {changeType === 'neutral' && (
+                <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                  {change}
+                </span>
+              )}
             </div>
           )}
         </div>
-        <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center`}>
-          <Icon className="w-6 h-6 text-white" />
+        <div className={`w-14 h-14 rounded-2xl ${iconBg} flex items-center justify-center shadow-sm flex-shrink-0`}>
+          <Icon className="w-7 h-7 text-white" />
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
+// ============================================
+// MAIN DASHBOARD PAGE
+// ============================================
 export default function DashboardPage() {
-  const { activeCompany } = useAppStore();
+  const { fc } = useCurrency();
+  const { activeCompany, user } = useAppStore();
   const stats = useDashboardStats();
   const recentInvoices = useRecentInvoices(5);
   const lowStockProducts = useLowStockProducts();
 
+  const greeting = useMemo(() => getGreeting(), []);
+  const formattedDate = useMemo(() => getFormattedDate(), []);
+  const firstName = user?.firstName || 'there';
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500">
-            Welcome back! Here&apos;s what&apos;s happening with {activeCompany?.businessName || 'your business'}.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" icon={<ChartBarIcon className="w-4 h-4" />}>
-            <Link href="/reports">View Reports</Link>
-          </Button>
-          <Button icon={<PlusIcon className="w-4 h-4" />}>
-            <Link href="/invoices/new">New Invoice</Link>
-          </Button>
-        </div>
-      </div>
+    <>
+      {/* Inject keyframes */}
+      <style>{globalKeyframes}</style>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-            <QuickAction icon={ShoppingCartIcon} title="Point of Sale" href="/pos" color="bg-emerald-600" />
-            <QuickAction icon={DocumentTextIcon} title="New Invoice" href="/invoices/new" color="bg-blue-600" />
-            <QuickAction icon={UserGroupIcon} title="Add Customer" href="/customers/new" color="bg-purple-600" />
-            <QuickAction icon={CubeIcon} title="Add Product" href="/inventory" color="bg-orange-600" />
-            <QuickAction icon={BanknotesIcon} title="Add Expense" href="/expenses" color="bg-red-600" />
-            <QuickAction icon={SparklesIcon} title="AI Assistant" href="/ai" color="bg-indigo-600" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-8 pb-8">
+        {/* ─── WELCOME HEADER ─────────────────────────────────────────── */}
+        <div style={fadeSlideUpStyle(0)} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 p-8 lg:p-10 shadow-lg">
+          {/* Background decorative elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-1/3 w-48 h-48 rounded-full bg-white/5 translate-y-1/2" />
+          <div className="absolute top-1/2 right-1/4 w-3 h-3 rounded-full bg-white/20 animate-pulse" />
+          <div className="absolute top-1/3 right-1/3 w-2 h-2 rounded-full bg-white/15" style={{ animation: 'pulseGlow 3s ease-in-out infinite' }} />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Revenue (This Month)"
-          value={formatJMD(stats.totalRevenue)}
-          change={`${stats.invoiceCount ?? 0} invoices`}
-          changeType="neutral"
-          icon={BanknotesIcon}
-          color="bg-emerald-600"
-        />
-        <StatCard
-          title="Accounts Receivable"
-          value={formatJMD(stats.totalReceivable)}
-          change={`${stats.overdueCount} overdue`}
-          changeType={stats.overdueCount > 0 ? 'negative' : 'neutral'}
-          icon={DocumentTextIcon}
-          color="bg-blue-600"
-        />
-        <StatCard
-          title="Expenses (This Month)"
-          value={formatJMD(stats.totalExpenses)}
-          change={`${stats.expenseCount ?? 0} expenses`}
-          changeType="neutral"
-          icon={BanknotesIcon}
-          color="bg-red-500"
-        />
-        <StatCard
-          title="Net Profit"
-          value={formatJMD(stats.profit)}
-          change={stats.profit > 0 ? 'Profitable' : 'Loss'}
-          changeType={stats.profit > 0 ? 'positive' : 'negative'}
-          icon={ArrowTrendingUpIcon}
-          color="bg-purple-600"
-        />
-      </div>
-
-      {/* Lower Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Invoices */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Invoices</CardTitle>
-            <Link href="/invoices" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-              View all
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {recentInvoices.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <DocumentTextIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No invoices yet</p>
-                <Link href="/invoices/new" className="text-emerald-600 hover:underline text-sm">
-                  Create your first invoice
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentInvoices.map((invoice) => (
-                  <Link
-                    key={invoice.id}
-                    href={`/invoices/${invoice.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">{invoice.invoiceNumber}</p>
-                      <p className="text-sm text-gray-500">
-                        {invoice.customer?.name || 'Unknown'} • {formatRelativeTime(invoice.issueDate)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">{formatJMD(invoice.total)}</p>
-                      <StatusBadge status={invoice.status} />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Low Stock Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Low Stock Alerts</CardTitle>
-            <Link href="/inventory" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-              View inventory
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {lowStockProducts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <CubeIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>All stock levels are good!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {lowStockProducts.slice(0, 5).map((product) => (
-                  <Link
-                    key={product.id}
-                    href="/inventory"
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                        <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500">SKU: {product.sku}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-red-600">{product.quantity} left</p>
-                      <p className="text-xs text-gray-500">Reorder at {product.reorderLevel}</p>
-                    </div>
-                  </Link>
-                ))}
-                {lowStockProducts.length > 5 && (
-                  <p className="text-center text-sm text-gray-500 pt-2">
-                    +{lowStockProducts.length - 5} more items low on stock
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Jamaica-specific info */}
-      <Card className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white">
-        <CardContent>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
             <div>
-              <h3 className="text-lg font-semibold">GCT Ready</h3>
-              <p className="text-emerald-100 text-sm">
-                YaadBooks automatically calculates GCT at 15% on all applicable transactions.
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarDaysIcon className="w-4 h-4 text-emerald-200" />
+                <p className="text-emerald-100 text-sm font-medium">{formattedDate}</p>
+              </div>
+              <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                {greeting}, {firstName}
+              </h1>
+              <p className="text-emerald-100 mt-2 text-base">
+                Here&apos;s what&apos;s happening with {activeCompany?.businessName || 'your business'} today.
               </p>
             </div>
-            <div className="flex gap-3">
-              <Button variant="secondary" size="sm">
-                <Link href="/reports">View GCT Report</Link>
-              </Button>
-              <Button variant="outline" size="sm" className="border-white text-white hover:bg-white/10">
-                <Link href="/settings">Configure Rates</Link>
-              </Button>
+            <div className="flex gap-3 flex-shrink-0">
+              <Link
+                href="/reports"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium border border-white/20 backdrop-blur-sm transition-all duration-200"
+              >
+                <ChartBarIcon className="w-4 h-4" />
+                View Reports
+              </Link>
+              <Link
+                href="/invoices/new"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-700 text-sm font-semibold hover:bg-emerald-50 shadow-sm transition-all duration-200"
+              >
+                <PlusIcon className="w-4 h-4" />
+                New Invoice
+              </Link>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        {/* ─── QUICK ACTIONS ──────────────────────────────────────────── */}
+        <div style={fadeSlideUpStyle(80)}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <QuickAction
+              icon={ShoppingCartIcon}
+              title="POS Terminal"
+              href="/pos"
+              bgColor="bg-gradient-to-br from-emerald-500 to-emerald-600"
+              hoverBorder="hover:border-emerald-200"
+            />
+            <QuickAction
+              icon={DocumentPlusIcon}
+              title="New Invoice"
+              href="/invoices/new"
+              bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
+              hoverBorder="hover:border-blue-200"
+            />
+            <QuickAction
+              icon={UserPlusIcon}
+              title="Add Customer"
+              href="/customers/new"
+              bgColor="bg-gradient-to-br from-purple-500 to-purple-600"
+              hoverBorder="hover:border-purple-200"
+            />
+            <QuickAction
+              icon={CubeIcon}
+              title="Add Product"
+              href="/inventory"
+              bgColor="bg-gradient-to-br from-orange-500 to-orange-600"
+              hoverBorder="hover:border-orange-200"
+            />
+            <QuickAction
+              icon={BanknotesIcon}
+              title="New Expense"
+              href="/expenses"
+              bgColor="bg-gradient-to-br from-rose-500 to-rose-600"
+              hoverBorder="hover:border-rose-200"
+            />
+            <QuickAction
+              icon={SparklesIcon}
+              title="AI Assistant"
+              href="/ai"
+              bgColor="bg-gradient-to-br from-indigo-500 to-indigo-600"
+              hoverBorder="hover:border-indigo-200"
+            />
+          </div>
+        </div>
+
+        {/* ─── STAT CARDS ─────────────────────────────────────────────── */}
+        <div style={fadeSlideUpStyle(160)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Revenue"
+            value={fc(stats.totalRevenue)}
+            change={`${stats.invoiceCount ?? 0} invoices`}
+            changeType="neutral"
+            icon={BanknotesIcon}
+            iconBg="bg-gradient-to-br from-emerald-500 to-emerald-600"
+            gradientFrom="from-white"
+            gradientTo="to-emerald-50/50"
+          />
+          <StatCard
+            title="Receivable"
+            value={fc(stats.totalReceivable)}
+            change={stats.overdueCount > 0 ? `${stats.overdueCount} overdue` : 'All current'}
+            changeType={stats.overdueCount > 0 ? 'negative' : 'positive'}
+            icon={DocumentTextIcon}
+            iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
+            gradientFrom="from-white"
+            gradientTo="to-blue-50/50"
+          />
+          <StatCard
+            title="Expenses"
+            value={fc(stats.totalExpenses)}
+            change={`${stats.expenseCount ?? 0} this month`}
+            changeType="neutral"
+            icon={BanknotesIcon}
+            iconBg="bg-gradient-to-br from-rose-500 to-rose-600"
+            gradientFrom="from-white"
+            gradientTo="to-rose-50/50"
+          />
+          <StatCard
+            title="Net Profit"
+            value={fc(stats.profit)}
+            change={stats.profit > 0 ? 'Profitable' : stats.profit < 0 ? 'Loss' : 'Break even'}
+            changeType={stats.profit > 0 ? 'positive' : stats.profit < 0 ? 'negative' : 'neutral'}
+            icon={ArrowTrendingUpIcon}
+            iconBg="bg-gradient-to-br from-purple-500 to-purple-600"
+            gradientFrom="from-white"
+            gradientTo="to-purple-50/50"
+          />
+        </div>
+
+        {/* ─── AT A GLANCE METRICS BAR ────────────────────────────────── */}
+        <div style={fadeSlideUpStyle(220)} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <UserGroupIcon className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.customerCount}</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customers</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.invoiceCount}</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoices</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+              <CubeIcon className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.lowStockCount}</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Low Stock</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+              <ClockIcon className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.overdueCount}</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Overdue</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── LOWER SECTION: INVOICES & LOW STOCK ────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Invoices */}
+          <div style={fadeSlideUpStyle(300)} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Recent Invoices</h3>
+              </div>
+              <Link
+                href="/invoices"
+                className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-colors"
+              >
+                View all
+              </Link>
+            </div>
+            <div className="px-6 pb-6">
+              {recentInvoices.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                    <DocumentTextIcon className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No invoices yet</p>
+                  <Link
+                    href="/invoices/new"
+                    className="inline-flex items-center gap-1.5 mt-3 text-emerald-600 hover:text-emerald-700 text-sm font-semibold"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Create your first invoice
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {recentInvoices.map((invoice, index) => (
+                    <Link
+                      key={invoice.id}
+                      href={`/invoices/${invoice.id}`}
+                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-gray-50/80 transition-all duration-200 group"
+                      style={fadeSlideUpStyle(350 + index * 50)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 group-hover:bg-white flex items-center justify-center transition-colors border border-gray-100">
+                          <span className="text-xs font-bold text-gray-400">
+                            {(index + 1).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{invoice.invoiceNumber}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {invoice.customer?.name || 'Unknown'} &middot; {formatRelativeTime(invoice.issueDate)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-4">
+                        <p className="font-bold text-gray-900 text-sm">{fc(invoice.total)}</p>
+                        <div className="mt-1">
+                          <StatusBadge status={invoice.status} />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Low Stock Alerts */}
+          <div style={fadeSlideUpStyle(320)} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl ${lowStockProducts.length > 0 ? 'bg-amber-50' : 'bg-emerald-50'} flex items-center justify-center`}>
+                  {lowStockProducts.length > 0 ? (
+                    <ExclamationTriangleIcon className="w-5 h-5 text-amber-600" />
+                  ) : (
+                    <CheckCircleIcon className="w-5 h-5 text-emerald-600" />
+                  )}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {lowStockProducts.length > 0 ? 'Low Stock Alerts' : 'Stock Status'}
+                </h3>
+                {lowStockProducts.length > 0 && (
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                    {lowStockProducts.length}
+                  </span>
+                )}
+              </div>
+              <Link
+                href="/inventory"
+                className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-colors"
+              >
+                View inventory
+              </Link>
+            </div>
+            <div className="px-6 pb-6">
+              {lowStockProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircleIcon className="w-8 h-8 text-emerald-400" />
+                  </div>
+                  <p className="text-gray-900 font-medium">All stock levels healthy</p>
+                  <p className="text-sm text-gray-500 mt-1">No items below reorder level</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {lowStockProducts.slice(0, 5).map((product, index) => (
+                    <Link
+                      key={product.id}
+                      href="/inventory"
+                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-amber-50/50 transition-all duration-200 group"
+                      style={fadeSlideUpStyle(370 + index * 50)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors border border-red-100">
+                          <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{product.name}</p>
+                          <p className="text-xs text-gray-500 truncate">SKU: {product.sku}</p>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-4">
+                        <p className="font-bold text-red-600 text-sm">{product.quantity} left</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Reorder at {product.reorderLevel}</p>
+                      </div>
+                    </Link>
+                  ))}
+                  {lowStockProducts.length > 5 && (
+                    <div className="pt-3 text-center">
+                      <Link
+                        href="/inventory"
+                        className="text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                      >
+                        +{lowStockProducts.length - 5} more items need attention
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ─── GCT BANNER (PREMIUM) ───────────────────────────────────── */}
+        <div style={fadeSlideUpStyle(400)} className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 p-6 lg:p-8 shadow-lg">
+          {/* Decorative pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 right-0 w-40 h-40 rounded-full border-2 border-white -translate-y-1/2 translate-x-1/4" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full border-2 border-white translate-y-1/2 -translate-x-1/4" />
+          </div>
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                <CheckCircleIcon className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">GCT Ready</h3>
+                <p className="text-emerald-100 text-sm mt-0.5 max-w-md">
+                  YaadBooks automatically calculates GCT at 15% on all applicable transactions.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-shrink-0">
+              <Link
+                href="/reports"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-700 text-sm font-semibold hover:bg-emerald-50 shadow-sm transition-all duration-200"
+              >
+                View GCT Report
+              </Link>
+              <Link
+                href="/settings"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium border border-white/20 backdrop-blur-sm transition-all duration-200"
+              >
+                Configure Rates
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

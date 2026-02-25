@@ -13,26 +13,46 @@ export function cn(...inputs: ClassValue[]) {
 // CURRENCY FORMATTING
 // ============================================
 
+/** Locale map for currency codes — extends as needed */
+const CURRENCY_LOCALE: Record<string, string> = {
+  JMD: 'en-JM',
+  USD: 'en-US',
+  GBP: 'en-GB',
+  CAD: 'en-CA',
+  EUR: 'de-DE',
+  BBD: 'en-BB',
+  TTD: 'en-TT',
+  KYD: 'en-KY',
+  XCD: 'en-AG',
+};
+
+/**
+ * Universal currency formatter. Respects whatever currency code you pass.
+ * Defaults to JMD when nothing is supplied (backward-compat).
+ */
+export function formatCurrency(amount: number, currency: string = 'JMD'): string {
+  const locale = CURRENCY_LOCALE[currency] || 'en-US';
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/**
+ * @deprecated Use `formatCurrency(amount, currency)` instead.
+ * Kept temporarily so any missed call-sites still compile.
+ */
 export function formatJMD(amount: number): string {
-  return new Intl.NumberFormat('en-JM', {
-    style: 'currency',
-    currency: 'JMD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return formatCurrency(amount, 'JMD');
 }
 
+/**
+ * @deprecated Use `formatCurrency(amount, currency)` instead.
+ */
 export function formatUSD(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
-export function formatCurrency(amount: number, currency: 'JMD' | 'USD' = 'JMD'): string {
-  return currency === 'JMD' ? formatJMD(amount) : formatUSD(amount);
+  return formatCurrency(amount, 'USD');
 }
 
 export function formatNumber(num: number): string {

@@ -3,8 +3,9 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDate } from '@/lib/utils';
-import { printContent, generateTable, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
+import { formatDate } from '@/lib/utils';
+import { printContent, generateTable, formatTRN, downloadAsCSV } from '@/lib/print';
+import { useCurrency } from '@/hooks/useCurrency';
 import { api } from '@/lib/api-client';
 import {
   PrinterIcon,
@@ -36,6 +37,7 @@ interface StatementLine {
 // ============================================
 
 export default function CustomerStatementsPage() {
+  const { fc, fcp } = useCurrency();
   const { customers, invoices, activeCompany } = useAppStore();
 
   // Filter customers belonging to active company (customers & both)
@@ -217,7 +219,7 @@ export default function CustomerStatementsPage() {
     const openingRow = `
       <tr style="background-color:#f9fafb;">
         <td style="padding:12px;border-bottom:1px solid #e5e7eb;" colspan="5"><strong>Opening Balance</strong></td>
-        <td style="padding:12px;border-bottom:1px solid #e5e7eb;text-align:right;"><strong>${formatPrintCurrency(statementData.openingBalance)}</strong></td>
+        <td style="padding:12px;border-bottom:1px solid #e5e7eb;text-align:right;"><strong>${fcp(statementData.openingBalance)}</strong></td>
       </tr>
     `;
 
@@ -243,10 +245,10 @@ export default function CustomerStatementsPage() {
       {
         formatters: {
           debit: (v: number | string) =>
-            typeof v === 'number' ? formatPrintCurrency(v) : '',
+            typeof v === 'number' ? fcp(v) : '',
           credit: (v: number | string) =>
-            typeof v === 'number' ? formatPrintCurrency(v) : '',
-          balance: (v: number) => formatPrintCurrency(v),
+            typeof v === 'number' ? fcp(v) : '',
+          balance: (v: number) => fcp(v),
         },
         summaryRow: {
           date: '',
@@ -264,15 +266,15 @@ export default function CustomerStatementsPage() {
       <div style="margin-top:30px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
         <div style="padding:16px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;">
           <p style="font-size:13px;color:#6b7280;margin:0 0 4px;">Total Invoiced</p>
-          <p style="font-size:20px;font-weight:bold;color:#dc2626;margin:0;">${formatPrintCurrency(statementData.totalInvoiced)}</p>
+          <p style="font-size:20px;font-weight:bold;color:#dc2626;margin:0;">${fcp(statementData.totalInvoiced)}</p>
         </div>
         <div style="padding:16px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;">
           <p style="font-size:13px;color:#6b7280;margin:0 0 4px;">Total Payments</p>
-          <p style="font-size:20px;font-weight:bold;color:#059669;margin:0;">${formatPrintCurrency(statementData.totalPayments)}</p>
+          <p style="font-size:20px;font-weight:bold;color:#059669;margin:0;">${fcp(statementData.totalPayments)}</p>
         </div>
         <div style="padding:16px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;">
           <p style="font-size:13px;color:#6b7280;margin:0 0 4px;">Amount Due</p>
-          <p style="font-size:20px;font-weight:bold;color:#1f2937;margin:0;">${formatPrintCurrency(statementData.closingBalance)}</p>
+          <p style="font-size:20px;font-weight:bold;color:#1f2937;margin:0;">${fcp(statementData.closingBalance)}</p>
         </div>
       </div>
       <div style="margin-top:30px;padding:16px;background:#f0fdf4;border-radius:8px;text-align:center;">
@@ -288,6 +290,8 @@ export default function CustomerStatementsPage() {
       title: 'Customer Statement',
       subtitle: periodLabel,
       companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      companyGct: activeCompany?.gctRegistered ? activeCompany?.gctNumber : undefined,
       content,
       footer: `${activeCompany?.businessName || 'YaadBooks'} | ${activeCompany?.phone || ''} | ${activeCompany?.email || ''} | Generated on ${formatDate(new Date())}`,
     });
@@ -713,7 +717,12 @@ export default function CustomerStatementsPage() {
                   )}
                   {activeCompany?.trnNumber && (
                     <p className="text-sm text-gray-500">
-                      TRN: {activeCompany.trnNumber}
+                      TRN: {formatTRN(activeCompany.trnNumber)}
+                    </p>
+                  )}
+                  {activeCompany?.gctRegistered && activeCompany?.gctNumber && (
+                    <p className="text-sm text-gray-500">
+                      GCT Reg: {activeCompany.gctNumber}
                     </p>
                   )}
                 </div>
@@ -777,7 +786,7 @@ export default function CustomerStatementsPage() {
                   Opening Balance
                 </span>
                 <span className="font-bold text-gray-900">
-                  {formatJMD(statementData.openingBalance)}
+                  {fc(statementData.openingBalance)}
                 </span>
               </div>
 
@@ -839,13 +848,13 @@ export default function CustomerStatementsPage() {
                           {line.description}
                         </td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-red-600">
-                          {line.debit > 0 ? formatJMD(line.debit) : ''}
+                          {line.debit > 0 ? fc(line.debit) : ''}
                         </td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-emerald-600">
-                          {line.credit > 0 ? formatJMD(line.credit) : ''}
+                          {line.credit > 0 ? fc(line.credit) : ''}
                         </td>
                         <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
-                          {formatJMD(line.runningBalance)}
+                          {fc(line.runningBalance)}
                         </td>
                       </tr>
                     ))}
@@ -859,7 +868,7 @@ export default function CustomerStatementsPage() {
                   Closing Balance
                 </span>
                 <span className="font-bold text-lg text-emerald-800">
-                  {formatJMD(statementData.closingBalance)}
+                  {fc(statementData.closingBalance)}
                 </span>
               </div>
 
@@ -870,7 +879,7 @@ export default function CustomerStatementsPage() {
                     Total Invoiced
                   </p>
                   <p className="text-xl font-bold text-red-700">
-                    {formatJMD(statementData.totalInvoiced)}
+                    {fc(statementData.totalInvoiced)}
                   </p>
                 </div>
                 <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-100 text-center">
@@ -878,7 +887,7 @@ export default function CustomerStatementsPage() {
                     Total Payments
                   </p>
                   <p className="text-xl font-bold text-emerald-700">
-                    {formatJMD(statementData.totalPayments)}
+                    {fc(statementData.totalPayments)}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
@@ -888,7 +897,7 @@ export default function CustomerStatementsPage() {
                   <p
                     className={`text-xl font-bold ${statementData.closingBalance > 0 ? 'text-red-700' : 'text-emerald-700'}`}
                   >
-                    {formatJMD(statementData.closingBalance)}
+                    {fc(statementData.closingBalance)}
                   </p>
                 </div>
               </div>

@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   ArrowDownTrayIcon,
   PrinterIcon,
@@ -12,7 +13,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
 } from '@heroicons/react/24/outline';
-import { printContent, generateTable, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
+import { printContent, generateTable, downloadAsCSV } from '@/lib/print';
 
 // ---------------------------------------------------------------------------
 // Types local to this page
@@ -72,6 +73,8 @@ function getAccountTypeBadgeColor(type: string): string {
 // ---------------------------------------------------------------------------
 
 export default function GeneralLedgerPage() {
+  const { fc, fcp } = useCurrency();
+
   // Date range – defaults to start of current fiscal year through today
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
@@ -251,9 +254,9 @@ export default function GeneralLedgerPage() {
           date: formatDate(new Date(t.date)),
           entryNumber: t.entryNumber,
           description: t.lineDescription,
-          debit: t.debit > 0 ? formatPrintCurrency(t.debit) : '',
-          credit: t.credit > 0 ? formatPrintCurrency(t.credit) : '',
-          balance: formatPrintCurrency(t.runningBalance),
+          debit: t.debit > 0 ? fcp(t.debit) : '',
+          credit: t.credit > 0 ? fcp(t.credit) : '',
+          balance: fcp(t.runningBalance),
         }));
 
         const tableHtml = generateTable(
@@ -271,9 +274,9 @@ export default function GeneralLedgerPage() {
               date: '',
               entryNumber: '',
               description: 'Totals',
-              debit: formatPrintCurrency(ledger.totalDebits),
-              credit: formatPrintCurrency(ledger.totalCredits),
-              balance: formatPrintCurrency(ledger.closingBalance),
+              debit: fcp(ledger.totalDebits),
+              credit: fcp(ledger.totalCredits),
+              balance: fcp(ledger.closingBalance),
             },
           }
         );
@@ -281,7 +284,7 @@ export default function GeneralLedgerPage() {
         return `
           <div style="margin-bottom:30px;page-break-inside:avoid;">
             <h3 style="font-weight:600;margin-bottom:4px;">${ledger.accountNumber} - ${ledger.accountName}</h3>
-            <p style="font-size:12px;color:#6b7280;margin-bottom:8px;">Type: ${getAccountTypeLabel(ledger.accountType)} | Opening Balance: ${formatPrintCurrency(ledger.openingBalance)}</p>
+            <p style="font-size:12px;color:#6b7280;margin-bottom:8px;">Type: ${getAccountTypeLabel(ledger.accountType)} | Opening Balance: ${fcp(ledger.openingBalance)}</p>
             ${tableHtml}
           </div>
         `;
@@ -291,8 +294,8 @@ export default function GeneralLedgerPage() {
     const summarySection = `
       <div style="margin-top:30px;padding:16px;background:#f9fafb;border-radius:8px;">
         <h3 style="font-weight:600;margin-bottom:8px;">Grand Totals</h3>
-        <p>Total Debits: <strong>${formatPrintCurrency(grandTotalDebits)}</strong></p>
-        <p>Total Credits: <strong>${formatPrintCurrency(grandTotalCredits)}</strong></p>
+        <p>Total Debits: <strong>${fcp(grandTotalDebits)}</strong></p>
+        <p>Total Credits: <strong>${fcp(grandTotalCredits)}</strong></p>
       </div>
     `;
 
@@ -537,7 +540,7 @@ export default function GeneralLedgerPage() {
               Total Debits
             </p>
             <p className="text-2xl font-bold text-blue-600 mt-1">
-              {formatJMD(grandTotalDebits)}
+              {fc(grandTotalDebits)}
             </p>
           </CardContent>
         </Card>
@@ -547,7 +550,7 @@ export default function GeneralLedgerPage() {
               Total Credits
             </p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">
-              {formatJMD(grandTotalCredits)}
+              {fc(grandTotalCredits)}
             </p>
           </CardContent>
         </Card>
@@ -625,13 +628,13 @@ export default function GeneralLedgerPage() {
                     <div className="text-right">
                       <p className="text-xs text-gray-400">Opening</p>
                       <p className="font-medium text-gray-700">
-                        {formatJMD(ledger.openingBalance)}
+                        {fc(ledger.openingBalance)}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-400">Closing</p>
                       <p className="font-bold text-gray-900">
-                        {formatJMD(ledger.closingBalance)}
+                        {fc(ledger.closingBalance)}
                       </p>
                     </div>
                   </div>
@@ -675,7 +678,7 @@ export default function GeneralLedgerPage() {
                             <td className="px-3 py-2.5 text-right" />
                             <td className="px-3 py-2.5 text-right" />
                             <td className="px-5 py-2.5 text-right font-semibold text-gray-800">
-                              {formatJMD(ledger.openingBalance)}
+                              {fc(ledger.openingBalance)}
                             </td>
                           </tr>
 
@@ -701,7 +704,7 @@ export default function GeneralLedgerPage() {
                               <td className="px-3 py-2.5 text-right font-mono">
                                 {txn.debit > 0 ? (
                                   <span className="text-blue-700">
-                                    {formatJMD(txn.debit)}
+                                    {fc(txn.debit)}
                                   </span>
                                 ) : (
                                   <span className="text-gray-300">&mdash;</span>
@@ -710,14 +713,14 @@ export default function GeneralLedgerPage() {
                               <td className="px-3 py-2.5 text-right font-mono">
                                 {txn.credit > 0 ? (
                                   <span className="text-emerald-700">
-                                    {formatJMD(txn.credit)}
+                                    {fc(txn.credit)}
                                   </span>
                                 ) : (
                                   <span className="text-gray-300">&mdash;</span>
                                 )}
                               </td>
                               <td className="px-5 py-2.5 text-right font-mono font-medium text-gray-800">
-                                {formatJMD(txn.runningBalance)}
+                                {fc(txn.runningBalance)}
                               </td>
                             </tr>
                           ))}
@@ -728,13 +731,13 @@ export default function GeneralLedgerPage() {
                               Closing Balance
                             </td>
                             <td className="px-3 py-3 text-right text-blue-800 font-mono">
-                              {formatJMD(ledger.totalDebits)}
+                              {fc(ledger.totalDebits)}
                             </td>
                             <td className="px-3 py-3 text-right text-emerald-800 font-mono">
-                              {formatJMD(ledger.totalCredits)}
+                              {fc(ledger.totalCredits)}
                             </td>
                             <td className="px-5 py-3 text-right text-gray-900 font-mono font-bold">
-                              {formatJMD(ledger.closingBalance)}
+                              {fc(ledger.closingBalance)}
                             </td>
                           </tr>
                         </tbody>
@@ -768,7 +771,7 @@ export default function GeneralLedgerPage() {
                     Total Debits
                   </p>
                   <p className="text-xl font-bold text-blue-700 font-mono">
-                    {formatJMD(grandTotalDebits)}
+                    {fc(grandTotalDebits)}
                   </p>
                 </div>
                 <div className="text-right">
@@ -776,7 +779,7 @@ export default function GeneralLedgerPage() {
                     Total Credits
                   </p>
                   <p className="text-xl font-bold text-emerald-700 font-mono">
-                    {formatJMD(grandTotalCredits)}
+                    {fc(grandTotalCredits)}
                   </p>
                 </div>
                 {grandTotalDebits === grandTotalCredits ? (

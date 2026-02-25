@@ -11,8 +11,8 @@ import {
   type ApiPosSession,
 } from '@/hooks/api/usePos';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD } from '@/lib/utils';
-import { printContent, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
+import { printContent, generateTable, generateStatCards } from '@/lib/print';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   ArrowLeftIcon,
   DocumentChartBarIcon,
@@ -26,6 +26,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function POSReportsPage() {
+  const { fc, fcp } = useCurrency();
   const [showXReportModal, setShowXReportModal] = useState(false);
   const [xReportSessionId, setXReportSessionId] = useState<string | null>(null);
 
@@ -114,9 +115,9 @@ export default function POSReportsPage() {
 
     const summaryContent = generateStatCards([
       { label: 'Transactions', value: String(xReportData.transactionCount) },
-      { label: 'Gross Sales', value: formatPrintCurrency(xReportData.grossSales), color: '#059669' },
-      { label: 'Discounts', value: formatPrintCurrency(xReportData.discounts), color: '#dc2626' },
-      { label: 'Net Sales', value: formatPrintCurrency(xReportData.netSales), color: '#16a34a' },
+      { label: 'Gross Sales', value: fcp(xReportData.grossSales), color: '#059669' },
+      { label: 'Discounts', value: fcp(xReportData.discounts), color: '#dc2626' },
+      { label: 'Net Sales', value: fcp(xReportData.netSales), color: '#16a34a' },
     ]);
 
     const paymentTable = xReportData.paymentBreakdown.length > 0
@@ -127,7 +128,7 @@ export default function POSReportsPage() {
             { key: 'total', label: 'Total', align: 'right' },
           ],
           xReportData.paymentBreakdown,
-          { formatters: { total: formatPrintCurrency } }
+          { formatters: { total: fcp } }
         )
       : '<p>No payments recorded yet</p>';
 
@@ -136,8 +137,8 @@ export default function POSReportsPage() {
       <h3 style="margin: 20px 0 10px; font-weight: 600;">Payment Breakdown</h3>
       ${paymentTable}
       <div style="margin-top: 20px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
-        <p><strong>GCT Collected:</strong> ${formatPrintCurrency(xReportData.gctCollected)}</p>
-        <p><strong>Expected Cash on Hand:</strong> ${formatPrintCurrency(xReportData.cashOnHand)}</p>
+        <p><strong>GCT Collected:</strong> ${fcp(xReportData.gctCollected)}</p>
+        <p><strong>Expected Cash on Hand:</strong> ${fcp(xReportData.cashOnHand)}</p>
       </div>
     `;
 
@@ -271,7 +272,7 @@ export default function POSReportsPage() {
                       {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} - {session.closedAt ? format(new Date(session.closedAt), 'HH:mm') : ''}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Sales: {formatJMD(Number(session.netSales))} | Orders: {session._count?.orders ?? 0}
+                      Sales: {fc(Number(session.netSales))} | Orders: {session._count?.orders ?? 0}
                     </p>
                     {session.cashVariance !== null && session.cashVariance !== undefined && (
                       <p className={`text-sm ${Number(session.cashVariance) === 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -283,7 +284,7 @@ export default function POSReportsPage() {
                         ) : (
                           <span className="inline-flex items-center gap-1">
                             <ExclamationTriangleIcon className="w-4 h-4" />
-                            Variance: {Number(session.cashVariance) >= 0 ? '+' : ''}{formatJMD(Number(session.cashVariance))}
+                            Variance: {Number(session.cashVariance) >= 0 ? '+' : ''}{fc(Number(session.cashVariance))}
                           </span>
                         )}
                       </p>
@@ -323,15 +324,15 @@ export default function POSReportsPage() {
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-500">Gross Sales</p>
-                  <p className="text-2xl font-bold text-emerald-600">{formatJMD(xReportData.grossSales)}</p>
+                  <p className="text-2xl font-bold text-emerald-600">{fc(xReportData.grossSales)}</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-500">Discounts</p>
-                  <p className="text-2xl font-bold text-red-600">{formatJMD(xReportData.discounts)}</p>
+                  <p className="text-2xl font-bold text-red-600">{fc(xReportData.discounts)}</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-500">Net Sales</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatJMD(xReportData.netSales)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{fc(xReportData.netSales)}</p>
                 </div>
               </div>
 
@@ -351,7 +352,7 @@ export default function POSReportsPage() {
                         <tr key={idx}>
                           <td className="px-3 py-2">{p.method}</td>
                           <td className="px-3 py-2 text-right">{p.count}</td>
-                          <td className="px-3 py-2 text-right font-medium">{formatJMD(p.total)}</td>
+                          <td className="px-3 py-2 text-right font-medium">{fc(p.total)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -364,11 +365,11 @@ export default function POSReportsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
                   <p className="text-sm text-emerald-700">GCT Collected</p>
-                  <p className="text-xl font-bold text-emerald-800">{formatJMD(xReportData.gctCollected)}</p>
+                  <p className="text-xl font-bold text-emerald-800">{fc(xReportData.gctCollected)}</p>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <p className="text-sm text-blue-700">Expected Cash on Hand</p>
-                  <p className="text-xl font-bold text-blue-800">{formatJMD(xReportData.cashOnHand)}</p>
+                  <p className="text-xl font-bold text-blue-800">{fc(xReportData.cashOnHand)}</p>
                 </div>
               </div>
             </div>

@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { api } from '@/lib/api-client';
 import {
   BellAlertIcon,
@@ -101,6 +102,7 @@ function getUrgencyStyles(level: 'low' | 'medium' | 'high') {
 // --------------------------------------------------
 
 export default function PaymentRemindersPage() {
+  const { fc } = useCurrency();
   const { invoices, customers, activeCompany } = useAppStore();
   const today = new Date();
 
@@ -348,7 +350,7 @@ export default function PaymentRemindersPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Overdue Amount</p>
-                <p className="text-2xl font-bold text-orange-600">{formatJMD(totalOverdueAmount)}</p>
+                <p className="text-2xl font-bold text-orange-600">{fc(totalOverdueAmount)}</p>
               </div>
             </div>
           </div>
@@ -556,7 +558,7 @@ export default function PaymentRemindersPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
                         <span className="font-medium text-gray-700">{invoice.invoiceNumber}</span>
-                        <span>{formatJMD(invoice.balance)}</span>
+                        <span>{fc(invoice.balance)}</span>
                         <span>Due: {formatDate(invoice.dueDate)}</span>
                       </div>
                       <div className="flex items-center gap-3 mt-2">

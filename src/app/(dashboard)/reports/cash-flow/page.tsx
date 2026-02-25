@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   ArrowDownTrayIcon,
   PrinterIcon,
@@ -11,7 +12,7 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
 } from '@heroicons/react/24/outline';
-import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
+import { printContent, generateTable } from '@/lib/print';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,6 +35,7 @@ interface CashFlowSection {
 // ---------------------------------------------------------------------------
 
 export default function CashFlowPage() {
+  const { fc, fcp } = useCurrency();
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
       .toISOString()
@@ -332,9 +334,9 @@ export default function CashFlowPage() {
 
   const formatAmount = (value: number) => {
     if (value < 0) {
-      return `(${formatJMD(Math.abs(value))})`;
+      return `(${fc(Math.abs(value))})`;
     }
-    return formatJMD(value);
+    return fc(value);
   };
 
   // -----------------------------------------------------------------------
@@ -386,8 +388,8 @@ export default function CashFlowPage() {
             const color = n > 0 ? '#059669' : n < 0 ? '#dc2626' : '#374151';
             const display =
               n < 0
-                ? `(${formatPrintCurrency(Math.abs(n))})`
-                : formatPrintCurrency(n);
+                ? `(${fcp(Math.abs(n))})`
+                : fcp(n);
             return `<span style="color:${color}">${display}</span>`;
           },
         },
@@ -686,7 +688,7 @@ export default function CashFlowPage() {
                 Opening Cash Balance
               </span>
               <span className="font-mono text-base font-medium text-gray-700">
-                {formatJMD(cashFlowData.openingCash)}
+                {fc(cashFlowData.openingCash)}
               </span>
             </div>
 
