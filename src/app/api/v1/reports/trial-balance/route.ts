@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify balance
-    const totalDebits = trialBalance.reduce((sum, a) => sum + a.debitBalance, 0);
-    const totalCredits = trialBalance.reduce((sum, a) => sum + a.creditBalance, 0);
+    const totalDebits = trialBalance.reduce((sum, a) => sum + Number(a.debitBalance || 0), 0);
+    const totalCredits = trialBalance.reduce((sum, a) => sum + Number(a.creditBalance || 0), 0);
     const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
 
     // Group by account type

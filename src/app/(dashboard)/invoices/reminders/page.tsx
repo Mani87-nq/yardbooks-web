@@ -208,7 +208,7 @@ export default function PaymentRemindersPage() {
   });
 
   // Stats
-  const totalOverdueAmount = overdueInvoices.reduce((sum, inv) => sum + inv.balance, 0);
+  const totalOverdueAmount = overdueInvoices.reduce((sum, inv) => sum + Number(inv.balance || 0), 0);
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const remindersSentThisMonth = activityLog.filter(
     (entry) => entry.timestamp >= startOfMonth && entry.status === 'success'

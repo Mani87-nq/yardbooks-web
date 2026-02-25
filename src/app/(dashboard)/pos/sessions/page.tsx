@@ -77,8 +77,8 @@ export default function SessionHistoryPage() {
   // Calculate summary stats
   const summaryStats = useMemo(() => {
     const closedSessions = filteredSessions.filter((s: PosSession) => s.status === 'closed');
-    const totalSales = closedSessions.reduce((sum: number, s: PosSession) => sum + s.netSales, 0);
-    const totalVariance = closedSessions.reduce((sum: number, s: PosSession) => sum + (s.cashVariance || 0), 0);
+    const totalSales = closedSessions.reduce((sum: number, s: PosSession) => sum + Number(s.netSales || 0), 0);
+    const totalVariance = closedSessions.reduce((sum: number, s: PosSession) => sum + Number(s.cashVariance || 0), 0);
     const sessionsWithVariance = closedSessions.filter((s: PosSession) => s.cashVariance && s.cashVariance !== 0).length;
     const avgSessionSales = closedSessions.length > 0 ? totalSales / closedSessions.length : 0;
 
@@ -113,8 +113,8 @@ export default function SessionHistoryPage() {
 
       performance.set(session.cashierName, {
         sessions: existing.sessions + 1,
-        totalSales: existing.totalSales + session.netSales,
-        totalVariance: existing.totalVariance + (session.cashVariance || 0),
+        totalSales: existing.totalSales + Number(session.netSales || 0),
+        totalVariance: existing.totalVariance + Number(session.cashVariance || 0),
         perfectSessions: existing.perfectSessions + (session.cashVariance === 0 ? 1 : 0),
         employeeNumber: session.cashierEmployeeNumber || existing.employeeNumber,
       });

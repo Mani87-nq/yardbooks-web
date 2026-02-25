@@ -157,7 +157,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
         // Recalculate order totals
         const subtotal = calculatedItems.reduce(
-          (sum, item) => sum + item.lineTotalBeforeTax,
+          (sum, item) => sum + Number(item.lineTotalBeforeTax || 0),
           0
         );
 
@@ -176,9 +176,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         const taxableAmount = Math.round((subtotal - orderDiscountAmount) * 100) / 100;
         const exemptAmount = calculatedItems
           .filter((i) => i.isGctExempt)
-          .reduce((sum, i) => sum + i.lineTotalBeforeTax, 0);
+          .reduce((sum, i) => sum + Number(i.lineTotalBeforeTax || 0), 0);
         const gctAmount = calculatedItems.reduce(
-          (sum, item) => sum + item.gctAmount,
+          (sum, item) => sum + Number(item.gctAmount || 0),
           0
         );
         const total = Math.round((subtotal - orderDiscountAmount + gctAmount) * 100) / 100;

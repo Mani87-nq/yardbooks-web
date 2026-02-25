@@ -95,7 +95,7 @@ export default function BankReconciliationPage() {
       })
       .reduce((sum, je) => {
         const bankLine = je.lines.find((l) => bankGLAccountIds.has(l.accountId));
-        return sum + (bankLine?.debit ?? 0);
+        return sum + Number(bankLine?.debit ?? 0);
       }, 0);
   }, [bookEntries, checkedBookItems, bankGLAccountIds]);
 
@@ -110,7 +110,7 @@ export default function BankReconciliationPage() {
       })
       .reduce((sum, je) => {
         const bankLine = je.lines.find((l) => bankGLAccountIds.has(l.accountId));
-        return sum + (bankLine?.credit ?? 0);
+        return sum + Number(bankLine?.credit ?? 0);
       }, 0);
   }, [bookEntries, checkedBookItems, bankGLAccountIds]);
 
@@ -348,7 +348,7 @@ export default function BankReconciliationPage() {
                   Selected Total: {fc(
                     statementTransactions
                       .filter((t) => checkedStatementItems.has(t.id))
-                      .reduce((sum, t) => sum + t.amount, 0)
+                      .reduce((sum, t) => sum + Number(t.amount || 0), 0)
                   )}
                 </span>
               </div>
@@ -434,7 +434,7 @@ export default function BankReconciliationPage() {
                       .filter((je) => checkedBookItems.has(je.id))
                       .reduce((sum, je) => {
                         const bankLine = je.lines.find((l) => bankGLAccountIds.has(l.accountId));
-                        return sum + (bankLine?.debit ?? 0) - (bankLine?.credit ?? 0);
+                        return sum + Number(bankLine?.debit ?? 0) - Number(bankLine?.credit ?? 0);
                       }, 0)
                   )}
                 </span>

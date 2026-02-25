@@ -272,15 +272,15 @@ export default function ExpensesPage() {
   const getPaymentLabel = (value: string) =>
     PAYMENT_METHODS.find(p => p.value === value)?.label || value.replace(/_/g, ' ');
 
-  const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalExpenses = allExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const thisMonthExpenses = allExpenses.filter(e => {
     const expDate = new Date(e.date);
     const now = new Date();
     return expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
-  }).reduce((sum, e) => sum + e.amount, 0);
+  }).reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   const categoryTotals = allExpenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + e.amount;
+    acc[e.category] = (acc[e.category] || 0) + Number(e.amount || 0);
     return acc;
   }, {} as Record<string, number>);
 

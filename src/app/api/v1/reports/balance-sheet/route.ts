@@ -152,15 +152,15 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber));
 
     // Calculate totals
-    const totalCurrentAssets = currentAssets.reduce((sum, a) => sum + a.balance, 0);
-    const totalNonCurrentAssets = nonCurrentAssets.reduce((sum, a) => sum + a.balance, 0);
+    const totalCurrentAssets = currentAssets.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+    const totalNonCurrentAssets = nonCurrentAssets.reduce((sum, a) => sum + Number(a.balance || 0), 0);
     const totalAssets = totalCurrentAssets + totalNonCurrentAssets;
 
-    const totalCurrentLiabilities = currentLiabilities.reduce((sum, a) => sum + a.balance, 0);
-    const totalNonCurrentLiabilities = nonCurrentLiabilities.reduce((sum, a) => sum + a.balance, 0);
+    const totalCurrentLiabilities = currentLiabilities.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+    const totalNonCurrentLiabilities = nonCurrentLiabilities.reduce((sum, a) => sum + Number(a.balance || 0), 0);
     const totalLiabilities = totalCurrentLiabilities + totalNonCurrentLiabilities;
 
-    const totalEquityAccounts = equityAccounts.reduce((sum, a) => sum + a.balance, 0);
+    const totalEquityAccounts = equityAccounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
     const totalEquity = totalEquityAccounts + netIncome;
 
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;

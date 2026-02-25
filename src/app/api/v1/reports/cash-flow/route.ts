@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const operatingTotal = round2(netIncome + operatingAdjustments.reduce((sum, a) => sum + a.amount, 0));
+    const operatingTotal = round2(netIncome + operatingAdjustments.reduce((sum, a) => sum + Number(a.amount || 0), 0));
 
     // ---- INVESTING ACTIVITIES ----
     const investingItems: CashFlowItem[] = [];
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const investingTotal = round2(investingItems.reduce((sum, a) => sum + a.amount, 0));
+    const investingTotal = round2(investingItems.reduce((sum, a) => sum + Number(a.amount || 0), 0));
 
     // ---- FINANCING ACTIVITIES ----
     const financingItems: CashFlowItem[] = [];
@@ -222,14 +222,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const financingTotal = round2(financingItems.reduce((sum, a) => sum + a.amount, 0));
+    const financingTotal = round2(financingItems.reduce((sum, a) => sum + Number(a.amount || 0), 0));
 
     // ---- CASH SUMMARY ----
     const netCashChange = round2(operatingTotal + investingTotal + financingTotal);
 
     // Calculate opening and closing cash (bank accounts / cash accounts)
     const cashAccounts = accounts.filter((a) => a.isBankAccount || a.name.toLowerCase().includes('cash'));
-    const openingCash = round2(cashAccounts.reduce((sum, a) => sum + (priorBalanceMap.get(a.id) ?? 0), 0));
+    const openingCash = round2(cashAccounts.reduce((sum, a) => sum + Number(priorBalanceMap.get(a.id) ?? 0), 0));
     const closingCash = round2(openingCash + netCashChange);
 
     return NextResponse.json({

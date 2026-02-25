@@ -107,12 +107,12 @@ export async function GET(request: NextRequest) {
 
     // Calculate grand totals
     const totals = {
-      current: round2(customers.reduce((sum, c) => sum + c.current, 0)),
-      days1to30: round2(customers.reduce((sum, c) => sum + c.days1to30, 0)),
-      days31to60: round2(customers.reduce((sum, c) => sum + c.days31to60, 0)),
-      days61to90: round2(customers.reduce((sum, c) => sum + c.days61to90, 0)),
-      days90plus: round2(customers.reduce((sum, c) => sum + c.days90plus, 0)),
-      total: round2(customers.reduce((sum, c) => sum + c.total, 0)),
+      current: round2(customers.reduce((sum, c) => sum + Number(c.current || 0), 0)),
+      days1to30: round2(customers.reduce((sum, c) => sum + Number(c.days1to30 || 0), 0)),
+      days31to60: round2(customers.reduce((sum, c) => sum + Number(c.days31to60 || 0), 0)),
+      days61to90: round2(customers.reduce((sum, c) => sum + Number(c.days61to90 || 0), 0)),
+      days90plus: round2(customers.reduce((sum, c) => sum + Number(c.days90plus || 0), 0)),
+      total: round2(customers.reduce((sum, c) => sum + Number(c.total || 0), 0)),
     };
 
     return NextResponse.json({

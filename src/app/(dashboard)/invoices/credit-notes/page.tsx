@@ -137,7 +137,7 @@ export default function CreditNotesPage() {
       applied: creditNotes.filter((cn) => cn.status === 'applied').length,
       totalValue: creditNotes
         .filter((cn) => cn.status !== 'void')
-        .reduce((sum, cn) => sum + cn.amount, 0),
+        .reduce((sum, cn) => sum + Number(cn.amount || 0), 0),
     };
   }, [creditNotes]);
 

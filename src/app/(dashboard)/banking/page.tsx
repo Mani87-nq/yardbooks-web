@@ -280,7 +280,7 @@ export default function BankingPage() {
   };
 
   // Stats
-  const totalBalance = bankAccounts.reduce((sum, a) => sum + a.currentBalance, 0);
+  const totalBalance = bankAccounts.reduce((sum, a) => sum + Number(a.currentBalance || 0), 0);
   const activeAccounts = bankAccounts.filter(a => a.isActive).length;
 
   return (

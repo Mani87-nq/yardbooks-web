@@ -284,7 +284,7 @@ export const usePosStore = create<PosState>()(
             dTaxable = dTaxable.plus(item.lineTotalBeforeTax);
           }
           dGct = dGct.plus(item.gctAmount);
-          itemCount += item.quantity;
+          itemCount += Number(item.quantity);
         });
 
         let dOrderDiscount = new Decimal(0);
@@ -535,7 +535,7 @@ export const usePosStore = create<PosState>()(
             taxableAmount = taxableAmount.plus(calculated.lineTotalBeforeTax);
           }
           gctAmount = gctAmount.plus(calculated.gctAmount);
-          itemCount += item.quantity;
+          itemCount += Number(item.quantity);
         });
 
         let discountAmount = new Decimal(0);

@@ -47,8 +47,8 @@ const updateJournalEntrySchema = z.object({
 }).refine(
   (data) => {
     if (!data.lines) return true;
-    const totalDebits = data.lines.reduce((sum, l) => sum + l.debitAmount, 0);
-    const totalCredits = data.lines.reduce((sum, l) => sum + l.creditAmount, 0);
+    const totalDebits = data.lines.reduce((sum, l) => sum + Number(l.debitAmount || 0), 0);
+    const totalCredits = data.lines.reduce((sum, l) => sum + Number(l.creditAmount || 0), 0);
     return Math.abs(totalDebits - totalCredits) < 0.01;
   },
   { message: 'Total debits must equal total credits' }
@@ -104,8 +104,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       data: {
         ...entryData,
         ...(lines ? {
-          totalDebits: lines.reduce((sum, l) => sum + l.debitAmount, 0),
-          totalCredits: lines.reduce((sum, l) => sum + l.creditAmount, 0),
+          totalDebits: lines.reduce((sum, l) => sum + Number(l.debitAmount || 0), 0),
+          totalCredits: lines.reduce((sum, l) => sum + Number(l.creditAmount || 0), 0),
         } : {}),
       },
       include: { lines: { include: { account: { select: { accountNumber: true, name: true } } } } },

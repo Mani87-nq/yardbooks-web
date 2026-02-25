@@ -80,9 +80,9 @@ export default function CashFlowPage() {
     // Net income approximation: paid invoices minus expenses
     const paidRevenue = filteredInvoices
       .filter((i) => i.status === 'paid')
-      .reduce((sum, i) => sum + i.total, 0);
+      .reduce((sum, i) => sum + Number(i.total || 0), 0);
     const totalExpenses = filteredExpenses.reduce(
-      (sum, e) => sum + e.amount,
+      (sum, e) => sum + Number(e.amount || 0),
       0,
     );
     const netIncome = paidRevenue - totalExpenses;
@@ -294,7 +294,7 @@ export default function CashFlowPage() {
           a.isBankAccount),
     );
     const openingCash = cashAccounts.reduce(
-      (sum, a) => sum + (a.balance || a.currentBalance || 0),
+      (sum, a) => sum + Number(a.balance || a.currentBalance || 0),
       0,
     );
     const closingCash = openingCash + netChange;

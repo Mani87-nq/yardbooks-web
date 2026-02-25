@@ -263,14 +263,14 @@ export default function FixedAssetsPage() {
   };
 
   // Stats
-  const totalCost = fixedAssets.reduce((sum, a) => sum + (a.purchaseCost ?? a.acquisitionCost ?? 0), 0);
-  const totalBookValue = fixedAssets.reduce((sum, a) => sum + (a.bookNetBookValue ?? 0), 0);
-  const totalDepreciation = fixedAssets.reduce((sum, a) => sum + (a.bookAccumulatedDepreciation ?? 0), 0);
+  const totalCost = fixedAssets.reduce((sum, a) => sum + Number(a.purchaseCost ?? a.acquisitionCost ?? 0), 0);
+  const totalBookValue = fixedAssets.reduce((sum, a) => sum + Number(a.bookNetBookValue ?? 0), 0);
+  const totalDepreciation = fixedAssets.reduce((sum, a) => sum + Number(a.bookAccumulatedDepreciation ?? 0), 0);
 
   // Capital Allowance stats
-  const totalTaxWDV = fixedAssets.reduce((sum, a) => sum + (a.taxWrittenDownValue ?? 0), 0);
-  const totalInitialAllowanceClaimed = fixedAssets.reduce((sum, a) => sum + (a.taxInitialAllowanceClaimed ?? 0), 0);
-  const totalAccumulatedAllowances = fixedAssets.reduce((sum, a) => sum + (a.taxAccumulatedAllowances ?? 0), 0);
+  const totalTaxWDV = fixedAssets.reduce((sum, a) => sum + Number(a.taxWrittenDownValue ?? 0), 0);
+  const totalInitialAllowanceClaimed = fixedAssets.reduce((sum, a) => sum + Number(a.taxInitialAllowanceClaimed ?? 0), 0);
+  const totalAccumulatedAllowances = fixedAssets.reduce((sum, a) => sum + Number(a.taxAccumulatedAllowances ?? 0), 0);
 
   // Group assets by capital allowance class
   const allowanceClassSummary = JAMAICA_CAPITAL_ALLOWANCE_CLASSES.map(cls => {
@@ -278,9 +278,9 @@ export default function FixedAssetsPage() {
     return {
       ...cls,
       assetCount: classAssets.length,
-      totalCost: classAssets.reduce((sum, a) => sum + (a.purchaseCost ?? a.acquisitionCost ?? 0), 0),
-      totalWDV: classAssets.reduce((sum, a) => sum + (a.taxWrittenDownValue ?? 0), 0),
-      totalClaimed: classAssets.reduce((sum, a) => sum + (a.taxAccumulatedAllowances ?? 0), 0),
+      totalCost: classAssets.reduce((sum, a) => sum + Number(a.purchaseCost ?? a.acquisitionCost ?? 0), 0),
+      totalWDV: classAssets.reduce((sum, a) => sum + Number(a.taxWrittenDownValue ?? 0), 0),
+      totalClaimed: classAssets.reduce((sum, a) => sum + Number(a.taxAccumulatedAllowances ?? 0), 0),
     };
   }).filter(cls => cls.assetCount > 0);
 

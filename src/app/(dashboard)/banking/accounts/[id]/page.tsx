@@ -47,10 +47,10 @@ export default function BankAccountDetailPage({ params }: PageProps) {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const moneyIn = transactions
     .filter((t) => t.amount > 0 && new Date(t.transactionDate) > thirtyDaysAgo)
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   const moneyOut = transactions
     .filter((t) => t.amount < 0 && new Date(t.transactionDate) > thirtyDaysAgo)
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
   const transactionsCount = transactions.filter((t) => new Date(t.transactionDate) > thirtyDaysAgo).length;
 
   return (
