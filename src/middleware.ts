@@ -43,6 +43,10 @@ const PUBLIC_ROUTES = [
   '/api/v1/referrals/validate',      // Public referral code validation (signup)
   '/api/v1/payments/wipay/callback', // WiPay callback redirect
   '/payment/',            // Payment result pages (success/failed/error)
+  '/opengraph-image',     // OG image for social media previews (WhatsApp, Facebook, etc.)
+  '/twitter-image',       // Twitter/X card image
+  '/robots.txt',          // SEO: search engine crawl rules
+  '/sitemap.xml',         // SEO: sitemap for search engines
 ];
 
 // Routes that should redirect to dashboard if already authenticated

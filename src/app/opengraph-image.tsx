@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export const alt = "YaadBooks — Jamaica's Complete Business Management Solution";
 export const size = { width: 1200, height: 630 };
