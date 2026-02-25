@@ -357,3 +357,176 @@ export function useVoidPosOrder() {
     },
   });
 }
+
+// ---- Business Days ----
+
+export interface ApiBusinessDay {
+  id: string;
+  date: string;
+  status: string;
+  scheduledOpen: string | null;
+  scheduledClose: string | null;
+  actualOpenTime: string | null;
+  actualCloseTime: string | null;
+  openedBy: string | null;
+  closedBy: string | null;
+  openingNotes: string | null;
+  closingNotes: string | null;
+  activeSessionCount: number;
+  totalSales: number;
+  totalRefunds: number;
+  totalVoids: number;
+  netSales: number;
+  totalTransactions: number;
+  totalCashExpected: number;
+  totalCashActual: number;
+  totalCashVariance: number;
+  hasVariance: boolean;
+  varianceApproved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  sessions?: Array<{
+    id: string;
+    terminalName: string;
+    cashierName: string;
+    status: string;
+    totalSales: number;
+    netSales: number;
+    openedAt: string;
+    closedAt: string | null;
+  }>;
+  eodReport?: ApiEndOfDayReport | null;
+  _count?: { sessions: number };
+}
+
+export interface ApiEndOfDayReport {
+  id: string;
+  reportNumber: string;
+  date: string;
+  businessDayId: string;
+  openTime: string | null;
+  closeTime: string | null;
+  grossSales: number;
+  totalDiscounts: number;
+  totalRefunds: number;
+  totalVoids: number;
+  netSales: number;
+  totalTransactions: number;
+  gctRate: number;
+  taxableAmount: number;
+  exemptAmount: number;
+  gctCollected: number;
+  totalOpeningCash: number;
+  totalCashSales: number;
+  totalCashRefunds: number;
+  totalPayouts: number;
+  totalDrops: number;
+  expectedCash: number;
+  actualCash: number;
+  cashVariance: number;
+  cashStatus: string;
+  paymentBreakdown: Record<string, { count: number; amount: number }>;
+  sessionCount: number;
+  approved: boolean;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+export function useBusinessDays(params?: { status?: string; date?: string; limit?: number }) {
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.date) searchParams.set('date', params.date);
+  if (params?.limit) searchParams.set('limit', String(params.limit));
+  const qs = searchParams.toString();
+
+  return useQuery({
+    queryKey: ['business-days', params],
+    queryFn: () =>
+      api.get<PaginatedResponse<ApiBusinessDay>>(
+        `/api/v1/pos/business-days${qs ? `?${qs}` : ''}`
+      ),
+  });
+}
+
+export function useBusinessDay(id: string | null) {
+  return useQuery({
+    queryKey: ['business-day', id],
+    queryFn: () => api.get<ApiBusinessDay>(`/api/v1/pos/business-days/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useOpenBusinessDay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { date: string; scheduledOpen?: string; scheduledClose?: string; openingNotes?: string }) =>
+      api.post<ApiBusinessDay>('/api/v1/pos/business-days', data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['business-days'] });
+    },
+  });
+}
+
+export function useCloseBusinessDay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; closingNotes?: string; forceClose?: boolean }) =>
+      api.post<{ day: ApiBusinessDay; eodReport: ApiEndOfDayReport | null }>(
+        `/api/v1/pos/business-days/${id}/close`,
+        data
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['business-days'] });
+      qc.invalidateQueries({ queryKey: ['business-day'] });
+      qc.invalidateQueries({ queryKey: ['pos-sessions'] });
+    },
+  });
+}
+
+// ---- Cash Movements ----
+
+export interface ApiCashMovement {
+  id: string;
+  sessionId: string;
+  type: string;
+  amount: number;
+  orderId: string | null;
+  reason: string | null;
+  performedBy: string;
+  performedAt: string;
+}
+
+export function useCashMovements(sessionId: string | null) {
+  return useQuery({
+    queryKey: ['cash-movements', sessionId],
+    queryFn: () =>
+      api.get<{ data: ApiCashMovement[] }>(
+        `/api/v1/pos/sessions/${sessionId}/cash-movement`
+      ),
+    enabled: !!sessionId,
+  });
+}
+
+export function useAddCashMovement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      sessionId,
+      ...data
+    }: {
+      sessionId: string;
+      type: 'PAYOUT' | 'DROP' | 'ADJUSTMENT';
+      amount: number;
+      reason: string;
+    }) =>
+      api.post<ApiCashMovement>(
+        `/api/v1/pos/sessions/${sessionId}/cash-movement`,
+        data
+      ),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['cash-movements', vars.sessionId] });
+      qc.invalidateQueries({ queryKey: ['pos-sessions'] });
+    },
+  });
+}
