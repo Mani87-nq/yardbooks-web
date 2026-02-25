@@ -16,7 +16,9 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
   UserPlusIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
+import api from '@/lib/api-client';
 
 export default function NewInvoicePage() {
   const router = useRouter();
@@ -28,6 +30,13 @@ export default function NewInvoicePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [customerId, setCustomerId] = useState('');
+
+  // Send email modal state
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendEmail, setSendEmail] = useState('');
+  const [sendMessage, setSendMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
 
   // Inline customer creation state
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
@@ -161,35 +170,28 @@ export default function NewInvoicePage() {
   const gctAmount = items.reduce((sum, item) => sum + (item.gctAmount || 0), 0);
   const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
 
-  const handleSubmit = async (status: 'draft' | 'sent') => {
-    // Client-side validation with specific messages
+  const validateForm = (): boolean => {
     if (!customerId) {
       alert('Please select a customer');
-      return;
+      return false;
     }
-
-    // Validate line items
     const emptyItems = items.filter((item) => !item.description?.trim());
     if (emptyItems.length > 0) {
       alert('Each line item must have a description. Please fill in all descriptions or remove empty items.');
-      return;
+      return false;
     }
-
     const zeroQtyItems = items.filter((item) => !item.quantity || item.quantity <= 0);
     if (zeroQtyItems.length > 0) {
       alert('Each line item must have a quantity greater than zero.');
-      return;
+      return false;
     }
+    if (!issueDate) { alert('Please set an issue date.'); return false; }
+    if (!dueDate) { alert('Please set a due date.'); return false; }
+    return true;
+  };
 
-    if (!issueDate) {
-      alert('Please set an issue date.');
-      return;
-    }
-    if (!dueDate) {
-      alert('Please set a due date.');
-      return;
-    }
-
+  const handleSubmit = async (status: 'draft' | 'sent') => {
+    if (!validateForm()) return;
     if (isSubmitting) return;
     setIsSubmitting(true);
 
@@ -205,14 +207,25 @@ export default function NewInvoicePage() {
         discount: 0,
         discountType: 'FIXED' as const,
         total,
-        status: status.toUpperCase() as 'DRAFT' | 'SENT',
+        // When "Create & Send" is clicked, create as DRAFT first — only mark SENT after email succeeds
+        status: status === 'sent' ? 'DRAFT' : status.toUpperCase(),
         issueDate: new Date(issueDate).toISOString(),
         dueDate: new Date(dueDate).toISOString(),
         notes: notes || undefined,
       };
 
-      await createInvoice.mutateAsync(invoiceData);
-      router.push('/invoices');
+      const result = await createInvoice.mutateAsync(invoiceData);
+
+      if (status === 'sent') {
+        // Show email modal instead of immediately marking as sent
+        const selectedCustomer = customers.find((c) => c.id === customerId);
+        setSendEmail(selectedCustomer?.email || '');
+        setSendMessage(`Please find attached invoice for ${formatJMD(total)}. Payment is due by ${new Date(dueDate).toLocaleDateString()}.`);
+        setCreatedInvoiceId((result as any)?.id || (result as any)?.data?.id);
+        setShowSendModal(true);
+      } else {
+        router.push('/invoices');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create invoice';
       alert(message.includes('Validation failed')
@@ -221,6 +234,33 @@ export default function NewInvoicePage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSendEmail = async () => {
+    if (!createdInvoiceId || !sendEmail) {
+      alert('Please enter a recipient email address.');
+      return;
+    }
+    setIsSending(true);
+    try {
+      await api.post(`/api/v1/invoices/${createdInvoiceId}/send`, {
+        recipientEmail: sendEmail,
+        subject: `Invoice from ${activeCompany?.businessName || 'YaadBooks'}`,
+        message: sendMessage,
+      });
+      setShowSendModal(false);
+      router.push('/invoices');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to send email';
+      alert(message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSkipSend = () => {
+    setShowSendModal(false);
+    router.push('/invoices');
   };
 
   return (
@@ -329,7 +369,9 @@ export default function NewInvoicePage() {
                   <Input
                     type="number"
                     step="0.01"
-                    value={item.unitPrice}
+                    min="0"
+                    value={item.unitPrice || ''}
+                    placeholder="0.00"
                     onChange={(e) => handleItemChange(item.id!, 'unitPrice', parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -475,6 +517,45 @@ export default function NewInvoicePage() {
             disabled={createCustomer.isPending}
           >
             {createCustomer.isPending ? 'Creating...' : 'Create Customer'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Send Invoice Email Modal */}
+      <Modal
+        isOpen={showSendModal}
+        onClose={handleSkipSend}
+        title="Send Invoice"
+        description="Email this invoice to your customer. You can also skip and send later from the invoice list."
+        size="md"
+      >
+        <ModalBody className="space-y-4">
+          <Input
+            label="Recipient Email *"
+            type="email"
+            placeholder="customer@example.com"
+            value={sendEmail}
+            onChange={(e) => setSendEmail(e.target.value)}
+            leftIcon={<EnvelopeIcon className="w-5 h-5" />}
+            autoFocus
+          />
+          <Textarea
+            label="Message (optional)"
+            placeholder="Add a personal note..."
+            value={sendMessage}
+            onChange={(e) => setSendMessage(e.target.value)}
+            rows={3}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={handleSkipSend}>
+            Skip — Send Later
+          </Button>
+          <Button
+            onClick={handleSendEmail}
+            disabled={isSending || !sendEmail}
+          >
+            {isSending ? 'Sending...' : 'Send Invoice'}
           </Button>
         </ModalFooter>
       </Modal>
