@@ -2,18 +2,17 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, StatusBadge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui';
+import { Card, CardContent, Button, Input, StatusBadge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui';
 import {
   usePosOrders,
+  usePosSettings,
   apiStatusToFrontend,
   frontendStatusToApi,
   type ApiPosOrder,
 } from '@/hooks/api/usePos';
 import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDateTime } from '@/lib/utils';
-import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
 import { printReceipt, buildReceiptFromOrder } from '@/lib/pos-receipt';
-import { usePosSettings } from '@/hooks/api/usePos';
 import {
   ArrowLeftIcon,
   MagnifyingGlassIcon,
