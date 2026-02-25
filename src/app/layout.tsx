@@ -25,9 +25,12 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "YaadBooks — Jamaica's Complete Business Management Solution",
   description: "Invoicing, POS, inventory, payroll, GCT filing, and more — all in one place. Built for Jamaican businesses.",
-  keywords: ["accounting software", "Jamaica", "invoicing", "POS", "payroll", "GCT", "business management"],
+  keywords: ["accounting software", "Jamaica", "invoicing", "POS", "payroll", "GCT", "business management", "YaadBooks", "Jamaican accounting"],
   authors: [{ name: "YaadBooks" }],
+  creator: "YaadBooks",
+  publisher: "YaadBooks",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://yaadbooks.com"),
   icons: {
     icon: "/icons/icon.svg",
     apple: "/icons/icon.svg",
@@ -39,10 +42,31 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "YaadBooks — Jamaica's Complete Business Management Solution",
-    description: "Invoicing, POS, inventory, payroll, GCT filing, and more — all in one place.",
+    description: "Invoicing, POS, inventory, payroll, GCT filing, and more — all in one place. Built for Jamaican businesses.",
     type: "website",
     locale: "en_JM",
     siteName: "YaadBooks",
+    url: "https://yaadbooks.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "YaadBooks — Jamaica's Complete Business Management Solution",
+    description: "Invoicing, POS, inventory, payroll, GCT filing, and more — all in one place. Built for Jamaican businesses.",
+    creator: "@yaadbooks",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "https://yaadbooks.com",
   },
 };
 
