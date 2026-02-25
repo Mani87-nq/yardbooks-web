@@ -223,14 +223,14 @@ export function Sidebar() {
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 text-white transition-all duration-300 lg:relative',
-          'border-r border-white/[0.06]',
+          'border-r border-white/[0.10]',
           sidebarOpen ? 'w-64' : 'w-20',
           !sidebarOpen && 'lg:w-20',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         {/* Header / Logo */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-white/[0.06]">
+        <div className="flex h-16 items-center justify-between px-4 border-b border-white/[0.10]">
           <Link href="/dashboard" className="flex items-center gap-2.5 group">
             <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/20">
               YB
@@ -239,13 +239,13 @@ export function Sidebar() {
             {sidebarOpen && (
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-tight">YaadBooks</span>
-                <span className="text-[10px] text-gray-500 font-medium leading-none">Business Suite</span>
+                <span className="text-[10px] text-gray-400 font-medium leading-none">Business Suite</span>
               </div>
             )}
           </Link>
           <button
             onClick={toggleSidebar}
-            className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md text-gray-300 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
             {sidebarOpen ? (
               <ChevronLeftIcon className="h-4 w-4" />
@@ -255,7 +255,7 @@ export function Sidebar() {
           </button>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden flex items-center justify-center h-7 w-7 rounded-md text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="lg:hidden flex items-center justify-center h-7 w-7 rounded-md text-gray-300 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
             <XMarkIcon className="h-4 w-4" />
           </button>
@@ -263,8 +263,8 @@ export function Sidebar() {
 
         {/* Company Selector */}
         {sidebarOpen && activeCompany && (
-          <div className="border-b border-white/[0.06] px-4 py-3">
-            <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5 font-medium">
+          <div className="border-b border-white/[0.10] px-4 py-3">
+            <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5 font-medium">
               Company
             </div>
             <div className="text-sm font-medium text-gray-200 truncate">
@@ -290,7 +290,7 @@ export function Sidebar() {
               <div key={group.name}>
                 {/* Group separator line */}
                 {groupIndex > 0 && (
-                  <div className="mx-4 my-1.5 border-t border-white/[0.04]" />
+                  <div className="mx-4 my-1.5 border-t border-white/[0.12]" />
                 )}
 
                 {/* Group header - collapsible (only in expanded sidebar) */}
@@ -300,14 +300,14 @@ export function Sidebar() {
                     className={cn(
                       'flex w-full items-center justify-between px-4 py-1.5 text-[11px] uppercase tracking-wider font-medium transition-colors rounded-md mx-0',
                       hasActiveChild
-                        ? 'text-gray-300'
-                        : 'text-gray-500 hover:text-gray-300'
+                        ? 'text-gray-200'
+                        : 'text-gray-400 hover:text-gray-200'
                     )}
                   >
                     <span>{group.name}</span>
                     <ChevronDownIcon
                       className={cn(
-                        'h-3 w-3 text-gray-600 transition-transform duration-200',
+                        'h-3 w-3 text-gray-400 transition-transform duration-200',
                         !isExpanded && '-rotate-90'
                       )}
                     />
@@ -339,7 +339,7 @@ export function Sidebar() {
                               'group/item relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
                               isActive
                                 ? 'bg-emerald-500/10 text-emerald-400'
-                                : 'text-gray-400 hover:bg-white/[0.05] hover:text-gray-200',
+                                : 'text-gray-300 hover:bg-white/[0.07] hover:text-white',
                               !sidebarOpen && 'justify-center px-0'
                             )}
                             title={!sidebarOpen ? item.name : undefined}
@@ -354,7 +354,7 @@ export function Sidebar() {
                                 'h-[18px] w-[18px] flex-shrink-0 transition-colors duration-150',
                                 isActive
                                   ? 'text-emerald-400'
-                                  : 'text-gray-500 group-hover/item:text-gray-300'
+                                  : 'text-gray-400 group-hover/item:text-white'
                               )}
                             />
 
@@ -369,8 +369,8 @@ export function Sidebar() {
                             {!sidebarOpen && (
                               <div className="absolute left-full ml-2 hidden group-hover/item:flex items-center z-50">
                                 <div className="relative flex items-center">
-                                  <div className="absolute -left-1 w-2 h-2 bg-gray-800 rotate-45 border-l border-b border-white/[0.08]" />
-                                  <div className="whitespace-nowrap rounded-md bg-gray-800 border border-white/[0.08] px-3 py-1.5 text-xs font-medium text-gray-200 shadow-xl">
+                                  <div className="absolute -left-1 w-2 h-2 bg-gray-800 rotate-45 border-l border-b border-white/[0.12]" />
+                                  <div className="whitespace-nowrap rounded-md bg-gray-800 border border-white/[0.12] px-3 py-1.5 text-xs font-medium text-gray-200 shadow-xl">
                                     {item.name}
                                     {item.badge && (
                                       <span className={cn(
@@ -398,19 +398,19 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-white/[0.06] px-4 py-3">
+        <div className="border-t border-white/[0.10] px-4 py-3">
           {sidebarOpen ? (
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-600 font-medium tracking-wide">
+              <span className="text-[10px] text-gray-500 font-medium tracking-wide">
                 YaadBooks v1.0
               </span>
-              <span className="text-xs opacity-60" title="Made in Jamaica">
+              <span className="text-xs opacity-80" title="Made in Jamaica">
                 &#x1F1EF;&#x1F1F2;
               </span>
             </div>
           ) : (
             <div className="flex justify-center">
-              <span className="text-[10px] opacity-40" title="Made in Jamaica">
+              <span className="text-[10px] opacity-60" title="Made in Jamaica">
                 &#x1F1EF;&#x1F1F2;
               </span>
             </div>
