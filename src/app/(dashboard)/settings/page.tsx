@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, CardHeader, CardTitle, CardContent,
   Button, Input, Badge,
@@ -300,9 +300,11 @@ function TeamTab() {
             </div>
             <div className="flex items-center gap-3">
               {atUserLimit && (
-                <Button variant="outline" size="sm">
-                  Upgrade Plan
-                </Button>
+                <a href="/settings?tab=billing">
+                  <Button variant="outline" size="sm">
+                    Upgrade Plan
+                  </Button>
+                </a>
               )}
               {isManager && (
                 <Button
@@ -1669,7 +1671,11 @@ function SecurityTab() {
 // ============================================
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('company');
+  // Support ?tab= query parameter for deep linking to specific tabs
+  const initialTab = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('tab') || 'company'
+    : 'company';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [showResetModal, setShowResetModal] = useState(false);
 
   const { activeCompany, setActiveCompany, user, updateUser, updateSettings } = useAppStore();
@@ -1701,12 +1707,67 @@ export default function SettingsPage() {
     phone: user?.phone || '',
   });
 
+  // Avatar upload
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>((user as any)?.avatarUrl || null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setAvatarError('Please upload a JPEG, PNG, WebP, or GIF image.');
+      return;
+    }
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError('Image must be under 2 MB.');
+      return;
+    }
+
+    setAvatarError('');
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await fetch(`/api/auth/users/${user.id}/avatar`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setAvatarError(err.error || 'Failed to upload photo');
+        return;
+      }
+      const data = await res.json();
+      setAvatarUrl(data.avatarUrl);
+      updateUser({ avatarUrl: data.avatarUrl } as any);
+    } catch {
+      setAvatarError('Network error uploading photo.');
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
     lowStockAlerts: true,
     paymentReminders: true,
     dailySummary: false,
     weeklyReport: true,
+    // Module-specific notifications
+    invoiceDue: true,
+    invoiceOverdue: true,
+    payrollDue: true,
+    expenseUpdates: false,
+    purchaseOrders: true,
+    bankSync: false,
+    systemNotifications: true,
   });
 
   const [displaySettings, setDisplaySettings] = useState({
@@ -1768,14 +1829,20 @@ export default function SettingsPage() {
           }>;
         }>('/api/v1/notifications/settings');
         // Map the API response to our simple toggle format
-        const systemSetting = data.settings.find((s) => s.key === 'system');
-        const expenseSetting = data.settings.find((s) => s.key === 'expense_status');
+        const find = (key: string) => data.settings.find((s) => s.key === key);
         setNotificationSettings({
           emailNotifications: data.enableNotifications,
-          lowStockAlerts: data.settings.find((s) => s.key === 'low_stock')?.email ?? true,
-          paymentReminders: data.settings.find((s) => s.key === 'payment_received')?.email ?? true,
-          dailySummary: expenseSetting?.email ?? false,
-          weeklyReport: systemSetting?.email ?? true,
+          lowStockAlerts: find('low_stock')?.email ?? true,
+          paymentReminders: find('payment_received')?.email ?? true,
+          dailySummary: find('expense_status')?.email ?? false,
+          weeklyReport: find('system')?.email ?? true,
+          invoiceDue: find('invoice_due')?.email ?? true,
+          invoiceOverdue: find('invoice_overdue')?.email ?? true,
+          payrollDue: find('payroll_due')?.email ?? true,
+          expenseUpdates: find('expense_status')?.email ?? false,
+          purchaseOrders: find('po_received')?.email ?? true,
+          bankSync: find('bank_sync')?.email ?? false,
+          systemNotifications: find('system')?.email ?? true,
         });
       } catch {
         // Silently fall back to defaults
@@ -1977,17 +2044,17 @@ export default function SettingsPage() {
   const handleSaveNotifications = async () => {
     setIsSavingNotifications(true);
     try {
-      // Convert our simple toggles to the API format
+      // Convert toggles to the API format — each notification type maps to a specific toggle
       const settings = [
-        { key: 'invoice_due', label: 'Invoice Due Reminders', description: 'Get notified when invoices are approaching due date', email: notificationSettings.emailNotifications, push: notificationSettings.emailNotifications, inApp: true },
-        { key: 'invoice_overdue', label: 'Overdue Invoices', description: 'Alerts for invoices past their due date', email: notificationSettings.emailNotifications, push: notificationSettings.emailNotifications, inApp: true },
+        { key: 'invoice_due', label: 'Invoice Due Reminders', description: 'Get notified when invoices are approaching due date', email: notificationSettings.invoiceDue, push: notificationSettings.invoiceDue, inApp: true },
+        { key: 'invoice_overdue', label: 'Overdue Invoices', description: 'Alerts for invoices past their due date', email: notificationSettings.invoiceOverdue, push: notificationSettings.invoiceOverdue, inApp: true },
         { key: 'payment_received', label: 'Payment Received', description: 'Notification when a payment is recorded', email: notificationSettings.paymentReminders, push: false, inApp: true },
         { key: 'low_stock', label: 'Low Stock Alerts', description: 'When inventory falls below reorder level', email: notificationSettings.lowStockAlerts, push: notificationSettings.lowStockAlerts, inApp: true },
-        { key: 'payroll_due', label: 'Payroll Reminders', description: 'Reminders for upcoming payroll runs', email: notificationSettings.emailNotifications, push: true, inApp: true },
-        { key: 'expense_status', label: 'Expense Updates', description: 'When expenses are approved or rejected', email: notificationSettings.dailySummary, push: false, inApp: true },
-        { key: 'po_received', label: 'New Purchase Orders', description: 'When a new customer PO is received', email: notificationSettings.emailNotifications, push: true, inApp: true },
-        { key: 'bank_sync', label: 'Bank Sync Updates', description: 'Status of bank transaction imports', email: false, push: false, inApp: true },
-        { key: 'system', label: 'System Notifications', description: 'Important system updates and announcements', email: notificationSettings.weeklyReport, push: false, inApp: true },
+        { key: 'payroll_due', label: 'Payroll Reminders', description: 'Reminders for upcoming payroll runs', email: notificationSettings.payrollDue, push: notificationSettings.payrollDue, inApp: true },
+        { key: 'expense_status', label: 'Expense Updates', description: 'When expenses are approved or rejected', email: notificationSettings.expenseUpdates, push: false, inApp: true },
+        { key: 'po_received', label: 'New Purchase Orders', description: 'When a new customer PO is received', email: notificationSettings.purchaseOrders, push: notificationSettings.purchaseOrders, inApp: true },
+        { key: 'bank_sync', label: 'Bank Sync Updates', description: 'Status of bank transaction imports', email: notificationSettings.bankSync, push: false, inApp: true },
+        { key: 'system', label: 'System Notifications', description: 'Important system updates and announcements', email: notificationSettings.systemNotifications, push: false, inApp: true },
       ];
       await api.put('/api/v1/notifications/settings', { settings });
       alert('Notification preferences saved!');
@@ -2419,11 +2486,36 @@ export default function SettingsPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
-                      <UserCircleIcon className="w-12 h-12 text-emerald-600" />
+                    <div className="relative group">
+                      <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <UserCircleIcon className="w-12 h-12 text-emerald-600" />
+                        )}
+                      </div>
                     </div>
                     <div>
-                      <Button variant="outline" size="sm">Change Photo</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={avatarUploading}
+                      >
+                        {avatarUploading ? 'Uploading...' : 'Change Photo'}
+                      </Button>
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                        disabled={avatarUploading}
+                      />
+                      {avatarError && (
+                        <p className="text-xs text-red-500 mt-1">{avatarError}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP or GIF. Max 2 MB.</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -2464,40 +2556,174 @@ export default function SettingsPage() {
           {activeTab === 'team' && <TeamTab />}
 
           {activeTab === 'notifications' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {Object.entries({
-                    emailNotifications: 'Email Notifications',
-                    lowStockAlerts: 'Low Stock Alerts',
-                    paymentReminders: 'Payment Reminders',
-                    dailySummary: 'Daily Summary Email',
-                    weeklyReport: 'Weekly Business Report',
-                  }).map(([key, label]) => (
-                    <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                      <span className="text-gray-700">{label}</span>
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings[key as keyof typeof notificationSettings]}
-                        onChange={(e) => setNotificationSettings({
-                          ...notificationSettings,
-                          [key]: e.target.checked,
-                        })}
-                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                      />
-                    </label>
-                  ))}
+            <div className="space-y-6">
+              {/* Master Toggle */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notification Preferences</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <label className="flex items-center justify-between py-3">
+                    <div>
+                      <span className="text-gray-900 font-medium">Enable Email Notifications</span>
+                      <p className="text-sm text-gray-500">Master switch for all email notifications</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notificationSettings.emailNotifications}
+                      onChange={(e) => setNotificationSettings({ ...notificationSettings, emailNotifications: e.target.checked })}
+                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-5 w-5"
+                    />
+                  </label>
+                </CardContent>
+              </Card>
+
+              {/* Invoicing & Payments */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Invoicing & Payments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {([
+                      { key: 'invoiceDue', label: 'Invoice Due Reminders', desc: 'When invoices are approaching their due date' },
+                      { key: 'invoiceOverdue', label: 'Overdue Invoice Alerts', desc: 'When invoices are past their due date' },
+                      { key: 'paymentReminders', label: 'Payment Received', desc: 'When a customer payment is recorded' },
+                    ] as const).map(({ key, label, desc }) => (
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <div>
+                          <span className="text-gray-700">{label}</span>
+                          <p className="text-xs text-gray-400">{desc}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings[key]}
+                          onChange={(e) => setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Inventory & Purchasing */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Inventory & Purchasing</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {([
+                      { key: 'lowStockAlerts', label: 'Low Stock Alerts', desc: 'When inventory falls below reorder level' },
+                      { key: 'purchaseOrders', label: 'Purchase Order Updates', desc: 'When new purchase orders are received' },
+                    ] as const).map(({ key, label, desc }) => (
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <div>
+                          <span className="text-gray-700">{label}</span>
+                          <p className="text-xs text-gray-400">{desc}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings[key]}
+                          onChange={(e) => setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payroll & Expenses */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Payroll & Expenses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {([
+                      { key: 'payrollDue', label: 'Payroll Reminders', desc: 'Reminders for upcoming payroll runs' },
+                      { key: 'expenseUpdates', label: 'Expense Updates', desc: 'When expenses are approved or rejected' },
+                    ] as const).map(({ key, label, desc }) => (
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <div>
+                          <span className="text-gray-700">{label}</span>
+                          <p className="text-xs text-gray-400">{desc}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings[key]}
+                          onChange={(e) => setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Banking & System */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Banking & System</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {([
+                      { key: 'bankSync', label: 'Bank Sync Updates', desc: 'Status of bank transaction imports' },
+                      { key: 'systemNotifications', label: 'System Notifications', desc: 'Important system updates and announcements' },
+                    ] as const).map(({ key, label, desc }) => (
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <div>
+                          <span className="text-gray-700">{label}</span>
+                          <p className="text-xs text-gray-400">{desc}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings[key]}
+                          onChange={(e) => setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Summary Reports */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Summary Reports</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {([
+                      { key: 'dailySummary', label: 'Daily Summary Email', desc: 'End-of-day summary of business activity' },
+                      { key: 'weeklyReport', label: 'Weekly Business Report', desc: 'Weekly overview of sales, expenses, and trends' },
+                    ] as const).map(({ key, label, desc }) => (
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <div>
+                          <span className="text-gray-700">{label}</span>
+                          <p className="text-xs text-gray-400">{desc}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings[key]}
+                          onChange={(e) => setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </label>
+                    ))}
+                  </div>
                   <div className="flex justify-end pt-4">
                     <Button onClick={handleSaveNotifications} disabled={isSavingNotifications}>
                       {isSavingNotifications ? 'Saving...' : 'Save Preferences'}
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {activeTab === 'display' && (

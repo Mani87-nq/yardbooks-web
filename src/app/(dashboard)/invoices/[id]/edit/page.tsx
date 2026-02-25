@@ -339,7 +339,9 @@ export default function EditInvoicePage({ params }: PageProps) {
                   <Input
                     type="number"
                     step="0.01"
-                    value={item.unitPrice}
+                    min="0"
+                    value={item.unitPrice || ''}
+                    placeholder="0.00"
                     onChange={(e) => handleItemChange(item.id!, 'unitPrice', parseFloat(e.target.value) || 0)}
                   />
                 </div>
