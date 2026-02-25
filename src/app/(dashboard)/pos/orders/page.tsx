@@ -12,6 +12,8 @@ import {
 import { useAppStore } from '@/store/appStore';
 import { formatJMD, formatDateTime } from '@/lib/utils';
 import { printContent, generateTable, formatPrintCurrency } from '@/lib/print';
+import { printReceipt, buildReceiptFromOrder } from '@/lib/pos-receipt';
+import { usePosSettings } from '@/hooks/api/usePos';
 import {
   ArrowLeftIcon,
   MagnifyingGlassIcon,
@@ -35,49 +37,24 @@ export default function POSOrdersPage() {
 
   const orders = ordersData?.data ?? [];
   const activeCompany = useAppStore((state) => state.activeCompany);
+  const { data: posSettings } = usePosSettings();
 
   const handlePrintOrder = (order: ApiPosOrder) => {
-    const content = `
-      <table style="width:100%;margin-bottom:20px;border-collapse:collapse;">
-        <tr><td style="padding:8px;color:#6b7280;">Order Number</td><td style="padding:8px;font-weight:500;">${order.orderNumber}</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Date</td><td style="padding:8px;font-weight:500;">${formatDateTime(order.createdAt)}</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Customer</td><td style="padding:8px;font-weight:500;">${order.customerName}</td></tr>
-        <tr><td style="padding:8px;color:#6b7280;">Status</td><td style="padding:8px;font-weight:500;text-transform:capitalize;">${apiStatusToFrontend(order.status).replace('_', ' ')}</td></tr>
-      </table>
-      ${generateTable(
-        [
-          { key: 'name', label: 'Item' },
-          { key: 'quantity', label: 'Qty', align: 'right' },
-          { key: 'price', label: 'Price', align: 'right' },
-          { key: 'total', label: 'Total', align: 'right' },
-        ],
-        order.items.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: Number(item.unitPrice),
-          total: Number(item.lineSubtotal),
-        })),
-        {
-          formatters: {
-            price: formatPrintCurrency,
-            total: formatPrintCurrency,
-          },
-          summaryRow: {
-            name: 'Total',
-            quantity: order.itemCount,
-            price: '',
-            total: Number(order.total),
-          },
-        }
-      )}
-    `;
-
-    printContent({
-      title: 'POS Receipt',
-      subtitle: `${order.orderNumber} - ${formatDateTime(order.createdAt)}`,
-      companyName: activeCompany?.businessName,
-      content,
-    });
+    const receiptData = buildReceiptFromOrder(
+      order as any,
+      posSettings ? {
+        businessName: posSettings.businessName,
+        businessAddress: posSettings.businessAddress ?? undefined,
+        businessPhone: posSettings.businessPhone ?? undefined,
+        businessTRN: posSettings.businessTRN ?? undefined,
+        gctRegistrationNumber: posSettings.gctRegistrationNumber ?? undefined,
+        businessLogo: posSettings.businessLogo ?? undefined,
+        showLogo: posSettings.showLogo,
+        receiptFooter: posSettings.receiptFooter ?? undefined,
+      } : undefined,
+      activeCompany?.businessName,
+    );
+    printReceipt(receiptData);
   };
 
   // Client-side search filtering (API handles status filtering)
