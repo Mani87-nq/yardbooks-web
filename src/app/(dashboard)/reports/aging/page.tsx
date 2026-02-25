@@ -3,10 +3,11 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { ArrowDownTrayIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
-import { printContent, generateTable, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
+import { printContent, generateTable, downloadAsCSV } from '@/lib/print';
 
 // ============================================
 // TYPES
@@ -86,6 +87,7 @@ function getBucketBadge(bucket: keyof Omit<AgingBuckets, 'total'>) {
 // ============================================
 
 export default function AgingReportPage() {
+  const { fc, fcp } = useCurrency();
   const [activeTab, setActiveTab] = useState<AgingTab>('ar');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -247,12 +249,12 @@ export default function AgingReportPage() {
       })),
       {
         formatters: {
-          current: formatPrintCurrency,
-          days1to30: formatPrintCurrency,
-          days31to60: formatPrintCurrency,
-          days61to90: formatPrintCurrency,
-          days90plus: formatPrintCurrency,
-          total: formatPrintCurrency,
+          current: fcp,
+          days1to30: fcp,
+          days31to60: fcp,
+          days61to90: fcp,
+          days90plus: fcp,
+          total: fcp,
         },
         summaryRow: {
           name: 'Grand Total',
@@ -354,37 +356,37 @@ export default function AgingReportPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Current</p>
-            <p className="text-lg font-bold text-emerald-600 mt-1">{formatJMD(data.totals.current)}</p>
+            <p className="text-lg font-bold text-emerald-600 mt-1">{fc(data.totals.current)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">1-30 Days</p>
-            <p className="text-lg font-bold text-yellow-600 mt-1">{formatJMD(data.totals.days1to30)}</p>
+            <p className="text-lg font-bold text-yellow-600 mt-1">{fc(data.totals.days1to30)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">31-60 Days</p>
-            <p className="text-lg font-bold text-orange-500 mt-1">{formatJMD(data.totals.days31to60)}</p>
+            <p className="text-lg font-bold text-orange-500 mt-1">{fc(data.totals.days31to60)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">61-90 Days</p>
-            <p className="text-lg font-bold text-orange-600 mt-1">{formatJMD(data.totals.days61to90)}</p>
+            <p className="text-lg font-bold text-orange-600 mt-1">{fc(data.totals.days61to90)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">90+ Days</p>
-            <p className="text-lg font-bold text-red-600 mt-1">{formatJMD(data.totals.days90plus)}</p>
+            <p className="text-lg font-bold text-red-600 mt-1">{fc(data.totals.days90plus)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</p>
-            <p className="text-lg font-bold text-gray-900 mt-1">{formatJMD(data.totals.total)}</p>
+            <p className="text-lg font-bold text-gray-900 mt-1">{fc(data.totals.total)}</p>
           </CardContent>
         </Card>
       </div>
@@ -439,30 +441,30 @@ export default function AgingReportPage() {
                         </td>
                         <td className="py-3 px-4 font-medium text-gray-900">{group.name}</td>
                         <td className="py-3 px-4 text-right tabular-nums">
-                          {group.buckets.current > 0 ? formatJMD(group.buckets.current) : '-'}
+                          {group.buckets.current > 0 ? fc(group.buckets.current) : '-'}
                         </td>
                         <td className="py-3 px-4 text-right tabular-nums">
                           {group.buckets.days1to30 > 0 ? (
-                            <span className="text-yellow-600">{formatJMD(group.buckets.days1to30)}</span>
+                            <span className="text-yellow-600">{fc(group.buckets.days1to30)}</span>
                           ) : '-'}
                         </td>
                         <td className="py-3 px-4 text-right tabular-nums">
                           {group.buckets.days31to60 > 0 ? (
-                            <span className="text-orange-500">{formatJMD(group.buckets.days31to60)}</span>
+                            <span className="text-orange-500">{fc(group.buckets.days31to60)}</span>
                           ) : '-'}
                         </td>
                         <td className="py-3 px-4 text-right tabular-nums">
                           {group.buckets.days61to90 > 0 ? (
-                            <span className="text-orange-600">{formatJMD(group.buckets.days61to90)}</span>
+                            <span className="text-orange-600">{fc(group.buckets.days61to90)}</span>
                           ) : '-'}
                         </td>
                         <td className="py-3 px-4 text-right tabular-nums">
                           {group.buckets.days90plus > 0 ? (
-                            <span className="text-red-600 font-medium">{formatJMD(group.buckets.days90plus)}</span>
+                            <span className="text-red-600 font-medium">{fc(group.buckets.days90plus)}</span>
                           ) : '-'}
                         </td>
                         <td className="py-3 px-6 text-right font-semibold tabular-nums text-gray-900">
-                          {formatJMD(group.buckets.total)}
+                          {fc(group.buckets.total)}
                         </td>
                       </tr>
 
@@ -491,27 +493,27 @@ export default function AgingReportPage() {
                                 <span>Date: {formatDate(item.date)}</span>
                                 <span>Due: {formatDate(item.dueDate)}</span>
                                 {item.amount !== item.balance && (
-                                  <span>Invoice Total: {formatJMD(item.amount)}</span>
+                                  <span>Invoice Total: {fc(item.amount)}</span>
                                 )}
                               </div>
                             </td>
                             <td className="py-2 px-4 text-right tabular-nums text-gray-500">
-                              {item.bucket === 'current' ? formatJMD(item.balance) : '-'}
+                              {item.bucket === 'current' ? fc(item.balance) : '-'}
                             </td>
                             <td className="py-2 px-4 text-right tabular-nums text-gray-500">
-                              {item.bucket === 'days1to30' ? formatJMD(item.balance) : '-'}
+                              {item.bucket === 'days1to30' ? fc(item.balance) : '-'}
                             </td>
                             <td className="py-2 px-4 text-right tabular-nums text-gray-500">
-                              {item.bucket === 'days31to60' ? formatJMD(item.balance) : '-'}
+                              {item.bucket === 'days31to60' ? fc(item.balance) : '-'}
                             </td>
                             <td className="py-2 px-4 text-right tabular-nums text-gray-500">
-                              {item.bucket === 'days61to90' ? formatJMD(item.balance) : '-'}
+                              {item.bucket === 'days61to90' ? fc(item.balance) : '-'}
                             </td>
                             <td className="py-2 px-4 text-right tabular-nums text-gray-500">
-                              {item.bucket === 'days90plus' ? formatJMD(item.balance) : '-'}
+                              {item.bucket === 'days90plus' ? fc(item.balance) : '-'}
                             </td>
                             <td className="py-2 px-6 text-right tabular-nums text-gray-600 font-medium">
-                              {formatJMD(item.balance)}
+                              {fc(item.balance)}
                             </td>
                           </tr>
                         );
@@ -524,22 +526,22 @@ export default function AgingReportPage() {
                     <td className="py-4 px-6"></td>
                     <td className="py-4 px-4 font-bold text-gray-900">Grand Total</td>
                     <td className="py-4 px-4 text-right font-bold tabular-nums text-emerald-600">
-                      {formatJMD(data.totals.current)}
+                      {fc(data.totals.current)}
                     </td>
                     <td className="py-4 px-4 text-right font-bold tabular-nums text-yellow-600">
-                      {formatJMD(data.totals.days1to30)}
+                      {fc(data.totals.days1to30)}
                     </td>
                     <td className="py-4 px-4 text-right font-bold tabular-nums text-orange-500">
-                      {formatJMD(data.totals.days31to60)}
+                      {fc(data.totals.days31to60)}
                     </td>
                     <td className="py-4 px-4 text-right font-bold tabular-nums text-orange-600">
-                      {formatJMD(data.totals.days61to90)}
+                      {fc(data.totals.days61to90)}
                     </td>
                     <td className="py-4 px-4 text-right font-bold tabular-nums text-red-600">
-                      {formatJMD(data.totals.days90plus)}
+                      {fc(data.totals.days90plus)}
                     </td>
                     <td className="py-4 px-6 text-right font-bold tabular-nums text-gray-900">
-                      {formatJMD(data.totals.total)}
+                      {fc(data.totals.total)}
                     </td>
                   </tr>
                 </tbody>

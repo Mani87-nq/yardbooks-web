@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Card, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useExpenses,
   useCreateExpense,
@@ -18,6 +19,7 @@ import {
   ArrowPathIcon,
   ExclamationCircleIcon,
   CameraIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 import { getAccessToken } from '@/lib/api-client';
@@ -71,6 +73,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function ExpensesPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -99,9 +102,14 @@ export default function ExpensesPage() {
 
   // Client-side filtering for search and date range
   const expenses = allExpenses.filter((expense) => {
+    const lowerQuery = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
-      expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expense.vendor?.name.toLowerCase().includes(searchQuery.toLowerCase());
+      expense.description.toLowerCase().includes(lowerQuery) ||
+      expense.vendor?.name.toLowerCase().includes(lowerQuery) ||
+      expense.category?.toLowerCase().includes(lowerQuery) ||
+      expense.reference?.toLowerCase().includes(lowerQuery) ||
+      expense.notes?.toLowerCase().includes(lowerQuery) ||
+      expense.amount.toString().includes(searchQuery);
 
     const matchesDate = (!dateRange.start || new Date(expense.date) >= new Date(dateRange.start)) &&
       (!dateRange.end || new Date(expense.date) <= new Date(dateRange.end));
@@ -320,13 +328,13 @@ export default function ExpensesPage() {
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Expenses</p>
-            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : formatJMD(totalExpenses)}</p>
+            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : fc(totalExpenses)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">This Month</p>
-            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(thisMonthExpenses)}</p>
+            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(thisMonthExpenses)}</p>
           </div>
         </Card>
         <Card>
@@ -353,6 +361,11 @@ export default function ExpensesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -439,7 +452,7 @@ export default function ExpensesPage() {
                     {expense.paymentMethod ? getPaymentLabel(expense.paymentMethod) : '-'}
                   </TableCell>
                   <TableCell className="font-medium text-red-600">
-                    {formatJMD(expense.amount)}
+                    {fc(expense.amount)}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">

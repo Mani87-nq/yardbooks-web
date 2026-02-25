@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
 import { usePosStore } from '@/store/posStore';
 import { useActiveProducts } from '@/store/appStore';
-import { formatJMD, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { DEFAULT_GRID_SETTINGS, SHORTCUT_COLOR_PRESETS, SHORTCUT_ICON_PRESETS, type ProductShortcut } from '@/types/pos';
 import {
   ChevronLeftIcon,
@@ -230,6 +231,7 @@ function PreviewTile({
   shortcutColor?: string;
   shortcutIcon?: string;
 }) {
+  const { fc } = useCurrency();
   const bgColor = shortcutColor ? (SHORTCUT_COLOR_PRESETS[shortcutColor] || shortcutColor) : undefined;
   const isShortcut = !!shortcutColor;
   const iconEmoji = shortcutIcon && SHORTCUT_ICON_PRESETS[shortcutIcon]
@@ -292,7 +294,7 @@ function PreviewTile({
             fontWeightClass,
             isShortcut ? 'text-white/90' : 'text-orange-600 dark:text-orange-400'
           )}>
-            {formatJMD(price)}
+            {fc(price)}
           </span>
         )}
         {gridSettings.showStock && (

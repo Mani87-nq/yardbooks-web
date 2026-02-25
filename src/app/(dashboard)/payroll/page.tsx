@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useEmployees,
   useCreateEmployee,
@@ -29,6 +30,7 @@ import {
   ExclamationCircleIcon,
   CheckCircleIcon,
   EnvelopeIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 
@@ -87,6 +89,7 @@ const EDUCATION_TAX_RATE = 0.0225;
 const PAYE_ANNUAL_THRESHOLD = 1902360;
 
 export default function PayrollPage() {
+  const { fc } = useCurrency();
   const [activeTab, setActiveTab] = useState<'employees' | 'payroll'>('employees');
   const [searchQuery, setSearchQuery] = useState('');
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -167,10 +170,14 @@ export default function PayrollPage() {
 
   // Client-side search filter
   const filteredEmployees = employees.filter((emp) => {
+    const lowerQuery = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
-      `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.department?.toLowerCase().includes(searchQuery.toLowerCase());
+      `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(lowerQuery) ||
+      emp.email?.toLowerCase().includes(lowerQuery) ||
+      emp.department?.toLowerCase().includes(lowerQuery) ||
+      emp.position?.toLowerCase().includes(lowerQuery) ||
+      emp.employeeNumber?.toLowerCase().includes(lowerQuery) ||
+      emp.phone?.toLowerCase().includes(lowerQuery);
     return matchesSearch;
   });
 
@@ -482,7 +489,7 @@ export default function PayrollPage() {
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Monthly Payroll</p>
-            <p className="text-2xl font-bold text-blue-600">{employeesLoading ? '-' : formatJMD(totalMonthlyPayroll)}</p>
+            <p className="text-2xl font-bold text-blue-600">{employeesLoading ? '-' : fc(totalMonthlyPayroll)}</p>
           </div>
         </Card>
         <Card>
@@ -503,6 +510,11 @@ export default function PayrollPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+              rightIcon={searchQuery ? (
+                <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              ) : undefined}
             />
           </div>
 
@@ -560,7 +572,7 @@ export default function PayrollPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {employee.baseSalary ? formatJMD(employee.baseSalary) : '-'}
+                        {employee.baseSalary ? fc(employee.baseSalary) : '-'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={employee.isActive ? 'success' : 'default'}>
@@ -640,9 +652,9 @@ export default function PayrollPage() {
                       </TableCell>
                       <TableCell className="text-gray-500">{formatDate(run.payDate)}</TableCell>
                       <TableCell>{run.entries?.length ?? 0}</TableCell>
-                      <TableCell className="font-medium">{formatJMD(run.totalGross)}</TableCell>
+                      <TableCell className="font-medium">{fc(run.totalGross)}</TableCell>
                       <TableCell className="font-medium text-emerald-600">
-                        {formatJMD(run.totalNet)}
+                        {fc(run.totalNet)}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -891,7 +903,7 @@ export default function PayrollPage() {
                       <p className="text-sm text-gray-500">{emp.position || emp.department}</p>
                     </div>
                     <span className="text-sm font-medium">
-                      {emp.baseSalary ? formatJMD(emp.baseSalary) : '-'}
+                      {emp.baseSalary ? fc(emp.baseSalary) : '-'}
                     </span>
                   </label>
                 ))}
@@ -906,7 +918,7 @@ export default function PayrollPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Estimated Gross:</span>
                 <span className="font-medium">
-                  {formatJMD(
+                  {fc(
                     employees
                       .filter(e => payrollForm.selectedEmployees.includes(e.id))
                       .reduce((sum, e) => sum + (e.baseSalary || 0), 0)

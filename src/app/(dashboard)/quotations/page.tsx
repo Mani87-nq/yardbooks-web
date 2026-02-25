@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
 import { api } from '@/lib/api-client';
 import { useCustomers, useProducts } from '@/hooks/api';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { useAppStore } from '@/store/appStore';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
+import { formatTRN } from '@/lib/print';
 import type { Quotation, QuotationItem, InvoiceItem } from '@/types';
 import {
   PlusIcon,
@@ -23,6 +26,8 @@ import { PermissionGate } from '@/components/PermissionGate';
 const GCT_RATE = 0.15;
 
 export default function QuotationsPage() {
+  const { fc } = useCurrency();
+  const { activeCompany } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
@@ -314,7 +319,7 @@ export default function QuotationsPage() {
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Accepted Value</p>
-            <p className="text-2xl font-bold text-emerald-600">{formatJMD(stats.totalValue)}</p>
+            <p className="text-2xl font-bold text-emerald-600">{fc(stats.totalValue)}</p>
           </div>
         </Card>
       </div>
@@ -327,6 +332,11 @@ export default function QuotationsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2">
@@ -375,7 +385,7 @@ export default function QuotationsPage() {
                   <TableCell className="font-medium">{quote.customerName}</TableCell>
                   <TableCell className="text-gray-500">{formatDate(quote.createdAt)}</TableCell>
                   <TableCell className="text-gray-500">{formatDate(quote.validUntil)}</TableCell>
-                  <TableCell className="font-medium">{formatJMD(quote.total)}</TableCell>
+                  <TableCell className="font-medium">{fc(quote.total)}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -540,7 +550,7 @@ export default function QuotationsPage() {
                             />
                           </td>
                           <td className="px-3 py-2 text-right font-medium">
-                            {formatJMD(itemTotal)}
+                            {fc(itemTotal)}
                           </td>
                           <td className="px-3 py-2">
                             <button
@@ -562,16 +572,26 @@ export default function QuotationsPage() {
                 <div className="w-64 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Subtotal:</span>
-                    <span className="font-medium">{formatJMD(subtotal)}</span>
+                    <span className="font-medium">{fc(subtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">GCT (15%):</span>
-                    <span className="font-medium">{formatJMD(taxAmount)}</span>
-                  </div>
+                  {activeCompany?.gctRegistered && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">GCT (15%):</span>
+                      <span className="font-medium">{fc(taxAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
                     <span>Total:</span>
-                    <span className="text-emerald-600">{formatJMD(total)}</span>
+                    <span className="text-emerald-600">{fc(activeCompany?.gctRegistered ? total : subtotal)}</span>
                   </div>
+                  {activeCompany?.trnNumber && (
+                    <div className="text-xs text-gray-400 pt-1">
+                      TRN: {formatTRN(activeCompany.trnNumber)}
+                      {activeCompany.gctRegistered && activeCompany.gctNumber && (
+                        <> | GCT Reg: {activeCompany.gctNumber}</>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

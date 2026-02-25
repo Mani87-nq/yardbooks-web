@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Input, Select, Textarea, Modal, ModalBody, ModalFooter } from '@/components/ui';
 import { useAppStore, useActiveCustomers, useActiveProducts } from '@/store/appStore';
-import { formatJMD, GCT_RATES } from '@/lib/utils';
+import { GCT_RATES } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useCreateInvoice } from '@/hooks/api/useInvoices';
 import { useCreateCustomer } from '@/hooks/api/useCustomers';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,6 +22,7 @@ import {
 import api from '@/lib/api-client';
 
 export default function NewInvoicePage() {
+  const { fc } = useCurrency();
   const router = useRouter();
   const { activeCompany, settings, addCustomer } = useAppStore();
   const customers = useActiveCustomers();
@@ -118,14 +120,15 @@ export default function NewInvoicePage() {
     return date.toISOString().split('T')[0];
   });
   const [notes, setNotes] = useState('');
+  const defaultGctRate: GCTRate = activeCompany?.gctRegistered ? 'standard' as GCTRate : 'exempt' as GCTRate;
   const [items, setItems] = useState<Partial<InvoiceItem>[]>([
-    { id: uuidv4(), description: '', quantity: 1, unitPrice: 0, gctRate: 'standard' as GCTRate, gctAmount: 0, total: 0 },
+    { id: uuidv4(), description: '', quantity: 1, unitPrice: 0, gctRate: defaultGctRate, gctAmount: 0, total: 0 },
   ]);
 
   const handleAddItem = () => {
     setItems([
       ...items,
-      { id: uuidv4(), description: '', quantity: 1, unitPrice: 0, gctRate: 'standard' as GCTRate, gctAmount: 0, total: 0 },
+      { id: uuidv4(), description: '', quantity: 1, unitPrice: 0, gctRate: defaultGctRate, gctAmount: 0, total: 0 },
     ]);
   };
 
@@ -220,7 +223,7 @@ export default function NewInvoicePage() {
         // Show email modal instead of immediately marking as sent
         const selectedCustomer = customers.find((c) => c.id === customerId);
         setSendEmail(selectedCustomer?.email || '');
-        setSendMessage(`Please find attached invoice for ${formatJMD(total)}. Payment is due by ${new Date(dueDate).toLocaleDateString()}.`);
+        setSendMessage(`Please find attached invoice for ${fc(total)}. Payment is due by ${new Date(dueDate).toLocaleDateString()}.`);
         setCreatedInvoiceId((result as any)?.id || (result as any)?.data?.id);
         setShowSendModal(true);
       } else {
@@ -333,17 +336,17 @@ export default function NewInvoicePage() {
         <CardContent>
           <div className="space-y-4">
             {/* Header */}
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 uppercase">
+            <div className={`grid ${activeCompany?.gctRegistered ? 'grid-cols-12' : 'grid-cols-10'} gap-2 text-xs font-medium text-gray-500 uppercase`}>
               <div className="col-span-4">Description</div>
               <div className="col-span-2">Qty</div>
               <div className="col-span-2">Price</div>
-              <div className="col-span-2">GCT</div>
+              {activeCompany?.gctRegistered && <div className="col-span-2">GCT</div>}
               <div className="col-span-2 text-right">Total</div>
             </div>
 
             {/* Items */}
             {items.map((item) => (
-              <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+              <div key={item.id} className={`grid ${activeCompany?.gctRegistered ? 'grid-cols-12' : 'grid-cols-10'} gap-2 items-center`}>
                 <div className="col-span-4">
                   <Input
                     placeholder="Description or search product..."
@@ -375,19 +378,23 @@ export default function NewInvoicePage() {
                     onChange={(e) => handleItemChange(item.id!, 'unitPrice', parseFloat(e.target.value) || 0)}
                   />
                 </div>
+                {activeCompany?.gctRegistered && (
                 <div className="col-span-2">
                   <Select
                     value={item.gctRate}
                     onChange={(e) => handleItemChange(item.id!, 'gctRate', e.target.value)}
                     options={[
                       { value: 'standard', label: '15%' },
+                      { value: 'tourism', label: '10%' },
+                      { value: 'telecom', label: '25%' },
                       { value: 'zero_rated', label: '0%' },
                       { value: 'exempt', label: 'Exempt' },
                     ]}
                   />
                 </div>
+                )}
                 <div className="col-span-1 text-right font-medium">
-                  {formatJMD(item.total || 0)}
+                  {fc(item.total || 0)}
                 </div>
                 <div className="col-span-1 text-right">
                   <Button
@@ -433,15 +440,17 @@ export default function NewInvoicePage() {
           <CardContent className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Subtotal</span>
-              <span className="font-medium">{formatJMD(subtotal)}</span>
+              <span className="font-medium">{fc(subtotal)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">GCT</span>
-              <span className="font-medium">{formatJMD(gctAmount)}</span>
-            </div>
+            {activeCompany?.gctRegistered && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">GCT</span>
+                <span className="font-medium">{fc(gctAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-3 border-t border-gray-100">
               <span className="font-semibold">Total</span>
-              <span className="text-xl font-bold text-emerald-600">{formatJMD(total)}</span>
+              <span className="text-xl font-bold text-emerald-600">{fc(total)}</span>
             </div>
           </CardContent>
         </Card>

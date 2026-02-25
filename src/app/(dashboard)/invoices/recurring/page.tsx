@@ -4,7 +4,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalBody, ModalFooter, Select } from '@/components/ui';
 import { api } from '@/lib/api-client';
 import { useCustomers } from '@/hooks/api';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -16,6 +17,7 @@ import {
   CalendarDaysIcon,
   BanknotesIcon,
   ClockIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 // ============================================
@@ -97,6 +99,7 @@ function isWithinDays(dateStr: string, days: number): boolean {
 // ============================================
 
 export default function RecurringInvoicesPage() {
+  const { fc } = useCurrency();
   // Fetch customers from API for dropdown
   const { data: customersResponse } = useCustomers({ limit: 200 });
   const customers = (customersResponse as any)?.data ?? [];
@@ -328,7 +331,7 @@ export default function RecurringInvoicesPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Monthly Revenue</p>
-              <p className="text-2xl font-bold text-orange-600">{formatJMD(stats.monthlyRevenue)}</p>
+              <p className="text-2xl font-bold text-orange-600">{fc(stats.monthlyRevenue)}</p>
             </div>
           </div>
         </Card>
@@ -342,6 +345,11 @@ export default function RecurringInvoicesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -400,7 +408,7 @@ export default function RecurringInvoicesPage() {
                       <p className="text-sm text-gray-500 truncate">{invoice.description}</p>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
-                      <p className="text-lg font-bold text-gray-900">{formatJMD(invoice.amount)}</p>
+                      <p className="text-lg font-bold text-gray-900">{fc(invoice.amount)}</p>
                       <p className="text-xs text-gray-400">/{FREQUENCY_LABELS[invoice.frequency].toLowerCase()}</p>
                     </div>
                   </div>
@@ -545,7 +553,7 @@ export default function RecurringInvoicesPage() {
               <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
                 <p className="text-sm text-emerald-700">
                   <span className="font-medium">Monthly equivalent: </span>
-                  {formatJMD(getMonthlyEquivalent(parseFloat(formAmount) || 0, formFrequency))}
+                  {fc(getMonthlyEquivalent(parseFloat(formAmount) || 0, formFrequency))}
                 </p>
               </div>
             )}

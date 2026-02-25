@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
 import { usePosStore } from '@/store/posStore';
-import { formatJMD, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { PosSession } from '@/types/pos';
 import {
   ArrowLeftIcon,
@@ -20,6 +21,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function SessionHistoryPage() {
+  const { fc } = useCurrency();
   const [selectedCashier, setSelectedCashier] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
 
@@ -177,9 +179,9 @@ export default function SessionHistoryPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Total Sales</p>
-                <p className="text-2xl font-bold text-emerald-600">{formatJMD(summaryStats.totalSales)}</p>
+                <p className="text-2xl font-bold text-emerald-600">{fc(summaryStats.totalSales)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Avg: {formatJMD(summaryStats.avgSessionSales)}
+                  Avg: {fc(summaryStats.avgSessionSales)}
                 </p>
               </div>
               <BanknotesIcon className="w-8 h-8 text-emerald-500" />
@@ -197,7 +199,7 @@ export default function SessionHistoryPage() {
                   summaryStats.totalVariance === 0 ? 'text-green-600' :
                   summaryStats.totalVariance > 0 ? 'text-blue-600' : 'text-red-600'
                 )}>
-                  {summaryStats.totalVariance >= 0 ? '+' : ''}{formatJMD(summaryStats.totalVariance)}
+                  {summaryStats.totalVariance >= 0 ? '+' : ''}{fc(summaryStats.totalVariance)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   {summaryStats.sessionsWithVariance} sessions
@@ -306,19 +308,19 @@ export default function SessionHistoryPage() {
                     <tr key={perf.name} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{perf.name}</td>
                       <td className="px-4 py-3 text-right">{perf.sessions}</td>
-                      <td className="px-4 py-3 text-right font-medium text-emerald-600">{formatJMD(perf.totalSales)}</td>
-                      <td className="px-4 py-3 text-right">{formatJMD(perf.avgSales)}</td>
+                      <td className="px-4 py-3 text-right font-medium text-emerald-600">{fc(perf.totalSales)}</td>
+                      <td className="px-4 py-3 text-right">{fc(perf.avgSales)}</td>
                       <td className="px-4 py-3 text-right">
                         <span className={cn(
                           "font-medium",
                           perf.totalVariance === 0 ? 'text-green-600' :
                           perf.totalVariance > 0 ? 'text-blue-600' : 'text-red-600'
                         )}>
-                          {perf.totalVariance >= 0 ? '+' : ''}{formatJMD(perf.totalVariance)}
+                          {perf.totalVariance >= 0 ? '+' : ''}{fc(perf.totalVariance)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right text-gray-600">
-                        {perf.avgVariance >= 0 ? '+' : ''}{formatJMD(perf.avgVariance)}
+                        {perf.avgVariance >= 0 ? '+' : ''}{fc(perf.avgVariance)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Badge variant={perf.accuracy >= 80 ? 'success' : perf.accuracy >= 50 ? 'warning' : 'danger'}>
@@ -372,7 +374,7 @@ export default function SessionHistoryPage() {
                           )}
                           <div>
                             <p className="text-gray-500">Net Sales</p>
-                            <p className="font-medium text-emerald-600">{formatJMD(session.netSales)}</p>
+                            <p className="font-medium text-emerald-600">{fc(session.netSales)}</p>
                           </div>
                           <div>
                             <p className="text-gray-500">Orders</p>
@@ -387,7 +389,7 @@ export default function SessionHistoryPage() {
                             <div>
                               <p className="text-xs">Variance</p>
                               <p className="text-lg font-bold">
-                                {(session.cashVariance || 0) >= 0 ? '+' : ''}{formatJMD(session.cashVariance || 0)}
+                                {(session.cashVariance || 0) >= 0 ? '+' : ''}{fc(session.cashVariance || 0)}
                               </p>
                             </div>
                           </div>

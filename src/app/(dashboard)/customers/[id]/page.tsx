@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { Card, Button, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
 import { PermissionGate } from '@/components/PermissionGate';
 import { useCustomer, useDeleteCustomer } from '@/hooks/api/useCustomers';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   ArrowLeftIcon,
   PencilIcon,
@@ -17,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function CustomerDetailPage() {
+  const { fc } = useCurrency();
   const router = useRouter();
   const params = useParams();
   const customerId = params?.id as string;
@@ -148,7 +150,7 @@ export default function CustomerDetailPage() {
           <div className="p-4">
             <p className="text-sm text-gray-500">Balance</p>
             <p className={`text-2xl font-bold ${(customer.balance || 0) > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-              {formatJMD(customer.balance || 0)}
+              {fc(customer.balance || 0)}
             </p>
           </div>
         </Card>

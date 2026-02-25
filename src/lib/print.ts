@@ -22,15 +22,27 @@ interface PrintOptions {
   title: string;
   subtitle?: string;
   companyName?: string;
+  companyTrn?: string;
+  companyGct?: string;
   content: string;
   footer?: string;
+}
+
+/**
+ * Formats a TRN number with dashes every 3 digits (e.g. "123456789" -> "123-456-789")
+ */
+export function formatTRN(trn: string): string {
+  const digits = trn.replace(/\D/g, '');
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 9)}`;
 }
 
 /**
  * Opens a print dialog with formatted content
  */
 export function printContent(options: PrintOptions): void {
-  const { title, subtitle, companyName, content, footer } = options;
+  const { title, subtitle, companyName, companyTrn, companyGct, content, footer } = options;
 
   const printWindow = window.open('', '_blank', 'width=800,height=600');
   if (!printWindow) {
@@ -159,6 +171,7 @@ export function printContent(options: PrintOptions): void {
     <body>
       <div class="header">
         ${companyName ? `<div class="company-name">${sanitize(companyName)}</div>` : ''}
+        ${companyTrn || companyGct ? `<div style="font-size:12px;color:#6b7280;margin-bottom:6px;">${companyTrn ? `TRN: ${sanitize(formatTRN(companyTrn))}` : ''}${companyTrn && companyGct ? ' &nbsp;|&nbsp; ' : ''}${companyGct ? `GCT Reg: ${sanitize(companyGct)}` : ''}</div>` : ''}
         <div class="document-title">${sanitize(title)}</div>
         ${subtitle ? `<div class="subtitle">${sanitize(subtitle)}</div>` : ''}
       </div>
@@ -230,13 +243,20 @@ export function downloadAsCSV(data: Record<string, any>[], filename: string): vo
   URL.revokeObjectURL(url);
 }
 
+/** Locale map for print currency formatting */
+const PRINT_CURRENCY_LOCALE: Record<string, string> = {
+  JMD: 'en-JM', USD: 'en-US', GBP: 'en-GB', CAD: 'en-CA',
+  EUR: 'de-DE', BBD: 'en-BB', TTD: 'en-TT', KYD: 'en-KY', XCD: 'en-AG',
+};
+
 /**
- * Formats currency for printing (JMD)
+ * Formats currency for printing. Defaults to JMD when no currency supplied.
  */
-export function formatPrintCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-JM', {
+export function formatPrintCurrency(amount: number, currency: string = 'JMD'): string {
+  const locale = PRINT_CURRENCY_LOCALE[currency] || 'en-US';
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'JMD',
+    currency,
   }).format(amount);
 }
 

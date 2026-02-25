@@ -40,6 +40,10 @@ import {
   DevicePhoneMobileIcon,
   LockClosedIcon,
   KeyIcon,
+  PuzzlePieceIcon,
+  EnvelopeIcon,
+  SparklesIcon,
+  LinkIcon,
 } from '@heroicons/react/24/outline';
 
 // ============================================
@@ -1667,6 +1671,391 @@ function SecurityTab() {
 }
 
 // ============================================
+// INTEGRATIONS TAB COMPONENT
+// ============================================
+
+interface WiPaySettings {
+  accountNumber: string;
+  apiKey: string;
+  feeStructure: 'merchant' | 'customer';
+  environment: 'sandbox' | 'live';
+}
+
+interface IntegrationSettings {
+  wipay?: WiPaySettings;
+  email?: { fromAddress: string; configured: boolean };
+  ai?: { configured: boolean };
+}
+
+function IntegrationsTab() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [wipay, setWipay] = useState<WiPaySettings>({
+    accountNumber: '',
+    apiKey: '',
+    feeStructure: 'merchant',
+    environment: 'sandbox',
+  });
+
+  const [emailConfig, setEmailConfig] = useState<{ fromAddress: string; configured: boolean }>({
+    fromAddress: '',
+    configured: false,
+  });
+
+  const [aiConfig, setAiConfig] = useState<{ configured: boolean }>({
+    configured: false,
+  });
+
+  // Determine connection status based on whether credentials are present
+  const wipayConnected = !!(wipay.accountNumber && wipay.apiKey);
+
+  // ── Load integration settings on mount ──
+  useEffect(() => {
+    async function fetchIntegrations() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.get<IntegrationSettings>('/api/v1/company/integrations');
+        if (data.wipay) {
+          setWipay({
+            accountNumber: data.wipay.accountNumber || '',
+            apiKey: data.wipay.apiKey || '',
+            feeStructure: data.wipay.feeStructure || 'merchant',
+            environment: data.wipay.environment || 'sandbox',
+          });
+        }
+        if (data.email) {
+          setEmailConfig({
+            fromAddress: data.email.fromAddress || '',
+            configured: data.email.configured ?? false,
+          });
+        }
+        if (data.ai) {
+          setAiConfig({ configured: data.ai.configured ?? false });
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load integration settings');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchIntegrations();
+  }, []);
+
+  // ── Save WiPay settings ──
+  const handleSaveWipay = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/api/v1/company/integrations', {
+        wipay: {
+          accountNumber: wipay.accountNumber,
+          apiKey: wipay.apiKey,
+          feeStructure: wipay.feeStructure,
+          environment: wipay.environment,
+        },
+      });
+      alert('WiPay integration settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save WiPay settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-center py-12">
+            <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin" />
+            <span className="ml-2 text-gray-500">Loading integrations...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent>
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+            <p className="text-sm">{error}</p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const FUTURE_INTEGRATIONS = [
+    { name: 'Stripe', description: 'International card payments', icon: CreditCardIcon },
+    { name: 'QuickBooks', description: 'Accounting data sync', icon: ArrowPathIcon },
+    { name: 'Xero', description: 'Accounting data sync', icon: ArrowPathIcon },
+    { name: 'Mailchimp', description: 'Email marketing automation', icon: EnvelopeIcon },
+    { name: 'Twilio', description: 'SMS notifications', icon: DevicePhoneMobileIcon },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* ── WiPay Payment Gateway ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-50 rounded-lg">
+                <CreditCardIcon className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <CardTitle>WiPay Payment Gateway</CardTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Accept credit/debit card payments online through WiPay. Get your API credentials at{' '}
+                  <a href="https://wipay.co.tt" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
+                    wipay.co.tt
+                  </a>
+                </p>
+              </div>
+            </div>
+            {wipayConnected ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Connected
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                Not Connected
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Account Number */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Account Number
+              </label>
+              <input
+                type="text"
+                value={wipay.accountNumber}
+                onChange={(e) => setWipay({ ...wipay, accountNumber: e.target.value })}
+                placeholder="Enter your WiPay account number"
+                className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              />
+            </div>
+
+            {/* API Key */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                API Key
+              </label>
+              <div className="relative w-full max-w-md">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={wipay.apiKey}
+                  onChange={(e) => setWipay({ ...wipay, apiKey: e.target.value })}
+                  placeholder="Enter your WiPay API key"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  {showApiKey ? (
+                    <EyeSlashIcon className="w-4 h-4" />
+                  ) : (
+                    <EyeIcon className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Fee Structure */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fee Structure
+              </label>
+              <select
+                value={wipay.feeStructure}
+                onChange={(e) => setWipay({ ...wipay, feeStructure: e.target.value as 'merchant' | 'customer' })}
+                className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
+              >
+                <option value="merchant">Merchant Absorbs Fees</option>
+                <option value="customer">Customer Pays Fees</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Choose who pays the WiPay processing fees on each transaction.
+              </p>
+            </div>
+
+            {/* Environment Toggle */}
+            <div className="flex items-center justify-between py-3 border-t border-gray-100">
+              <div>
+                <p className="font-medium text-gray-900">Environment</p>
+                <p className="text-sm text-gray-500">
+                  {wipay.environment === 'sandbox'
+                    ? 'Sandbox mode — no real charges will be made'
+                    : 'Live mode — real transactions will be processed'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-medium ${wipay.environment === 'sandbox' ? 'text-gray-900' : 'text-gray-400'}`}>
+                  Sandbox
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={wipay.environment === 'live'}
+                    onChange={(e) => setWipay({ ...wipay, environment: e.target.checked ? 'live' : 'sandbox' })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
+                </label>
+                <span className={`text-sm font-medium ${wipay.environment === 'live' ? 'text-gray-900' : 'text-gray-400'}`}>
+                  Live
+                </span>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <Button onClick={handleSaveWipay} disabled={saving}>
+                {saving ? 'Saving...' : 'Save WiPay Settings'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Email Service (Resend) ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <EnvelopeIcon className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle>Email Service (Resend)</CardTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Transactional emails for invoices, receipts, and notifications.
+                </p>
+              </div>
+            </div>
+            {emailConfig.configured ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <CheckCircleIcon className="w-3.5 h-3.5" />
+                Configured by Admin
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                Not Configured
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                From Address
+              </label>
+              <div className="w-full max-w-md rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {emailConfig.fromAddress || 'Not configured'}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                This is configured at the server level by the system administrator.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── AI Assistant (Anthropic Claude) ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <SparklesIcon className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <CardTitle>AI Assistant (Anthropic Claude)</CardTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  AI-powered business assistant for accounting queries and insights.
+                </p>
+              </div>
+            </div>
+            {aiConfig.configured ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <CheckCircleIcon className="w-3.5 h-3.5" />
+                Configured by Admin
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                Not Configured
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500">
+            The AI assistant is configured at the server level. No additional setup is required.
+            Contact your system administrator for changes.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* ── Future Integrations (Coming Soon) ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LinkIcon className="w-5 h-5 text-gray-400" />
+            More Integrations
+          </CardTitle>
+          <p className="text-sm text-gray-500 mt-1">
+            Additional integrations are on the way. Stay tuned for updates.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {FUTURE_INTEGRATIONS.map((integration) => {
+              const Icon = integration.icon;
+              return (
+                <div
+                  key={integration.name}
+                  className="relative border border-gray-200 rounded-lg p-4 bg-gray-50/50"
+                >
+                  <span className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                    Coming Soon
+                  </span>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <Icon className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <h4 className="font-medium text-gray-900">{integration.name}</h4>
+                  </div>
+                  <p className="text-sm text-gray-500">{integration.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============================================
 // MAIN SETTINGS PAGE
 // ============================================
 
@@ -2110,6 +2499,7 @@ export default function SettingsPage() {
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
     { id: 'display', name: 'Display', icon: PaintBrushIcon },
     { id: 'billing', name: 'Billing', icon: CreditCardIcon },
+    { id: 'integrations', name: 'Integrations', icon: PuzzlePieceIcon },
     { id: 'security', name: 'Security', icon: ShieldCheckIcon },
     { id: 'data', name: 'Data', icon: CloudArrowUpIcon },
     { id: 'tax', name: 'GCT / Tax', icon: CalculatorIcon },
@@ -2812,6 +3202,8 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'billing' && <BillingTab />}
+
+          {activeTab === 'integrations' && <IntegrationsTab />}
 
           {activeTab === 'security' && <SecurityTab />}
 

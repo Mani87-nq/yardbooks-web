@@ -13,7 +13,8 @@ import {
   useHoldPosOrder,
   frontendMethodToApi,
 } from '@/hooks/api/usePos';
-import { formatJMD, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useAppStore } from '@/store/appStore';
 import { printReceipt, type ReceiptData } from '@/lib/pos-receipt';
 import {
@@ -97,6 +98,7 @@ function ProductCard({
   product: { id: string; name: string; unitPrice: number; quantity: number; category?: string | null; sku: string };
   onAdd: () => void;
 }) {
+  const { fc } = useCurrency();
   return (
     <button
       onClick={onAdd}
@@ -108,7 +110,7 @@ function ProductCard({
       <h3 className="font-medium text-gray-900 text-sm leading-tight truncate">{product.name}</h3>
       <p className="text-xs text-gray-500 mb-1 sm:mb-2 truncate">{product.sku}</p>
       <div className="flex items-center justify-between gap-1">
-        <span className="font-bold text-emerald-600 text-sm">{formatJMD(product.unitPrice)}</span>
+        <span className="font-bold text-emerald-600 text-sm">{fc(product.unitPrice)}</span>
         <span className={cn(
           "text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap",
           product.quantity <= 0 ? "bg-red-100 text-red-700" :
@@ -132,13 +134,14 @@ function CartItemRow({
   onUpdateQuantity: (quantity: number) => void;
   onRemove: () => void;
 }) {
+  const { fc } = useCurrency();
   const total = item.quantity * item.unitPrice;
 
   return (
     <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-gray-900 text-sm truncate">{item.name}</h4>
-        <p className="text-xs text-gray-500">{formatJMD(item.unitPrice)} / {item.uomCode}</p>
+        <p className="text-xs text-gray-500">{fc(item.unitPrice)} / {item.uomCode}</p>
       </div>
       <div className="flex items-center gap-1">
         <button
@@ -156,7 +159,7 @@ function CartItemRow({
         </button>
       </div>
       <div className="text-right min-w-[72px]">
-        <p className="font-medium text-gray-900 text-sm tabular-nums">{formatJMD(total)}</p>
+        <p className="font-medium text-gray-900 text-sm tabular-nums">{fc(total)}</p>
       </div>
       <button
         onClick={onRemove}
@@ -169,6 +172,7 @@ function CartItemRow({
 }
 
 export default function POSPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -640,21 +644,21 @@ export default function POSPage() {
         <div className="border-t border-gray-100 p-4 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Subtotal</span>
-            <span className="text-gray-900">{formatJMD(cartTotals.subtotal)}</span>
+            <span className="text-gray-900">{fc(cartTotals.subtotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">GCT ({Math.round(gctRate * 100)}%)</span>
-            <span className="text-gray-900">{formatJMD(cartTotals.gctAmount)}</span>
+            <span className="text-gray-900">{fc(cartTotals.gctAmount)}</span>
           </div>
           {cartTotals.discountAmount > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Discount</span>
-              <span className="text-red-600">-{formatJMD(cartTotals.discountAmount)}</span>
+              <span className="text-red-600">-{fc(cartTotals.discountAmount)}</span>
             </div>
           )}
           <div className="flex justify-between font-semibold text-lg pt-2 border-t border-gray-100">
             <span>Total</span>
-            <span className="text-emerald-600">{formatJMD(cartTotals.total)}</span>
+            <span className="text-emerald-600">{fc(cartTotals.total)}</span>
           </div>
         </div>
 
@@ -689,7 +693,7 @@ export default function POSPage() {
             disabled={currentCart.items.length === 0}
           >
             <CreditCardIcon className="w-5 h-5 mr-2" />
-            Pay {formatJMD(cartTotals.total)}
+            Pay {fc(cartTotals.total)}
           </Button>
         </div>
       </div>
@@ -706,7 +710,7 @@ export default function POSPage() {
             {/* Amount Due */}
             <div className="text-center py-4 bg-gray-50 rounded-xl">
               <p className="text-sm text-gray-500 mb-1">Amount Due</p>
-              <p className="text-4xl font-bold text-emerald-600">{formatJMD(cartTotals.total)}</p>
+              <p className="text-4xl font-bold text-emerald-600">{fc(cartTotals.total)}</p>
             </div>
 
             {/* Payment Methods */}
@@ -765,14 +769,14 @@ export default function POSPage() {
                       onClick={() => setCashTendered(amount.toString())}
                       className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-sm font-medium text-gray-700 transition-colors touch-manipulation select-none"
                     >
-                      {formatJMD(amount)}
+                      {fc(amount)}
                     </button>
                   ))}
                 </div>
                 {changeAmount > 0 && (
                   <div className="mt-4 p-4 bg-emerald-50 rounded-xl text-center">
                     <p className="text-sm text-emerald-600 mb-1">Change Due</p>
-                    <p className="text-2xl font-bold text-emerald-700">{formatJMD(changeAmount)}</p>
+                    <p className="text-2xl font-bold text-emerald-700">{fc(changeAmount)}</p>
                   </div>
                 )}
               </div>
@@ -873,11 +877,11 @@ export default function POSPage() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Order Complete!</h3>
             {lastReceiptData && (
-              <p className="text-2xl font-bold text-emerald-600 mb-1">{formatJMD(Number(lastReceiptData.total))}</p>
+              <p className="text-2xl font-bold text-emerald-600 mb-1">{fc(Number(lastReceiptData.total))}</p>
             )}
             {lastReceiptData && Number(lastReceiptData.changeGiven || 0) > 0 && (
               <p className="text-sm text-gray-600 mb-4">
-                Change: <span className="font-semibold">{formatJMD(Number(lastReceiptData.changeGiven))}</span>
+                Change: <span className="font-semibold">{fc(Number(lastReceiptData.changeGiven))}</span>
               </p>
             )}
           </div>

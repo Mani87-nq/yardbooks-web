@@ -6,7 +6,8 @@ import { format } from 'date-fns';
 import { Card, Button, Input, StatusBadge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter, Textarea } from '@/components/ui';
 import { useInvoices, useUpdateInvoice, useCustomers } from '@/hooks/api';
 import { api } from '@/lib/api-client';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { Invoice } from '@/types';
 import {
   PlusIcon,
@@ -16,10 +17,12 @@ import {
   DocumentDuplicateIcon,
   EnvelopeIcon,
   PaperAirplaneIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 
 export default function InvoicesPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -67,7 +70,7 @@ export default function InvoicesPage() {
     setEmailSubject(`Invoice ${invoice.invoiceNumber} from YaadBooks`);
     setEmailMessage(`Dear ${customer?.name || 'Valued Customer'},
 
-Please find attached invoice ${invoice.invoiceNumber} for ${formatJMD(invoice.total)}.
+Please find attached invoice ${invoice.invoiceNumber} for ${fc(invoice.total)}.
 
 Payment is due by ${format(new Date(invoice.dueDate), 'MMMM dd, yyyy')}.
 
@@ -130,7 +133,7 @@ YaadBooks`);
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Outstanding</p>
-            <p className="text-2xl font-bold text-orange-600">{formatJMD(stats.outstanding)}</p>
+            <p className="text-2xl font-bold text-orange-600">{fc(stats.outstanding)}</p>
           </div>
         </Card>
         <Card>
@@ -142,7 +145,7 @@ YaadBooks`);
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Paid This Month</p>
-            <p className="text-2xl font-bold text-emerald-600">{formatJMD(stats.paidThisMonth)}</p>
+            <p className="text-2xl font-bold text-emerald-600">{fc(stats.paidThisMonth)}</p>
           </div>
         </Card>
       </div>
@@ -155,6 +158,11 @@ YaadBooks`);
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -208,9 +216,9 @@ YaadBooks`);
                   </TableCell>
                   <TableCell className="text-gray-500">{formatDate(invoice.issueDate)}</TableCell>
                   <TableCell className="text-gray-500">{formatDate(invoice.dueDate)}</TableCell>
-                  <TableCell className="font-medium">{formatJMD(invoice.total)}</TableCell>
+                  <TableCell className="font-medium">{fc(invoice.total)}</TableCell>
                   <TableCell className={invoice.balance > 0 ? 'text-orange-600 font-medium' : 'text-gray-500'}>
-                    {formatJMD(invoice.balance)}
+                    {fc(invoice.balance)}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={invoice.status} />

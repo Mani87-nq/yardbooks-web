@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { usePosStore } from '@/store/posStore';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import {
@@ -24,7 +25,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
 } from '@heroicons/react/24/outline';
-import { printContent, generateTable, generateStatCards, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
+import { printContent, generateTable, generateStatCards, formatTRN, downloadAsCSV } from '@/lib/print';
 
 const REPORTS = [
   {
@@ -121,6 +122,7 @@ const REPORTS = [
 ];
 
 export default function ReportsPage() {
+  const { fc, fcp } = useCurrency();
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -304,19 +306,19 @@ export default function ReportsPage() {
       case 'sales': {
         const data = salesData();
         content = generateStatCards([
-          { label: 'Total Revenue', value: formatPrintCurrency(data.totalRevenue), color: '#059669' },
+          { label: 'Total Revenue', value: fcp(data.totalRevenue), color: '#059669' },
           { label: 'Total Invoices', value: String(data.totalInvoices) },
           { label: 'Paid Invoices', value: String(data.paidInvoices), color: '#2563eb' },
-          { label: 'Pending Amount', value: formatPrintCurrency(data.pendingAmount), color: '#ea580c' },
+          { label: 'Pending Amount', value: fcp(data.pendingAmount), color: '#ea580c' },
         ]);
         break;
       }
       case 'pos': {
         const data = posData();
         content = generateStatCards([
-          { label: 'Total Sales', value: formatPrintCurrency(data.totalSales), color: '#059669' },
+          { label: 'Total Sales', value: fcp(data.totalSales), color: '#059669' },
           { label: 'Total Orders', value: String(data.totalOrders) },
-          { label: 'Avg Order Value', value: formatPrintCurrency(data.avgOrderValue), color: '#2563eb' },
+          { label: 'Avg Order Value', value: fcp(data.avgOrderValue), color: '#2563eb' },
           { label: 'Items Sold', value: String(data.totalItems), color: '#7c3aed' },
         ]);
         break;
@@ -324,16 +326,18 @@ export default function ReportsPage() {
       case 'gct': {
         const data = gctData();
         content = generateStatCards([
-          { label: 'Invoice GCT', value: formatPrintCurrency(data.invoiceGCT), color: '#7c3aed' },
-          { label: 'POS GCT', value: formatPrintCurrency(data.posGCT), color: '#2563eb' },
-          { label: 'Total GCT Collected', value: formatPrintCurrency(data.totalGCT), color: '#059669' },
-        ]) + '<p style="margin-top:20px;color:#6b7280;font-size:14px;">GCT Rate: 15% (Standard)</p>';
+          { label: 'Invoice GCT', value: fcp(data.invoiceGCT), color: '#7c3aed' },
+          { label: 'POS GCT', value: fcp(data.posGCT), color: '#2563eb' },
+          { label: 'Total GCT Collected', value: fcp(data.totalGCT), color: '#059669' },
+        ]) + '<p style="margin-top:20px;color:#6b7280;font-size:14px;">GCT Rate: 15% (Standard)</p>'
+          + (activeCompany?.trnNumber ? `<p style="color:#6b7280;font-size:13px;margin-top:4px;">TRN: ${formatTRN(activeCompany.trnNumber)}</p>` : '')
+          + (activeCompany?.gctRegistered && activeCompany?.gctNumber ? `<p style="color:#6b7280;font-size:13px;">GCT Reg: ${activeCompany.gctNumber}</p>` : '');
         break;
       }
       case 'expenses': {
         const data = expenseData();
         content = generateStatCards([
-          { label: 'Total Expenses', value: formatPrintCurrency(data.totalExpenses), color: '#dc2626' },
+          { label: 'Total Expenses', value: fcp(data.totalExpenses), color: '#dc2626' },
         ]) + generateTable(
           [
             { key: 'name', label: 'Category' },
@@ -346,7 +350,7 @@ export default function ReportsPage() {
             percentage: data.totalExpenses > 0 ? ((c.amount / data.totalExpenses) * 100).toFixed(1) + '%' : '0%',
           })),
           {
-            formatters: { amount: formatPrintCurrency },
+            formatters: { amount: fcp },
             summaryRow: { name: 'Total', amount: data.totalExpenses, percentage: '100%' },
           }
         );
@@ -356,7 +360,7 @@ export default function ReportsPage() {
         const data = customerData();
         content = generateStatCards([
           { label: 'With Outstanding Balance', value: String(data.withBalance), color: '#ea580c' },
-          { label: 'Total Receivables', value: formatPrintCurrency(data.totalReceivables), color: '#2563eb' },
+          { label: 'Total Receivables', value: fcp(data.totalReceivables), color: '#2563eb' },
         ]) + '<h3 style="margin:20px 0 10px;font-weight:600;">Top Customers by Balance</h3>' + generateTable(
           [
             { key: 'name', label: 'Customer' },
@@ -368,7 +372,7 @@ export default function ReportsPage() {
             contact: c.email || c.phone || '-',
             balance: c.balance,
           })),
-          { formatters: { balance: formatPrintCurrency } }
+          { formatters: { balance: fcp } }
         );
         break;
       }
@@ -376,7 +380,7 @@ export default function ReportsPage() {
         const data = inventoryData();
         content = generateStatCards([
           { label: 'Total Items', value: String(data.totalItems) },
-          { label: 'Total Value', value: formatPrintCurrency(data.totalValue), color: '#059669' },
+          { label: 'Total Value', value: fcp(data.totalValue), color: '#059669' },
           { label: 'Low Stock', value: String(data.lowStock), color: '#ea580c' },
           { label: 'Out of Stock', value: String(data.outOfStock), color: '#dc2626' },
         ]);
@@ -406,7 +410,7 @@ export default function ReportsPage() {
             rows.filter((r: any) => r.amount !== null),
             {
               formatters: {
-                amount: (v: number) => `<span style="color:${v >= 0 ? '#059669' : '#dc2626'}">${formatPrintCurrency(Math.abs(v))}</span>`
+                amount: (v: number) => `<span style="color:${v >= 0 ? '#059669' : '#dc2626'}">${fcp(Math.abs(v))}</span>`
               },
             }
           );
@@ -436,7 +440,7 @@ export default function ReportsPage() {
             ],
             rows.filter((r: any) => r.amount !== null),
             {
-              formatters: { amount: formatPrintCurrency },
+              formatters: { amount: fcp },
               summaryRow: { label: 'Total Liabilities & Equity', amount: bsSections.totalLiabilitiesAndEquity || 0 },
             }
           );
@@ -474,7 +478,7 @@ export default function ReportsPage() {
               ],
               rows.filter((r: any) => r.debit !== null),
               {
-                formatters: { debit: formatPrintCurrency, credit: formatPrintCurrency },
+                formatters: { debit: fcp, credit: fcp },
                 summaryRow: {
                   label: 'Grand Total',
                   debit: tbData.totals?.totalDebits || 0,
@@ -491,7 +495,7 @@ export default function ReportsPage() {
           let tableHtml = '<h3 style="margin-bottom:20px;font-weight:600;">General Ledger</h3>';
           glData.accounts.forEach((acct: any) => {
             tableHtml += `<h4 style="margin-top:24px;margin-bottom:8px;font-weight:600;">${acct.accountNumber} — ${acct.accountName} (${acct.accountType})</h4>`;
-            tableHtml += `<p style="font-size:13px;color:#6b7280;">Opening Balance: ${formatPrintCurrency(acct.openingBalance)} | Closing Balance: ${formatPrintCurrency(acct.closingBalance)}</p>`;
+            tableHtml += `<p style="font-size:13px;color:#6b7280;">Opening Balance: ${fcp(acct.openingBalance)} | Closing Balance: ${fcp(acct.closingBalance)}</p>`;
             if (acct.transactions?.length > 0) {
               tableHtml += generateTable(
                 [
@@ -510,7 +514,7 @@ export default function ReportsPage() {
                   credit: t.credit,
                   balance: t.balance,
                 })),
-                { formatters: { debit: formatPrintCurrency, credit: formatPrintCurrency, balance: formatPrintCurrency } }
+                { formatters: { debit: fcp, credit: fcp, balance: fcp } }
               );
             }
           });
@@ -560,7 +564,7 @@ export default function ReportsPage() {
             rows.filter((r: any) => r.amount !== null),
             {
               formatters: {
-                amount: (v: number) => `<span style="color:${v >= 0 ? '#059669' : '#dc2626'}">${formatPrintCurrency(Math.abs(v))}</span>`
+                amount: (v: number) => `<span style="color:${v >= 0 ? '#059669' : '#dc2626'}">${fcp(Math.abs(v))}</span>`
               },
             }
           );
@@ -571,12 +575,12 @@ export default function ReportsPage() {
         const arData = arApiData;
         if (arData) {
           content = generateStatCards([
-            { label: 'Current', value: formatPrintCurrency(arData.totals?.current || 0), color: '#059669' },
-            { label: '1-30 Days', value: formatPrintCurrency(arData.totals?.days1to30 || 0), color: '#ea580c' },
-            { label: '31-60 Days', value: formatPrintCurrency(arData.totals?.days31to60 || 0), color: '#dc2626' },
-            { label: '61-90 Days', value: formatPrintCurrency(arData.totals?.days61to90 || 0), color: '#b91c1c' },
-            { label: '90+ Days', value: formatPrintCurrency(arData.totals?.days90plus || 0), color: '#7f1d1d' },
-            { label: 'Total', value: formatPrintCurrency(arData.totals?.total || 0) },
+            { label: 'Current', value: fcp(arData.totals?.current || 0), color: '#059669' },
+            { label: '1-30 Days', value: fcp(arData.totals?.days1to30 || 0), color: '#ea580c' },
+            { label: '31-60 Days', value: fcp(arData.totals?.days31to60 || 0), color: '#dc2626' },
+            { label: '61-90 Days', value: fcp(arData.totals?.days61to90 || 0), color: '#b91c1c' },
+            { label: '90+ Days', value: fcp(arData.totals?.days90plus || 0), color: '#7f1d1d' },
+            { label: 'Total', value: fcp(arData.totals?.total || 0) },
           ]) + generateTable(
             [
               { key: 'customerName', label: 'Customer' },
@@ -590,12 +594,12 @@ export default function ReportsPage() {
             arData.customers || [],
             {
               formatters: {
-                current: formatPrintCurrency,
-                days1to30: formatPrintCurrency,
-                days31to60: formatPrintCurrency,
-                days61to90: formatPrintCurrency,
-                days90plus: formatPrintCurrency,
-                total: formatPrintCurrency,
+                current: fcp,
+                days1to30: fcp,
+                days31to60: fcp,
+                days61to90: fcp,
+                days90plus: fcp,
+                total: fcp,
               },
               summaryRow: {
                 customerName: 'Total',
@@ -615,12 +619,12 @@ export default function ReportsPage() {
         const apData = apApiData;
         if (apData) {
           content = generateStatCards([
-            { label: 'Current', value: formatPrintCurrency(apData.totals?.current || 0), color: '#059669' },
-            { label: '1-30 Days', value: formatPrintCurrency(apData.totals?.days1to30 || 0), color: '#ea580c' },
-            { label: '31-60 Days', value: formatPrintCurrency(apData.totals?.days31to60 || 0), color: '#dc2626' },
-            { label: '61-90 Days', value: formatPrintCurrency(apData.totals?.days61to90 || 0), color: '#b91c1c' },
-            { label: '90+ Days', value: formatPrintCurrency(apData.totals?.days90plus || 0), color: '#7f1d1d' },
-            { label: 'Total', value: formatPrintCurrency(apData.totals?.total || 0) },
+            { label: 'Current', value: fcp(apData.totals?.current || 0), color: '#059669' },
+            { label: '1-30 Days', value: fcp(apData.totals?.days1to30 || 0), color: '#ea580c' },
+            { label: '31-60 Days', value: fcp(apData.totals?.days31to60 || 0), color: '#dc2626' },
+            { label: '61-90 Days', value: fcp(apData.totals?.days61to90 || 0), color: '#b91c1c' },
+            { label: '90+ Days', value: fcp(apData.totals?.days90plus || 0), color: '#7f1d1d' },
+            { label: 'Total', value: fcp(apData.totals?.total || 0) },
           ]) + generateTable(
             [
               { key: 'vendorName', label: 'Vendor' },
@@ -634,12 +638,12 @@ export default function ReportsPage() {
             apData.vendors || [],
             {
               formatters: {
-                current: formatPrintCurrency,
-                days1to30: formatPrintCurrency,
-                days31to60: formatPrintCurrency,
-                days61to90: formatPrintCurrency,
-                days90plus: formatPrintCurrency,
-                total: formatPrintCurrency,
+                current: fcp,
+                days1to30: fcp,
+                days31to60: fcp,
+                days61to90: fcp,
+                days90plus: fcp,
+                total: fcp,
               },
               summaryRow: {
                 vendorName: 'Total',
@@ -661,6 +665,8 @@ export default function ReportsPage() {
       title: reportInfo?.name || 'Report',
       subtitle: dateSubtitle,
       companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      companyGct: activeCompany?.gctRegistered ? activeCompany?.gctNumber : undefined,
       content,
     });
   };
@@ -813,7 +819,7 @@ export default function ReportsPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Total Revenue</p>
-                  <p className="text-2xl font-bold text-emerald-600">{formatJMD(data.totalRevenue)}</p>
+                  <p className="text-2xl font-bold text-emerald-600">{fc(data.totalRevenue)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -831,7 +837,7 @@ export default function ReportsPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Pending Amount</p>
-                  <p className="text-2xl font-bold text-orange-600">{formatJMD(data.pendingAmount)}</p>
+                  <p className="text-2xl font-bold text-orange-600">{fc(data.pendingAmount)}</p>
                 </CardContent>
               </Card>
             </div>
@@ -847,7 +853,7 @@ export default function ReportsPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Total Sales</p>
-                  <p className="text-2xl font-bold text-emerald-600">{formatJMD(data.totalSales)}</p>
+                  <p className="text-2xl font-bold text-emerald-600">{fc(data.totalSales)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -859,7 +865,7 @@ export default function ReportsPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Avg Order Value</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatJMD(data.avgOrderValue)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{fc(data.avgOrderValue)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -881,26 +887,32 @@ export default function ReportsPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Invoice GCT</p>
-                  <p className="text-2xl font-bold text-purple-600">{formatJMD(data.invoiceGCT)}</p>
+                  <p className="text-2xl font-bold text-purple-600">{fc(data.invoiceGCT)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">POS GCT</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatJMD(data.posGCT)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{fc(data.posGCT)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Total GCT Collected</p>
-                  <p className="text-2xl font-bold text-emerald-600">{formatJMD(data.totalGCT)}</p>
+                  <p className="text-2xl font-bold text-emerald-600">{fc(data.totalGCT)}</p>
                 </CardContent>
               </Card>
             </div>
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-gray-500 mb-2">GCT Rate: 15% (Standard)</p>
-                <p className="text-xs text-gray-400">
+                {activeCompany?.trnNumber && (
+                  <p className="text-xs text-gray-500">TRN: {formatTRN(activeCompany.trnNumber)}</p>
+                )}
+                {activeCompany?.gctRegistered && activeCompany?.gctNumber && (
+                  <p className="text-xs text-gray-500">GCT Reg: {activeCompany.gctNumber}</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
                   Report period: {formatDate(new Date(dateRange.start))} - {formatDate(new Date(dateRange.end))}
                 </p>
               </CardContent>
@@ -916,7 +928,7 @@ export default function ReportsPage() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-gray-500">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600">{formatJMD(data.totalExpenses)}</p>
+                <p className="text-2xl font-bold text-red-600">{fc(data.totalExpenses)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -935,7 +947,7 @@ export default function ReportsPage() {
                             style={{ width: `${data.totalExpenses > 0 ? (cat.amount / data.totalExpenses) * 100 : 0}%` }}
                           />
                         </div>
-                        <span className="font-medium w-24 text-right">{formatJMD(cat.amount)}</span>
+                        <span className="font-medium w-24 text-right">{fc(cat.amount)}</span>
                       </div>
                     </div>
                   ))}
@@ -960,7 +972,7 @@ export default function ReportsPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Total Receivables</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatJMD(data.totalReceivables)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{fc(data.totalReceivables)}</p>
                 </CardContent>
               </Card>
             </div>
@@ -976,7 +988,7 @@ export default function ReportsPage() {
                         <p className="font-medium">{customer.name}</p>
                         <p className="text-sm text-gray-500">{customer.email || customer.phone}</p>
                       </div>
-                      <span className="font-medium text-orange-600">{formatJMD(customer.balance)}</span>
+                      <span className="font-medium text-orange-600">{fc(customer.balance)}</span>
                     </div>
                   ))}
                 </div>
@@ -1000,7 +1012,7 @@ export default function ReportsPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-500">Total Value</p>
-                  <p className="text-2xl font-bold text-emerald-600">{formatJMD(data.totalValue)}</p>
+                  <p className="text-2xl font-bold text-emerald-600">{fc(data.totalValue)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -1045,7 +1057,7 @@ export default function ReportsPage() {
           accounts?.map((a: any) => (
             <div key={a.accountNumber} className="flex justify-between py-1.5 pl-6">
               <span className="text-sm text-gray-600">{a.accountNumber} — {a.name}</span>
-              <span className="text-sm font-medium">{formatJMD(a.balance)}</span>
+              <span className="text-sm font-medium">{fc(a.balance)}</span>
             </div>
           ));
 
@@ -1062,7 +1074,7 @@ export default function ReportsPage() {
                   {renderAccountRows(sections.revenue?.accounts)}
                   <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-emerald-600">
                     <span>Total Revenue</span>
-                    <span>{formatJMD(sections.revenue?.total || 0)}</span>
+                    <span>{fc(sections.revenue?.total || 0)}</span>
                   </div>
 
                   {/* COGS */}
@@ -1072,7 +1084,7 @@ export default function ReportsPage() {
                       {renderAccountRows(sections.costOfGoodsSold?.accounts)}
                       <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-red-600">
                         <span>Total COGS</span>
-                        <span>{formatJMD(sections.costOfGoodsSold?.total || 0)}</span>
+                        <span>{fc(sections.costOfGoodsSold?.total || 0)}</span>
                       </div>
                     </>
                   )}
@@ -1080,7 +1092,7 @@ export default function ReportsPage() {
                   {/* Gross Profit */}
                   <div className="flex justify-between py-3 bg-emerald-50 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Gross Profit</span>
-                    <span className="text-emerald-700">{formatJMD(sections.grossProfit?.total || 0)}</span>
+                    <span className="text-emerald-700">{fc(sections.grossProfit?.total || 0)}</span>
                   </div>
 
                   {/* Operating Expenses */}
@@ -1088,14 +1100,14 @@ export default function ReportsPage() {
                   {renderAccountRows(sections.operatingExpenses?.accounts)}
                   <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-red-600">
                     <span>Total Operating Expenses</span>
-                    <span>{formatJMD(sections.operatingExpenses?.total || 0)}</span>
+                    <span>{fc(sections.operatingExpenses?.total || 0)}</span>
                   </div>
 
                   {/* Operating Income */}
                   <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Operating Income</span>
                     <span className={sections.operatingIncome?.total >= 0 ? 'text-blue-700' : 'text-red-600'}>
-                      {formatJMD(sections.operatingIncome?.total || 0)}
+                      {fc(sections.operatingIncome?.total || 0)}
                     </span>
                   </div>
 
@@ -1106,7 +1118,7 @@ export default function ReportsPage() {
                       {renderAccountRows(sections.otherExpenses?.accounts)}
                       <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-orange-600">
                         <span>Total Other Expenses</span>
-                        <span>{formatJMD(sections.otherExpenses?.total || 0)}</span>
+                        <span>{fc(sections.otherExpenses?.total || 0)}</span>
                       </div>
                     </>
                   )}
@@ -1115,7 +1127,7 @@ export default function ReportsPage() {
                   <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
                     <span>Net Income</span>
                     <span className={sections.netIncome?.total >= 0 ? 'text-emerald-600' : 'text-red-600'}>
-                      {formatJMD(sections.netIncome?.total || 0)}
+                      {fc(sections.netIncome?.total || 0)}
                     </span>
                   </div>
                 </div>
@@ -1150,7 +1162,7 @@ export default function ReportsPage() {
           accounts?.map((a: any) => (
             <div key={a.accountNumber} className="flex justify-between py-1.5 pl-6">
               <span className="text-sm text-gray-600">{a.accountNumber} — {a.name}</span>
-              <span className="text-sm font-medium">{formatJMD(a.balance)}</span>
+              <span className="text-sm font-medium">{fc(a.balance)}</span>
             </div>
           ));
 
@@ -1167,7 +1179,7 @@ export default function ReportsPage() {
               }`}>
                 {balanceCheck.isBalanced
                   ? '✓ Balance Sheet is balanced — Assets equal Liabilities + Equity'
-                  : `✗ Balance Sheet is out of balance — Difference: ${formatJMD(Math.abs(balanceCheck.totalAssets - balanceCheck.totalLiabilitiesAndEquity))}`
+                  : `✗ Balance Sheet is out of balance — Difference: ${fc(Math.abs(balanceCheck.totalAssets - balanceCheck.totalLiabilitiesAndEquity))}`
                 }
               </div>
             )}
@@ -1187,7 +1199,7 @@ export default function ReportsPage() {
                       {renderBsAccounts(bsSections.assets.current.accounts)}
                       <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
                         <span>Total Current Assets</span>
-                        <span>{formatJMD(bsSections.assets.current.total || 0)}</span>
+                        <span>{fc(bsSections.assets.current.total || 0)}</span>
                       </div>
                     </>
                   )}
@@ -1198,14 +1210,14 @@ export default function ReportsPage() {
                       {renderBsAccounts(bsSections.assets.nonCurrent.accounts)}
                       <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
                         <span>Total Non-Current Assets</span>
-                        <span>{formatJMD(bsSections.assets.nonCurrent.total || 0)}</span>
+                        <span>{fc(bsSections.assets.nonCurrent.total || 0)}</span>
                       </div>
                     </>
                   )}
 
                   <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Total Assets</span>
-                    <span className="text-blue-700">{formatJMD(bsSections.assets?.totalAssets || 0)}</span>
+                    <span className="text-blue-700">{fc(bsSections.assets?.totalAssets || 0)}</span>
                   </div>
 
                   {/* Liabilities */}
@@ -1217,7 +1229,7 @@ export default function ReportsPage() {
                       {renderBsAccounts(bsSections.liabilities.current.accounts)}
                       <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
                         <span>Total Current Liabilities</span>
-                        <span>{formatJMD(bsSections.liabilities.current.total || 0)}</span>
+                        <span>{fc(bsSections.liabilities.current.total || 0)}</span>
                       </div>
                     </>
                   )}
@@ -1228,14 +1240,14 @@ export default function ReportsPage() {
                       {renderBsAccounts(bsSections.liabilities.nonCurrent.accounts)}
                       <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
                         <span>Total Non-Current Liabilities</span>
-                        <span>{formatJMD(bsSections.liabilities.nonCurrent.total || 0)}</span>
+                        <span>{fc(bsSections.liabilities.nonCurrent.total || 0)}</span>
                       </div>
                     </>
                   )}
 
                   <div className="flex justify-between py-3 bg-red-50 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Total Liabilities</span>
-                    <span className="text-red-700">{formatJMD(bsSections.liabilities?.totalLiabilities || 0)}</span>
+                    <span className="text-red-700">{fc(bsSections.liabilities?.totalLiabilities || 0)}</span>
                   </div>
 
                   {/* Equity */}
@@ -1244,18 +1256,18 @@ export default function ReportsPage() {
                   {bsSections.equity?.retainedEarnings !== undefined && bsSections.equity.retainedEarnings !== 0 && (
                     <div className="flex justify-between py-1.5 pl-6">
                       <span className="text-sm text-gray-600 italic">Retained Earnings (Current Period)</span>
-                      <span className="text-sm font-medium">{formatJMD(bsSections.equity.retainedEarnings)}</span>
+                      <span className="text-sm font-medium">{fc(bsSections.equity.retainedEarnings)}</span>
                     </div>
                   )}
                   <div className="flex justify-between py-3 bg-purple-50 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Total Equity</span>
-                    <span className="text-purple-700">{formatJMD(bsSections.equity?.totalEquity || 0)}</span>
+                    <span className="text-purple-700">{fc(bsSections.equity?.totalEquity || 0)}</span>
                   </div>
 
                   {/* Total L&E */}
                   <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
                     <span>Total Liabilities & Equity</span>
-                    <span className="text-gray-900">{formatJMD(bsSections.totalLiabilitiesAndEquity || 0)}</span>
+                    <span className="text-gray-900">{fc(bsSections.totalLiabilitiesAndEquity || 0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -1305,7 +1317,7 @@ export default function ReportsPage() {
               }`}>
                 {tbData.totals.isBalanced
                   ? '✓ Trial Balance is balanced — Total Debits equal Total Credits'
-                  : `✗ Trial Balance is NOT balanced — Debits: ${formatJMD(tbData.totals.totalDebits)}, Credits: ${formatJMD(tbData.totals.totalCredits)}`
+                  : `✗ Trial Balance is NOT balanced — Debits: ${fc(tbData.totals.totalDebits)}, Credits: ${fc(tbData.totals.totalCredits)}`
                 }
               </div>
             )}
@@ -1336,17 +1348,17 @@ export default function ReportsPage() {
                           <div key={a.accountNumber} className="flex justify-between py-1.5 pl-4">
                             <span className="text-sm text-gray-600 flex-1">{a.accountNumber} — {a.accountName}</span>
                             <span className="text-sm font-medium w-32 text-right">
-                              {a.debitBalance > 0 ? formatJMD(a.debitBalance) : '-'}
+                              {a.debitBalance > 0 ? fc(a.debitBalance) : '-'}
                             </span>
                             <span className="text-sm font-medium w-32 text-right">
-                              {a.creditBalance > 0 ? formatJMD(a.creditBalance) : '-'}
+                              {a.creditBalance > 0 ? fc(a.creditBalance) : '-'}
                             </span>
                           </div>
                         ))}
                         <div className="flex justify-between py-1.5 pl-4 border-t border-gray-100 font-semibold text-sm">
                           <span className="flex-1">Total {type}</span>
-                          <span className="w-32 text-right">{formatJMD(group.totalDebits)}</span>
-                          <span className="w-32 text-right">{formatJMD(group.totalCredits)}</span>
+                          <span className="w-32 text-right">{fc(group.totalDebits)}</span>
+                          <span className="w-32 text-right">{fc(group.totalCredits)}</span>
                         </div>
                       </div>
                     );
@@ -1355,8 +1367,8 @@ export default function ReportsPage() {
                   {/* Grand Total */}
                   <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
                     <span className="flex-1">Grand Total</span>
-                    <span className="w-32 text-right">{formatJMD(tbData.totals?.totalDebits || 0)}</span>
-                    <span className="w-32 text-right">{formatJMD(tbData.totals?.totalCredits || 0)}</span>
+                    <span className="w-32 text-right">{fc(tbData.totals?.totalDebits || 0)}</span>
+                    <span className="w-32 text-right">{fc(tbData.totals?.totalCredits || 0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -1422,15 +1434,15 @@ export default function ReportsPage() {
                           <div className="flex items-center gap-6 text-sm">
                             <div className="text-right">
                               <span className="text-gray-500">Debits: </span>
-                              <span className="font-medium">{formatJMD(acct.periodDebits)}</span>
+                              <span className="font-medium">{fc(acct.periodDebits)}</span>
                             </div>
                             <div className="text-right">
                               <span className="text-gray-500">Credits: </span>
-                              <span className="font-medium">{formatJMD(acct.periodCredits)}</span>
+                              <span className="font-medium">{fc(acct.periodCredits)}</span>
                             </div>
                             <div className="text-right">
                               <span className="text-gray-500">Balance: </span>
-                              <span className="font-bold">{formatJMD(acct.closingBalance)}</span>
+                              <span className="font-bold">{fc(acct.closingBalance)}</span>
                             </div>
                             <Badge variant="outline" className="text-xs">
                               {acct.transactionCount} txn{acct.transactionCount !== 1 ? 's' : ''}
@@ -1442,8 +1454,8 @@ export default function ReportsPage() {
                         {isExpanded && (
                           <div className="border-t border-gray-200 bg-gray-50 p-3">
                             <div className="flex justify-between text-xs text-gray-500 mb-2 px-2">
-                              <span>Opening Balance: <strong className="text-gray-700">{formatJMD(acct.openingBalance)}</strong></span>
-                              <span>Closing Balance: <strong className="text-gray-700">{formatJMD(acct.closingBalance)}</strong></span>
+                              <span>Opening Balance: <strong className="text-gray-700">{fc(acct.openingBalance)}</strong></span>
+                              <span>Closing Balance: <strong className="text-gray-700">{fc(acct.closingBalance)}</strong></span>
                             </div>
                             {acct.transactions?.length > 0 ? (
                               <div className="bg-white rounded border border-gray-200 overflow-hidden">
@@ -1465,12 +1477,12 @@ export default function ReportsPage() {
                                         <td className="py-1.5 px-3 text-gray-600">{txn.entryNumber || '-'}</td>
                                         <td className="py-1.5 px-3 text-gray-700">{txn.description || '-'}</td>
                                         <td className="py-1.5 px-3 text-right font-medium">
-                                          {txn.debit > 0 ? formatJMD(txn.debit) : '-'}
+                                          {txn.debit > 0 ? fc(txn.debit) : '-'}
                                         </td>
                                         <td className="py-1.5 px-3 text-right font-medium">
-                                          {txn.credit > 0 ? formatJMD(txn.credit) : '-'}
+                                          {txn.credit > 0 ? fc(txn.credit) : '-'}
                                         </td>
-                                        <td className="py-1.5 px-3 text-right font-bold">{formatJMD(txn.balance)}</td>
+                                        <td className="py-1.5 px-3 text-right font-bold">{fc(txn.balance)}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -1516,7 +1528,7 @@ export default function ReportsPage() {
           <div key={description} className="flex justify-between py-1.5 pl-6">
             <span className="text-sm text-gray-600">{description}</span>
             <span className={`text-sm font-medium ${amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {amount < 0 ? `(${formatJMD(Math.abs(amount))})` : formatJMD(amount)}
+              {amount < 0 ? `(${fc(Math.abs(amount))})` : fc(amount)}
             </span>
           </div>
         );
@@ -1537,8 +1549,8 @@ export default function ReportsPage() {
                     <span>Net Cash from Operations</span>
                     <span className={cfData.operating?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
                       {cfData.operating?.total < 0
-                        ? `(${formatJMD(Math.abs(cfData.operating?.total || 0))})`
-                        : formatJMD(cfData.operating?.total || 0)}
+                        ? `(${fc(Math.abs(cfData.operating?.total || 0))})`
+                        : fc(cfData.operating?.total || 0)}
                     </span>
                   </div>
 
@@ -1549,8 +1561,8 @@ export default function ReportsPage() {
                     <span>Net Cash from Investing</span>
                     <span className={cfData.investing?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
                       {cfData.investing?.total < 0
-                        ? `(${formatJMD(Math.abs(cfData.investing?.total || 0))})`
-                        : formatJMD(cfData.investing?.total || 0)}
+                        ? `(${fc(Math.abs(cfData.investing?.total || 0))})`
+                        : fc(cfData.investing?.total || 0)}
                     </span>
                   </div>
 
@@ -1561,8 +1573,8 @@ export default function ReportsPage() {
                     <span>Net Cash from Financing</span>
                     <span className={cfData.financing?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
                       {cfData.financing?.total < 0
-                        ? `(${formatJMD(Math.abs(cfData.financing?.total || 0))})`
-                        : formatJMD(cfData.financing?.total || 0)}
+                        ? `(${fc(Math.abs(cfData.financing?.total || 0))})`
+                        : fc(cfData.financing?.total || 0)}
                     </span>
                   </div>
 
@@ -1572,17 +1584,17 @@ export default function ReportsPage() {
                       <span>Net Cash Change</span>
                       <span className={cfData.summary?.netCashChange >= 0 ? 'text-emerald-600' : 'text-red-600'}>
                         {cfData.summary?.netCashChange < 0
-                          ? `(${formatJMD(Math.abs(cfData.summary?.netCashChange || 0))})`
-                          : formatJMD(cfData.summary?.netCashChange || 0)}
+                          ? `(${fc(Math.abs(cfData.summary?.netCashChange || 0))})`
+                          : fc(cfData.summary?.netCashChange || 0)}
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-4 -mx-4">
                       <span className="text-sm text-gray-600">Opening Cash Balance</span>
-                      <span className="text-sm font-medium">{formatJMD(cfData.summary?.openingCash || 0)}</span>
+                      <span className="text-sm font-medium">{fc(cfData.summary?.openingCash || 0)}</span>
                     </div>
                     <div className="flex justify-between py-4 bg-emerald-50 -mx-4 px-4 rounded-lg font-bold text-lg">
                       <span>Closing Cash Balance</span>
-                      <span className="text-emerald-700">{formatJMD(cfData.summary?.closingCash || 0)}</span>
+                      <span className="text-emerald-700">{fc(cfData.summary?.closingCash || 0)}</span>
                     </div>
                   </div>
                 </div>
@@ -1638,7 +1650,7 @@ export default function ReportsPage() {
                   <CardContent className="p-3">
                     <p className="text-xs text-gray-500">{bucket.label}</p>
                     <p className={`text-lg font-bold ${bucketColors[bucket.colorIdx].split(' ')[1]}`}>
-                      {formatJMD(bucket.value)}
+                      {fc(bucket.value)}
                     </p>
                   </CardContent>
                 </Card>
@@ -1674,24 +1686,24 @@ export default function ReportsPage() {
                         {arData.customers.map((c: any, idx: number) => (
                           <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="py-2 px-3 font-medium text-gray-900">{c.customerName}</td>
-                            <td className="py-2 px-3 text-right">{c.current > 0 ? formatJMD(c.current) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-yellow-50">{c.days1to30 > 0 ? formatJMD(c.days1to30) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-orange-50">{c.days31to60 > 0 ? formatJMD(c.days31to60) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-red-50">{c.days61to90 > 0 ? formatJMD(c.days61to90) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-red-100">{c.days90plus > 0 ? formatJMD(c.days90plus) : '-'}</td>
-                            <td className="py-2 px-3 text-right font-bold">{formatJMD(c.total)}</td>
+                            <td className="py-2 px-3 text-right">{c.current > 0 ? fc(c.current) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-yellow-50">{c.days1to30 > 0 ? fc(c.days1to30) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-orange-50">{c.days31to60 > 0 ? fc(c.days31to60) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-50">{c.days61to90 > 0 ? fc(c.days61to90) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-100">{c.days90plus > 0 ? fc(c.days90plus) : '-'}</td>
+                            <td className="py-2 px-3 text-right font-bold">{fc(c.total)}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
                           <td className="py-2 px-3">Total</td>
-                          <td className="py-2 px-3 text-right">{formatJMD(arData.totals?.current || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-yellow-50">{formatJMD(arData.totals?.days1to30 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-orange-50">{formatJMD(arData.totals?.days31to60 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-red-50">{formatJMD(arData.totals?.days61to90 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-red-100">{formatJMD(arData.totals?.days90plus || 0)}</td>
-                          <td className="py-2 px-3 text-right">{formatJMD(arData.totals?.total || 0)}</td>
+                          <td className="py-2 px-3 text-right">{fc(arData.totals?.current || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-yellow-50">{fc(arData.totals?.days1to30 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-orange-50">{fc(arData.totals?.days31to60 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-50">{fc(arData.totals?.days61to90 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-100">{fc(arData.totals?.days90plus || 0)}</td>
+                          <td className="py-2 px-3 text-right">{fc(arData.totals?.total || 0)}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1751,7 +1763,7 @@ export default function ReportsPage() {
                   <CardContent className="p-3">
                     <p className="text-xs text-gray-500">{bucket.label}</p>
                     <p className={`text-lg font-bold ${apBucketColors[bucket.colorIdx].split(' ')[1]}`}>
-                      {formatJMD(bucket.value)}
+                      {fc(bucket.value)}
                     </p>
                   </CardContent>
                 </Card>
@@ -1787,24 +1799,24 @@ export default function ReportsPage() {
                         {apData.vendors.map((v: any, idx: number) => (
                           <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="py-2 px-3 font-medium text-gray-900">{v.vendorName}</td>
-                            <td className="py-2 px-3 text-right">{v.current > 0 ? formatJMD(v.current) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-yellow-50">{v.days1to30 > 0 ? formatJMD(v.days1to30) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-orange-50">{v.days31to60 > 0 ? formatJMD(v.days31to60) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-red-50">{v.days61to90 > 0 ? formatJMD(v.days61to90) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-red-100">{v.days90plus > 0 ? formatJMD(v.days90plus) : '-'}</td>
-                            <td className="py-2 px-3 text-right font-bold">{formatJMD(v.total)}</td>
+                            <td className="py-2 px-3 text-right">{v.current > 0 ? fc(v.current) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-yellow-50">{v.days1to30 > 0 ? fc(v.days1to30) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-orange-50">{v.days31to60 > 0 ? fc(v.days31to60) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-50">{v.days61to90 > 0 ? fc(v.days61to90) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-100">{v.days90plus > 0 ? fc(v.days90plus) : '-'}</td>
+                            <td className="py-2 px-3 text-right font-bold">{fc(v.total)}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
                           <td className="py-2 px-3">Total</td>
-                          <td className="py-2 px-3 text-right">{formatJMD(apData.totals?.current || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-yellow-50">{formatJMD(apData.totals?.days1to30 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-orange-50">{formatJMD(apData.totals?.days31to60 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-red-50">{formatJMD(apData.totals?.days61to90 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-red-100">{formatJMD(apData.totals?.days90plus || 0)}</td>
-                          <td className="py-2 px-3 text-right">{formatJMD(apData.totals?.total || 0)}</td>
+                          <td className="py-2 px-3 text-right">{fc(apData.totals?.current || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-yellow-50">{fc(apData.totals?.days1to30 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-orange-50">{fc(apData.totals?.days31to60 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-50">{fc(apData.totals?.days61to90 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-100">{fc(apData.totals?.days90plus || 0)}</td>
+                          <td className="py-2 px-3 text-right">{fc(apData.totals?.total || 0)}</td>
                         </tr>
                       </tfoot>
                     </table>

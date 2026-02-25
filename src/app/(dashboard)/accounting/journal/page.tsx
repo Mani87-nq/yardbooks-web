@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD, formatDate, formatDateTime } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useJournalEntries,
   useGLAccounts,
@@ -23,9 +24,11 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ArrowLeftIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 export default function JournalEntriesPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -327,6 +330,11 @@ export default function JournalEntriesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -395,8 +403,8 @@ export default function JournalEntriesPage() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{formatJMD(entry.totalDebits)}</TableCell>
-                  <TableCell className="font-medium">{formatJMD(entry.totalCredits)}</TableCell>
+                  <TableCell className="font-medium">{fc(entry.totalDebits)}</TableCell>
+                  <TableCell className="font-medium">{fc(entry.totalCredits)}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -543,14 +551,14 @@ export default function JournalEntriesPage() {
                     ))}
                     <tr className="bg-gray-50 font-medium">
                       <td className="px-3 py-2 text-right">Totals:</td>
-                      <td className="px-3 py-2 text-right">{formatJMD(totalDebits)}</td>
-                      <td className="px-3 py-2 text-right">{formatJMD(totalCredits)}</td>
+                      <td className="px-3 py-2 text-right">{fc(totalDebits)}</td>
+                      <td className="px-3 py-2 text-right">{fc(totalCredits)}</td>
                       <td className="px-3 py-2" colSpan={2}>
                         {isBalanced ? (
                           <span className="text-emerald-600 text-sm">Balanced</span>
                         ) : (
                           <span className="text-red-600 text-sm">
-                            Out of balance by {formatJMD(Math.abs(totalDebits - totalCredits))}
+                            Out of balance by {fc(Math.abs(totalDebits - totalCredits))}
                           </span>
                         )}
                       </td>

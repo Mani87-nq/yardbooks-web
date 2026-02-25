@@ -6,7 +6,6 @@ import { useAppStore } from '@/store/appStore';
 import api, { setAccessToken } from '@/lib/api-client';
 import {
   Bars3Icon,
-  MagnifyingGlassIcon,
   UserCircleIcon,
   BuildingOfficeIcon,
   ChevronDownIcon,
@@ -16,6 +15,7 @@ import {
   UserIcon,
 } from '@heroicons/react/24/outline';
 import { NotificationBell } from './NotificationBell';
+import { GlobalSearch } from './GlobalSearch';
 
 export function Header() {
   const router = useRouter();
@@ -136,17 +136,8 @@ export function Header() {
           </div>
         )}
 
-        {/* Search */}
-        <div className="hidden sm:flex items-center">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search invoices, customers, products..."
-              className="w-64 lg:w-96 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-        </div>
+        {/* Global Search */}
+        <GlobalSearch />
       </div>
 
       {/* Right side */}
@@ -161,11 +152,19 @@ export function Header() {
 
         {/* User Menu with Dropdown */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setShowUserDropdown(!showUserDropdown)}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100"
           >
-            <UserCircleIcon className="h-8 w-8 text-gray-400" />
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={`${user.firstName} ${user.lastName}`}
+                className="h-8 w-8 rounded-full object-cover ring-2 ring-emerald-100"
+              />
+            ) : (
+              <UserCircleIcon className="h-8 w-8 text-gray-400" />
+            )}
             <div className="hidden lg:block text-left">
               <div className="text-sm font-medium text-gray-900">
                 {user?.firstName} {user?.lastName}

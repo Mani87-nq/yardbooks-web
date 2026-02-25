@@ -9,7 +9,8 @@ import {
   apiStatusToFrontend,
   type ApiPosOrder,
 } from '@/hooks/api/usePos';
-import { formatJMD, formatDateTime } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   ArrowLeftIcon,
   PlayIcon,
@@ -20,6 +21,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function POSHeldOrdersPage() {
+  const { fc } = useCurrency();
   const { data: heldOrdersData, isLoading, error, refetch } = usePosOrders({ status: 'HELD', limit: 50 });
   const voidOrderMutation = useVoidPosOrder();
   const [voidingId, setVoidingId] = useState<string | null>(null);
@@ -161,7 +163,7 @@ export default function POSHeldOrdersPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Total</span>
-                    <span className="font-bold text-emerald-600">{formatJMD(Number(order.total))}</span>
+                    <span className="font-bold text-emerald-600">{fc(Number(order.total))}</span>
                   </div>
                   <div className="text-xs text-gray-400">
                     Held: {formatDateTime(order.updatedAt)}

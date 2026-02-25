@@ -13,6 +13,7 @@ export interface User {
   role?: 'admin' | 'user' | 'staff';
   biometricEnabled?: boolean;
   activeCompanyId?: string;
+  avatarUrl?: string;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -568,7 +569,7 @@ export interface DashboardWidgets {
 export interface AppSettings {
   theme: 'light' | 'dark' | 'system';
   language: 'english' | 'patois' | 'bilingual';
-  currency: 'JMD' | 'USD';
+  currency: string; // ISO 4217 — 'JMD' | 'USD' | 'GBP' | 'CAD' | 'EUR' | etc.
   dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   invoicePrefix: string;
   quotationPrefix: string;

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD, formatDate, formatDateTime } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useBankAccounts,
   useCreateBankAccount,
@@ -24,6 +25,7 @@ import {
   BuildingLibraryIcon,
   CheckCircleIcon,
   ClockIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 const TRANSACTION_TYPES = [
@@ -52,6 +54,7 @@ const JAMAICA_BANKS = [
 ];
 
 export default function BankingPage() {
+  const { fc } = useCurrency();
   const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'reconciliation'>('accounts');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -114,17 +117,22 @@ export default function BankingPage() {
   });
 
   const filteredAccounts = bankAccounts.filter((account) => {
+    const lowerQuery = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
-      account.accountName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      account.bankName.toLowerCase().includes(searchQuery.toLowerCase());
+      account.accountName.toLowerCase().includes(lowerQuery) ||
+      account.bankName.toLowerCase().includes(lowerQuery) ||
+      account.accountNumber?.toLowerCase().includes(lowerQuery);
     return matchesSearch;
   });
 
   const filteredTransactions = bankTransactions
     .filter((txn) => {
+      const lowerQuery = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery ||
-        txn.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        txn.reference?.toLowerCase().includes(searchQuery.toLowerCase());
+        txn.description.toLowerCase().includes(lowerQuery) ||
+        txn.reference?.toLowerCase().includes(lowerQuery) ||
+        (txn as any).category?.toLowerCase().includes(lowerQuery) ||
+        txn.amount.toString().includes(searchQuery);
       const matchesAccount = !selectedAccount || txn.bankAccountId === selectedAccount.id;
       return matchesSearch && matchesAccount;
     })
@@ -343,7 +351,7 @@ export default function BankingPage() {
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Balance</p>
-            <p className="text-2xl font-bold text-emerald-600">{formatJMD(totalBalance)}</p>
+            <p className="text-2xl font-bold text-emerald-600">{fc(totalBalance)}</p>
           </div>
         </Card>
         <Card>
@@ -377,6 +385,11 @@ export default function BankingPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+              rightIcon={searchQuery ? (
+                <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              ) : undefined}
             />
           </div>
 
@@ -421,7 +434,7 @@ export default function BankingPage() {
                       <div className="flex justify-between">
                         <span className="text-gray-500">Balance</span>
                         <span className={`text-xl font-bold ${account.currentBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {formatJMD(account.currentBalance)}
+                          {fc(account.currentBalance)}
                         </span>
                       </div>
                     </div>
@@ -474,6 +487,11 @@ export default function BankingPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+                rightIcon={searchQuery ? (
+                  <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                ) : undefined}
               />
             </div>
             <select
@@ -537,10 +555,10 @@ export default function BankingPage() {
                         <TableCell className={`font-medium ${
                           isDeposit ? 'text-emerald-600' : 'text-red-600'
                         }`}>
-                          {isDeposit ? '+' : ''}{formatJMD(txn.amount)}
+                          {isDeposit ? '+' : ''}{fc(txn.amount)}
                         </TableCell>
                         <TableCell className="font-medium">
-                          {txn.balance !== undefined ? formatJMD(txn.balance) : '-'}
+                          {txn.balance !== undefined ? fc(txn.balance) : '-'}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -570,7 +588,7 @@ export default function BankingPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Book Balance</span>
-                    <span className="font-medium">{formatJMD(account.currentBalance)}</span>
+                    <span className="font-medium">{fc(account.currentBalance)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Last Synced</span>
@@ -782,13 +800,13 @@ export default function BankingPage() {
                 <div>
                   <p className="text-gray-500">Book Balance</p>
                   <p className="text-lg font-bold">
-                    {formatJMD(bankAccounts.find(a => a.id === reconcileForm.accountId)?.currentBalance || 0)}
+                    {fc(bankAccounts.find(a => a.id === reconcileForm.accountId)?.currentBalance || 0)}
                   </p>
                 </div>
                 <div>
                   <p className="text-gray-500">Statement Balance</p>
                   <p className="text-lg font-bold">
-                    {formatJMD(parseFloat(reconcileForm.statementBalance) || 0)}
+                    {fc(parseFloat(reconcileForm.statementBalance) || 0)}
                   </p>
                 </div>
               </div>

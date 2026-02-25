@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Select, Textarea } from '@/components/ui';
 import { useActiveCustomers, useActiveProducts } from '@/store/appStore';
-import { formatJMD, GCT_RATES } from '@/lib/utils';
+import { GCT_RATES } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useInvoice, useUpdateInvoice } from '@/hooks/api/useInvoices';
 import { v4 as uuidv4 } from 'uuid';
 import type { InvoiceItem, GCTRate, InvoiceStatus } from '@/types';
@@ -20,6 +21,7 @@ interface PageProps {
 }
 
 export default function EditInvoicePage({ params }: PageProps) {
+  const { fc } = useCurrency();
   const { id } = use(params);
   const router = useRouter();
   const { data: invoice, isLoading: isFetchingInvoice } = useInvoice(id);
@@ -357,7 +359,7 @@ export default function EditInvoicePage({ params }: PageProps) {
                   />
                 </div>
                 <div className="col-span-1 text-right font-medium">
-                  {formatJMD(item.total || 0)}
+                  {fc(item.total || 0)}
                 </div>
                 <div className="col-span-1 text-right">
                   <Button
@@ -450,32 +452,32 @@ export default function EditInvoicePage({ params }: PageProps) {
           <CardContent className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Subtotal</span>
-              <span className="font-medium">{formatJMD(subtotal)}</span>
+              <span className="font-medium">{fc(subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">GCT</span>
-              <span className="font-medium">{formatJMD(gctAmount)}</span>
+              <span className="font-medium">{fc(gctAmount)}</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Discount</span>
-                <span className="font-medium text-red-600">-{formatJMD(discountAmount)}</span>
+                <span className="font-medium text-red-600">-{fc(discountAmount)}</span>
               </div>
             )}
             <div className="flex justify-between pt-3 border-t border-gray-100">
               <span className="font-semibold">Total</span>
-              <span className="text-xl font-bold text-emerald-600">{formatJMD(total)}</span>
+              <span className="text-xl font-bold text-emerald-600">{fc(total)}</span>
             </div>
             {Number(invoice.amountPaid) > 0 && (
               <>
                 <div className="flex justify-between pt-2">
                   <span className="text-gray-500">Amount Paid</span>
-                  <span className="font-medium text-emerald-600">-{formatJMD(Number(invoice.amountPaid))}</span>
+                  <span className="font-medium text-emerald-600">-{fc(Number(invoice.amountPaid))}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Balance Due</span>
                   <span className="text-lg font-bold text-orange-600">
-                    {formatJMD(Math.max(total - Number(invoice.amountPaid), 0))}
+                    {fc(Math.max(total - Number(invoice.amountPaid), 0))}
                   </span>
                 </div>
               </>

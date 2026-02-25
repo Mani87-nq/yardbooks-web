@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useCustomers,
   useCreateCustomer,
@@ -20,6 +20,7 @@ import {
   ArrowPathIcon,
   ExclamationCircleIcon,
   EyeIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 
@@ -37,6 +38,7 @@ interface CustomerAPI {
 }
 
 export default function CustomersPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
@@ -213,6 +215,11 @@ export default function CustomersPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2">
@@ -300,7 +307,7 @@ export default function CustomersPage() {
                   </TableCell>
                   <TableCell className="text-gray-500">{customer.trnNumber || '-'}</TableCell>
                   <TableCell className={customer.balance > 0 ? 'text-orange-600 font-medium' : 'text-gray-500'}>
-                    {formatJMD(customer.balance)}
+                    {fc(customer.balance)}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">

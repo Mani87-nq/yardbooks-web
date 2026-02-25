@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, Button, Input, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Modal, ModalBody, ModalFooter } from '@/components/ui';
-import { formatJMD } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   useProducts,
   useCreateProduct,
@@ -20,6 +20,7 @@ import {
   QrCodeIcon,
   TagIcon,
   ExclamationCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { PermissionGate } from '@/components/PermissionGate';
 
@@ -44,6 +45,7 @@ interface ProductAPI {
 }
 
 export default function InventoryPage() {
+  const { fc } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
@@ -271,7 +273,7 @@ export default function InventoryPage() {
         <Card>
           <div className="p-4">
             <p className="text-sm text-gray-500">Total Value</p>
-            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : formatJMD(stats.totalValue)}</p>
+            <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(stats.totalValue)}</p>
           </div>
         </Card>
       </div>
@@ -284,6 +286,11 @@ export default function InventoryPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+            rightIcon={searchQuery ? (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            ) : undefined}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -379,10 +386,10 @@ export default function InventoryPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-gray-500">{product.category || '-'}</TableCell>
-                    <TableCell className="font-medium">{formatJMD(product.unitPrice)}</TableCell>
+                    <TableCell className="font-medium">{fc(product.unitPrice)}</TableCell>
                     {showCostOfGoods && (
                       <TableCell className="text-gray-500">
-                        {product.costPrice ? formatJMD(product.costPrice) : '-'}
+                        {product.costPrice ? fc(product.costPrice) : '-'}
                       </TableCell>
                     )}
                     {showCostOfGoods && (

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { api } from '@/lib/api-client';
-import { formatJMD, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import {
   ArrowDownTrayIcon,
   PrinterIcon,
@@ -18,6 +18,7 @@ import {
   MagnifyingGlassIcon,
   DocumentTextIcon,
   ShieldCheckIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { printContent, generateTable, formatPrintCurrency, downloadAsCSV } from '@/lib/print';
 
@@ -701,6 +702,11 @@ export default function AuditTrailPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={<MagnifyingGlassIcon className="w-4 h-4" />}
+                rightIcon={searchQuery ? (
+                  <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                ) : undefined}
               />
             </div>
 
