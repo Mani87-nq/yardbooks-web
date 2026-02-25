@@ -106,7 +106,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           },
         },
         company: {
-          select: { businessName: true, tradingName: true, currency: true },
+          select: { businessName: true, tradingName: true, currency: true, email: true, logoUrl: true },
         },
       },
     });
@@ -147,13 +147,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         const payslipHtml = generatePayslipHtml(payslipData);
 
-        // Build email using the payslip template
+        // Build email using the payslip template with tenant branding
         const email = payslipEmail({
           employeeName: `${employee.firstName} ${employee.lastName}`,
           payPeriod: payslipData.payPeriod,
           netPay: payslipData.netPay,
           currency,
           companyName,
+          companyLogoUrl: payrollRun.company.logoUrl || undefined,
         });
 
         // Send email with the payslip HTML as an attachment
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           subject: email.subject,
           html: email.html,
           text: email.text,
+          replyTo: payrollRun.company.email || undefined,
           attachments: [
             {
               filename: `Payslip-${employee.firstName}-${employee.lastName}.html`,

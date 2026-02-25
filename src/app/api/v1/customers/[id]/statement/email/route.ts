@@ -58,6 +58,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         businessName: true,
         tradingName: true,
         currency: true,
+        email: true,
+        logoUrl: true,
       },
     });
     const companyName = company?.tradingName || company?.businessName || 'YaadBooks';
@@ -121,6 +123,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const emailContent = customerStatementEmail({
       customerName: customer.name,
       companyName,
+      companyLogoUrl: company?.logoUrl || undefined,
       periodStart,
       periodEnd,
       openingBalance,
@@ -136,7 +139,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       subject: emailContent.subject,
       html: emailContent.html,
       text: emailContent.text,
-      replyTo: user!.email,
+      replyTo: company?.email || user!.email,
     });
 
     if (!result.success) {

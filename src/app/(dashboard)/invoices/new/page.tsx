@@ -247,7 +247,7 @@ export default function NewInvoicePage() {
     setIsSending(true);
     try {
       await api.post(`/api/v1/invoices/${createdInvoiceId}/send`, {
-        recipientEmail: sendEmail,
+        to: sendEmail,
         subject: `Invoice from ${activeCompany?.businessName || 'YaadBooks'}`,
         message: sendMessage,
       });

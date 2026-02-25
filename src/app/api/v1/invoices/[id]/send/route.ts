@@ -31,7 +31,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       where: { id, companyId: companyId!, deletedAt: null },
       include: {
         customer: { select: { id: true, name: true, email: true } },
-        company: { select: { businessName: true, tradingName: true, currency: true } },
+        company: { select: { businessName: true, tradingName: true, currency: true, email: true, logoUrl: true } },
       },
     });
 
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const companyName = invoice.company.tradingName || invoice.company.businessName;
     const currency = invoice.company.currency || 'JMD';
 
-    // Build email using the existing invoiceEmail template
+    // Build email using the invoiceEmail template with tenant branding
     const emailContent = invoiceEmail({
       customerName: invoice.customer?.name || 'Valued Customer',
       invoiceNumber: invoice.invoiceNumber,
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       currency,
       dueDate: invoice.dueDate.toLocaleDateString('en-JM', { year: 'numeric', month: 'long', day: 'numeric' }),
       companyName,
+      companyLogoUrl: invoice.company.logoUrl || undefined,
     });
 
     const result = await sendEmail({
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       subject: subject || emailContent.subject,
       html: emailContent.html,
       text: emailContent.text,
-      replyTo: user!.email,
+      replyTo: invoice.company.email || user!.email,
     });
 
     if (!result.success) {
