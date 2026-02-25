@@ -1,6 +1,11 @@
 /**
  * Email templates for YaadBooks.
  *
+ * Multi-tenant design:
+ *   - Tenant emails show the tenant's company name prominently + "via YaadBooks"
+ *   - Platform emails (auth, security) show YaadBooks branding
+ *   - All emails use emerald (#059669) brand color to match the app
+ *
  * Each template function returns { subject, html, text } suitable for
  * passing directly to sendEmail(). Templates use inline styles for
  * maximum email client compatibility.
@@ -8,12 +13,37 @@
 
 // ─── Shared layout helpers ───────────────────────────────────────────
 
-const BRAND_COLOR = '#1976D2';
+const BRAND_COLOR = '#059669';
+const BRAND_DARK = '#047857';
 const ACCENT_COLOR = '#FF9800';
-const TEXT_COLOR = '#333333';
-const MUTED_COLOR = '#666666';
+const TEXT_COLOR = '#1f2937';
+const MUTED_COLOR = '#6b7280';
 
-function layout(title: string, body: string): string {
+/** Options for the shared email layout wrapper. */
+interface LayoutOptions {
+  /** The tenant's business name — displayed prominently in header. Omit for platform emails. */
+  companyName?: string;
+  /** Data-URL or HTTPS URL of the tenant's logo. */
+  companyLogoUrl?: string;
+}
+
+/**
+ * Wrap email body in the standard YaadBooks layout.
+ * When `companyName` is provided (tenant emails), the header shows the
+ * business name with "via YaadBooks" subtitle. Otherwise, it shows plain
+ * "YaadBooks" branding (platform emails like auth, security).
+ */
+function layout(title: string, body: string, opts: LayoutOptions = {}): string {
+  const { companyName, companyLogoUrl } = opts;
+
+  const logoHtml = companyLogoUrl
+    ? `<img src="${escapeHtml(companyLogoUrl)}" alt="${escapeHtml(companyName || '')}" style="max-height:48px;max-width:160px;margin-bottom:8px;border-radius:4px;" /><br />`
+    : '';
+
+  const headerContent = companyName
+    ? `${logoHtml}<span style="font-size:22px;font-weight:700;color:#ffffff;">${escapeHtml(companyName)}</span><br /><span style="font-size:12px;color:rgba(255,255,255,0.8);font-weight:400;">via YaadBooks</span>`
+    : `<span style="font-size:22px;font-weight:700;color:#ffffff;">YaadBooks</span>`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,8 +58,8 @@ function layout(title: string, body: string): string {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <!-- Header -->
           <tr>
-            <td style="background-color:${BRAND_COLOR};padding:24px 32px;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">YaadBooks</h1>
+            <td style="background:linear-gradient(135deg, ${BRAND_COLOR} 0%, ${BRAND_DARK} 100%);padding:24px 32px;text-align:center;">
+              ${headerContent}
             </td>
           </tr>
           <!-- Body -->
@@ -42,7 +72,10 @@ function layout(title: string, body: string): string {
           <tr>
             <td style="padding:16px 32px;background-color:#f9fafb;border-top:1px solid #e5e7eb;">
               <p style="margin:0;font-size:12px;color:${MUTED_COLOR};text-align:center;">
-                &copy; ${new Date().getFullYear()} YaadBooks &mdash; Jamaica-First Accounting
+                Sent via <a href="https://yaadbooks.com" style="color:${BRAND_COLOR};text-decoration:none;font-weight:600;">YaadBooks</a> &mdash; Jamaica-First Accounting
+              </p>
+              <p style="margin:4px 0 0 0;font-size:11px;color:#9ca3af;text-align:center;">
+                &copy; ${new Date().getFullYear()} YaadBooks. All rights reserved.
               </p>
             </td>
           </tr>
@@ -73,7 +106,7 @@ function button(text: string, url: string): string {
 }
 
 function formatCurrency(amount: string | number, currency: string): string {
-  const symbol = currency === 'USD' ? 'US$' : 'J$';
+  const symbol = currency === 'USD' ? 'US$' : currency === 'GBP' ? '\u00a3' : currency === 'EUR' ? '\u20ac' : currency === 'CAD' ? 'CA$' : 'J$';
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
   return `${symbol}${num.toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -87,11 +120,12 @@ export interface InvoiceEmailParams {
   currency: string;
   dueDate: string;
   companyName: string;
+  companyLogoUrl?: string;
   viewUrl?: string;
 }
 
 export function invoiceEmail(params: InvoiceEmailParams) {
-  const { customerName, invoiceNumber, amount, currency, dueDate, companyName, viewUrl } = params;
+  const { customerName, invoiceNumber, amount, currency, dueDate, companyName, companyLogoUrl, viewUrl } = params;
   const formattedAmount = formatCurrency(amount, currency);
 
   const subject = `Invoice ${invoiceNumber} from ${companyName}`;
@@ -129,9 +163,11 @@ export function invoiceEmail(params: InvoiceEmailParams) {
     viewUrl ? `View Invoice: ${viewUrl}` : '',
     '',
     `If you have any questions, please contact ${companyName} directly.`,
+    '',
+    `Sent via YaadBooks (https://yaadbooks.com)`,
   ].join('\n');
 
-  return { subject, html: layout(subject, body), text };
+  return { subject, html: layout(subject, body, { companyName, companyLogoUrl }), text };
 }
 
 // ─── Template: Payment Reminder ──────────────────────────────────────
@@ -144,11 +180,12 @@ export interface PaymentReminderEmailParams {
   dueDate: string;
   daysOverdue: number;
   companyName: string;
+  companyLogoUrl?: string;
   severity: 'mild' | 'moderate' | 'severe';
 }
 
 export function paymentReminderEmail(params: PaymentReminderEmailParams) {
-  const { customerName, invoiceNumber, amount, currency, dueDate, daysOverdue, companyName, severity } = params;
+  const { customerName, invoiceNumber, amount, currency, dueDate, daysOverdue, companyName, companyLogoUrl, severity } = params;
   const formattedAmount = formatCurrency(amount, currency);
 
   const severityConfig = {
@@ -218,9 +255,11 @@ export function paymentReminderEmail(params: PaymentReminderEmailParams) {
     '',
     `Regards,`,
     companyName,
+    '',
+    `Sent via YaadBooks (https://yaadbooks.com)`,
   ].join('\n');
 
-  return { subject: config.subject, html: layout(config.subject, body), text };
+  return { subject: config.subject, html: layout(config.subject, body, { companyName, companyLogoUrl }), text };
 }
 
 // ─── Template: Payslip ───────────────────────────────────────────────
@@ -231,10 +270,11 @@ export interface PayslipEmailParams {
   netPay: string | number;
   currency: string;
   companyName: string;
+  companyLogoUrl?: string;
 }
 
 export function payslipEmail(params: PayslipEmailParams) {
-  const { employeeName, payPeriod, netPay, currency, companyName } = params;
+  const { employeeName, payPeriod, netPay, currency, companyName, companyLogoUrl } = params;
   const formattedPay = formatCurrency(netPay, currency);
 
   const subject = `Your Payslip for ${payPeriod} - ${companyName}`;
@@ -242,11 +282,11 @@ export function payslipEmail(params: PayslipEmailParams) {
   const body = `
     <p>Dear ${escapeHtml(employeeName)},</p>
     <p>Your payslip for the period <strong>${escapeHtml(payPeriod)}</strong> is now available.</p>
-    <div style="background-color:#f0f7ff;border:1px solid #bbdefb;border-radius:6px;padding:20px;margin:20px 0;text-align:center;">
+    <div style="background-color:#f0fdf4;border:1px solid #a7f3d0;border-radius:6px;padding:20px;margin:20px 0;text-align:center;">
       <p style="margin:0 0 4px 0;font-size:13px;color:${MUTED_COLOR};">Net Pay</p>
       <p style="margin:0;font-size:28px;font-weight:700;color:${BRAND_COLOR};">${formattedPay}</p>
     </div>
-    <p>Please log in to your YaadBooks account to view the full breakdown of your earnings and deductions.</p>
+    <p>Please log in to view the full breakdown of your earnings and deductions.</p>
     <p style="color:${MUTED_COLOR};font-size:13px;">If you have any questions about your payslip, please contact your employer.</p>
     <p>Regards,<br />${escapeHtml(companyName)}</p>
   `;
@@ -258,15 +298,17 @@ export function payslipEmail(params: PayslipEmailParams) {
     '',
     `Net Pay: ${formattedPay}`,
     '',
-    'Please log in to your YaadBooks account to view the full breakdown of your earnings and deductions.',
+    'Please log in to view the full breakdown of your earnings and deductions.',
     '',
     'If you have any questions about your payslip, please contact your employer.',
     '',
     `Regards,`,
     companyName,
+    '',
+    `Sent via YaadBooks (https://yaadbooks.com)`,
   ].join('\n');
 
-  return { subject, html: layout(subject, body), text };
+  return { subject, html: layout(subject, body, { companyName, companyLogoUrl }), text };
 }
 
 // ─── Template: Security Alert ────────────────────────────────────────
@@ -327,6 +369,7 @@ export function securityAlertEmail(params: SecurityAlertEmailParams) {
     'If this was you, no action is needed. If you did not perform this action, please secure your account immediately by changing your password and enabling two-factor authentication.',
   ].filter(Boolean).join('\n');
 
+  // Platform email — no tenant branding
   return { subject, html: layout(subject, body), text };
 }
 
@@ -378,6 +421,7 @@ export function welcomeEmail(params: WelcomeEmailParams) {
     'The YaadBooks Team',
   ].join('\n');
 
+  // Platform email — no tenant branding
   return { subject, html: layout(subject, body), text };
 }
 
@@ -412,6 +456,7 @@ export function emailVerificationEmail(params: EmailVerificationParams) {
     'Regards,',
     'The YaadBooks Team',
   ].join('\n');
+  // Platform email — no tenant branding
   return { subject, html: layout(subject, body), text };
 }
 
@@ -451,6 +496,7 @@ export function passwordResetEmail(params: PasswordResetEmailParams) {
     'If you did not request a password reset, you can safely ignore this email - your password will not be changed.',
   ].join('\n');
 
+  // Platform email — no tenant branding
   return { subject, html: layout(subject, body), text };
 }
 
@@ -458,13 +504,14 @@ export function passwordResetEmail(params: PasswordResetEmailParams) {
 
 export interface TaxDeadlineEmailParams {
   companyName: string;
+  companyLogoUrl?: string;
   deadlineName: string;
   dueDate: string;
   daysUntilDue: number;
 }
 
 export function taxDeadlineEmail(params: TaxDeadlineEmailParams) {
-  const { companyName, deadlineName, dueDate, daysUntilDue } = params;
+  const { companyName, companyLogoUrl, deadlineName, dueDate, daysUntilDue } = params;
 
   const isUrgent = daysUntilDue <= 3;
   const urgencyColor = isUrgent ? '#C62828' : ACCENT_COLOR;
@@ -513,9 +560,11 @@ export function taxDeadlineEmail(params: TaxDeadlineEmailParams) {
     `Days Remaining: ${daysUntilDue <= 0 ? 'TODAY' : daysUntilDue}`,
     '',
     'Please ensure all required filings and payments are completed before the deadline to avoid penalties from Tax Administration Jamaica (TAJ).',
+    '',
+    `Sent via YaadBooks (https://yaadbooks.com)`,
   ].join('\n');
 
-  return { subject, html: layout(subject, body), text };
+  return { subject, html: layout(subject, body, { companyName, companyLogoUrl }), text };
 }
 
 // --- Template: Customer Statement ----------------------------------------
@@ -523,6 +572,7 @@ export function taxDeadlineEmail(params: TaxDeadlineEmailParams) {
 export interface CustomerStatementEmailParams {
   customerName: string;
   companyName: string;
+  companyLogoUrl?: string;
   periodStart: string;
   periodEnd: string;
   openingBalance: string | number;
@@ -537,6 +587,7 @@ export function customerStatementEmail(params: CustomerStatementEmailParams) {
   const {
     customerName,
     companyName,
+    companyLogoUrl,
     periodStart,
     periodEnd,
     openingBalance,
@@ -601,7 +652,9 @@ export function customerStatementEmail(params: CustomerStatementEmailParams) {
     '',
     `Regards,`,
     companyName,
+    '',
+    `Sent via YaadBooks (https://yaadbooks.com)`,
   ].join('\n');
 
-  return { subject, html: layout(subject, body), text };
+  return { subject, html: layout(subject, body, { companyName, companyLogoUrl }), text };
 }

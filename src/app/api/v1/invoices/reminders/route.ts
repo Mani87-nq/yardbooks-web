@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         customer: { select: { id: true, name: true, email: true } },
-        company: { select: { businessName: true, tradingName: true, currency: true } },
+        company: { select: { businessName: true, tradingName: true, currency: true, email: true, logoUrl: true } },
       },
     });
 
@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
           dueDate: inv.dueDate.toLocaleDateString('en-JM', { year: 'numeric', month: 'long', day: 'numeric' }),
           daysOverdue,
           companyName,
+          companyLogoUrl: inv.company.logoUrl || undefined,
           severity,
         });
 
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest) {
           subject: emailContent.subject,
           html: emailContent.html,
           text: emailContent.text,
-          replyTo: user!.email,
+          replyTo: inv.company.email || user!.email,
         });
 
         emailSent = result.success;
