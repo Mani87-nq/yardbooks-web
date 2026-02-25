@@ -36,6 +36,7 @@ import {
   ShieldCheckIcon,
   CalendarDaysIcon,
   ArrowsRightLeftIcon,
+  QuestionMarkCircleIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -116,6 +117,7 @@ const navigation: NavGroup[] = [
     name: 'System',
     items: [
       { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, permission: 'settings:read' },
+      { name: 'Help Center', href: '/help', icon: QuestionMarkCircleIcon, permission: null },
     ],
   },
 ];

@@ -530,3 +530,103 @@ export function useAddCashMovement() {
     },
   });
 }
+
+// ---- Reports ----
+
+export interface DailySalesHour {
+  hour: number;
+  label: string;
+  orderCount: number;
+  total: number;
+}
+
+export interface DailySalesProduct {
+  rank: number;
+  productId: string | null;
+  name: string;
+  quantity: number;
+  revenue: number;
+}
+
+export interface DailySalesPayment {
+  method: string;
+  methodLabel: string;
+  count: number;
+  total: number;
+}
+
+export interface DailySalesSummary {
+  date: string;
+  orderCount: number;
+  grossSales: number;
+  discounts: number;
+  netSales: number;
+  gctCollected: number;
+  avgTransaction: number;
+}
+
+export interface DailySalesReport {
+  salesByHour: DailySalesHour[];
+  topProductsByQty: DailySalesProduct[];
+  topProductsByRev: DailySalesProduct[];
+  paymentBreakdown: DailySalesPayment[];
+  summary: DailySalesSummary;
+}
+
+export function useDailySalesReport(date: string | null) {
+  const searchParams = new URLSearchParams();
+  if (date) searchParams.set('date', date);
+  const qs = searchParams.toString();
+
+  return useQuery({
+    queryKey: ['pos-report-daily-sales', date],
+    queryFn: () =>
+      api.get<DailySalesReport>(
+        `/api/v1/pos/reports/daily-sales${qs ? `?${qs}` : ''}`
+      ),
+    enabled: !!date,
+  });
+}
+
+export interface ProductPerformanceItem {
+  productId: string | null;
+  name: string;
+  quantitySold: number;
+  revenue: number;
+  revenueBeforeTax: number;
+  totalCost: number;
+  profitMargin: number | null;
+}
+
+export interface LowStockAlert {
+  id: string;
+  sku: string;
+  name: string;
+  currentStock: number;
+  reorderLevel: number;
+  unitPrice: number;
+  category: string | null;
+  deficit: number;
+}
+
+export interface ProductPerformanceReport {
+  dateRange: { from: string; to: string };
+  products: ProductPerformanceItem[];
+  lowStockAlerts: LowStockAlert[];
+}
+
+export function useProductPerformanceReport(params: { from: string; to: string } | null) {
+  const searchParams = new URLSearchParams();
+  if (params?.from) searchParams.set('from', params.from);
+  if (params?.to) searchParams.set('to', params.to);
+  const qs = searchParams.toString();
+
+  return useQuery({
+    queryKey: ['pos-report-product-performance', params],
+    queryFn: () =>
+      api.get<ProductPerformanceReport>(
+        `/api/v1/pos/reports/product-performance${qs ? `?${qs}` : ''}`
+      ),
+    enabled: !!params,
+  });
+}
