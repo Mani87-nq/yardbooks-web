@@ -84,7 +84,7 @@ const SUBJECT_LABELS: Record<string, string> = {
 // ──────────────────────────────────────────────────────────────
 // Destination for contact form emails
 // ──────────────────────────────────────────────────────────────
-const CONTACT_EMAIL = process.env.CONTACT_FORM_EMAIL ?? 'hello@yaadbooks.com';
+const CONTACT_EMAIL = process.env.CONTACT_FORM_EMAIL ?? 'support@yaadbooks.com';
 
 // ──────────────────────────────────────────────────────────────
 // POST handler
