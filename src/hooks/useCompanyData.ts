@@ -228,24 +228,24 @@ export function useCompanyDashboardSummary() {
     // Revenue calculations
     const thisMonthRevenue = invoices
       .filter((inv) => inv.status === 'paid' && new Date(inv.paidDate || inv.createdAt) >= thisMonthStart)
-      .reduce((sum, inv) => sum + inv.total, 0);
+      .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
 
     const lastMonthRevenue = invoices
       .filter((inv) => {
         const paidDate = new Date(inv.paidDate || inv.createdAt);
         return inv.status === 'paid' && paidDate >= lastMonthStart && paidDate <= lastMonthEnd;
       })
-      .reduce((sum, inv) => sum + inv.total, 0);
+      .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
 
     // Expenses this month
     const thisMonthExpenses = expenses
       .filter((exp) => new Date(exp.date) >= thisMonthStart)
-      .reduce((sum, exp) => sum + exp.amount, 0);
+      .reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
 
     // Outstanding invoices
     const outstandingInvoices = invoices
       .filter((inv) => ['sent', 'viewed', 'partial', 'overdue'].includes(inv.status))
-      .reduce((sum, inv) => sum + inv.balance, 0);
+      .reduce((sum, inv) => sum + Number(inv.balance || 0), 0);
 
     // Overdue invoices
     const overdueInvoices = invoices
@@ -261,7 +261,7 @@ export function useCompanyDashboardSummary() {
       netIncome: thisMonthRevenue - thisMonthExpenses,
       outstandingInvoices,
       overdueCount: overdueInvoices.length,
-      overdueAmount: overdueInvoices.reduce((sum, inv) => sum + inv.balance, 0),
+      overdueAmount: overdueInvoices.reduce((sum, inv) => sum + Number(inv.balance || 0), 0),
       totalCustomers: customers.length,
       totalProducts: products.length,
       lowStockProducts: products.filter((p) => p.quantity <= p.reorderLevel).length,

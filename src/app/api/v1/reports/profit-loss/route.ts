@@ -113,12 +113,12 @@ export async function GET(request: NextRequest) {
     const otherExpenseAccounts = expenseAccounts.filter((a) => a.subType === 'OTHER');
 
     // Calculate totals
-    const totalRevenue = incomeAccounts.reduce((sum, a) => sum + a.balance, 0);
-    const totalCogs = cogsAccounts.reduce((sum, a) => sum + a.balance, 0);
+    const totalRevenue = incomeAccounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+    const totalCogs = cogsAccounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
     const grossProfit = totalRevenue - totalCogs;
-    const totalOperatingExpenses = operatingAccounts.reduce((sum, a) => sum + a.balance, 0);
+    const totalOperatingExpenses = operatingAccounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
     const operatingIncome = grossProfit - totalOperatingExpenses;
-    const totalOtherExpenses = otherExpenseAccounts.reduce((sum, a) => sum + a.balance, 0);
+    const totalOtherExpenses = otherExpenseAccounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
     const netIncome = operatingIncome - totalOtherExpenses;
 
     return NextResponse.json({

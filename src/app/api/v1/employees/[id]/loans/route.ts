@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const deductions = await getActiveDeductions(id);
     const summary = await calculateAllDeductions(id);
-    const totalMonthlyDeduction = summary.reduce((sum, d) => sum + d.amount, 0);
+    const totalMonthlyDeduction = summary.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 
     return NextResponse.json({
       employeeId: id,

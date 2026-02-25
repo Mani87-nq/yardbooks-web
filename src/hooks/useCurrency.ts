@@ -17,10 +17,11 @@ export function useCurrency() {
   );
 
   /** Format a number as the active currency string — e.g. `fc(1500)` → "$1,500.00" */
-  const fc = (amount: number) => formatCurrency(amount, currency);
+  // Number() safety belt: Prisma Decimal fields may arrive as strings despite our toJSON override
+  const fc = (amount: number | string) => formatCurrency(Number(amount) || 0, currency);
 
   /** Print-friendly formatter */
-  const fcp = (amount: number) => formatPrintCurrency(amount, currency);
+  const fcp = (amount: number | string) => formatPrintCurrency(Number(amount) || 0, currency);
 
   return { currency, fc, fcp };
 }
@@ -38,6 +39,6 @@ export function getActiveCurrency(): string {
  * Standalone format using the store's active currency.
  * Use when you can't call the hook (e.g. inside a non-component helper).
  */
-export function formatActiveCurrency(amount: number): string {
-  return formatCurrency(amount, getActiveCurrency());
+export function formatActiveCurrency(amount: number | string): string {
+  return formatCurrency(Number(amount) || 0, getActiveCurrency());
 }

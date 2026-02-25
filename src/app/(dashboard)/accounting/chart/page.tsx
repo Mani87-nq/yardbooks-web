@@ -92,7 +92,7 @@ export default function ChartOfAccountsPage() {
     accounts: filteredAccounts.filter(a => a.type === type.value),
     total: filteredAccounts
       .filter(a => a.type === type.value)
-      .reduce((sum, a) => sum + (a.balance || 0), 0),
+      .reduce((sum, a) => sum + Number(a.balance || 0), 0),
   }));
 
   const handleOpenModal = (account?: GLAccount) => {
@@ -211,7 +211,7 @@ export default function ChartOfAccountsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {ACCOUNT_TYPES.map((type) => {
           const typeAccounts = glAccounts.filter(a => a.type === type.value);
-          const total = typeAccounts.reduce((sum, a) => sum + (a.balance || 0), 0);
+          const total = typeAccounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
           return (
             <Card key={type.value}>
               <div className="p-4">

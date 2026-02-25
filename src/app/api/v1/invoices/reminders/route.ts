@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Summary stats
-    const totalOverdue = categorized.reduce((sum, i) => sum + i.balance, 0);
+    const totalOverdue = categorized.reduce((sum, i) => sum + Number(i.balance || 0), 0);
     const mildCount = categorized.filter((i) => i.severity === 'mild').length;
     const moderateCount = categorized.filter((i) => i.severity === 'moderate').length;
     const severeCount = categorized.filter((i) => i.severity === 'severe').length;

@@ -54,13 +54,13 @@ export default function InvoicesPage() {
 
   const stats = {
     total: invoices.length,
-    outstanding: invoices.filter(i => !['paid', 'cancelled'].includes(i.status.toLowerCase())).reduce((sum, i) => sum + i.balance, 0),
+    outstanding: invoices.filter(i => !['paid', 'cancelled'].includes(i.status.toLowerCase())).reduce((sum, i) => sum + Number(i.balance || 0), 0),
     overdue: invoices.filter(i => i.status.toLowerCase() === 'overdue').length,
     paidThisMonth: invoices.filter(i => {
       const paidDate = i.paidDate ? new Date(i.paidDate) : null;
       const now = new Date();
       return paidDate && paidDate.getMonth() === now.getMonth() && paidDate.getFullYear() === now.getFullYear();
-    }).reduce((sum, i) => sum + i.total, 0),
+    }).reduce((sum, i) => sum + Number(i.total || 0), 0),
   };
 
   const handleOpenEmailModal = (invoice: Invoice) => {

@@ -361,7 +361,7 @@ export default function PayrollPage() {
       // Build payroll entries for the API
       const selectedEmps = employees.filter(e => payrollForm.selectedEmployees.includes(e.id));
       const entries = selectedEmps.map(emp => {
-        const gross = emp.baseSalary || 0;
+        const gross = Number(emp.baseSalary || 0);
         const deductions = calculateDeductions(gross);
         return {
           employeeId: emp.id,
@@ -405,7 +405,7 @@ export default function PayrollPage() {
 
   // Stats
   const activeEmployees = employees.filter(e => e.isActive);
-  const totalMonthlyPayroll = activeEmployees.reduce((sum, e) => sum + (e.baseSalary || 0), 0);
+  const totalMonthlyPayroll = activeEmployees.reduce((sum, e) => sum + Number(e.baseSalary || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -921,7 +921,7 @@ export default function PayrollPage() {
                   {fc(
                     employees
                       .filter(e => payrollForm.selectedEmployees.includes(e.id))
-                      .reduce((sum, e) => sum + (e.baseSalary || 0), 0)
+                      .reduce((sum, e) => sum + Number(e.baseSalary || 0), 0)
                   )}
                 </span>
               </div>

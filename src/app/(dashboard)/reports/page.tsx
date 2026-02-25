@@ -149,12 +149,12 @@ export default function ReportsPage() {
     const filteredInvoices = filterByDateRange(invoices);
     const totalRevenue = filteredInvoices
       .filter(i => i.status === 'paid')
-      .reduce((sum, i) => sum + i.total, 0);
+      .reduce((sum, i) => sum + Number(i.total || 0), 0);
     const totalInvoices = filteredInvoices.length;
     const paidInvoices = filteredInvoices.filter(i => i.status === 'paid').length;
     const pendingAmount = filteredInvoices
       .filter(i => i.status === 'sent' || i.status === 'overdue')
-      .reduce((sum, i) => sum + i.total, 0);
+      .reduce((sum, i) => sum + Number(i.total || 0), 0);
 
     return { totalRevenue, totalInvoices, paidInvoices, pendingAmount };
   };
@@ -169,10 +169,10 @@ export default function ReportsPage() {
       return date >= start && date <= end && o.status === 'completed';
     });
 
-    const totalSales = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+    const totalSales = filteredOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
     const totalOrders = filteredOrders.length;
     const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
-    const totalItems = filteredOrders.reduce((sum, o) => sum + o.itemCount, 0);
+    const totalItems = filteredOrders.reduce((sum, o) => sum + Number(o.itemCount || 0), 0);
 
     return { totalSales, totalOrders, avgOrderValue, totalItems };
   };
@@ -188,8 +188,8 @@ export default function ReportsPage() {
       return date >= start && date <= end && o.status === 'completed';
     });
 
-    const invoiceGCT = filteredInvoices.reduce((sum, i) => sum + (i.gctAmount || 0), 0);
-    const posGCT = filteredOrders.reduce((sum, o) => sum + (o.gctAmount || 0), 0);
+    const invoiceGCT = filteredInvoices.reduce((sum, i) => sum + Number(i.gctAmount || 0), 0);
+    const posGCT = filteredOrders.reduce((sum, o) => sum + Number(o.gctAmount || 0), 0);
     const totalGCT = invoiceGCT + posGCT;
 
     return { invoiceGCT, posGCT, totalGCT };
@@ -198,10 +198,10 @@ export default function ReportsPage() {
   // Expense Report Data
   const expenseData = () => {
     const filteredExpenses = filterByDateRange(expenses);
-    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
     const byCategory = filteredExpenses.reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + e.amount;
+      acc[e.category] = (acc[e.category] || 0) + Number(e.amount || 0);
       return acc;
     }, {} as Record<string, number>);
 
@@ -215,7 +215,7 @@ export default function ReportsPage() {
   // Customer Report Data
   const customerData = () => {
     const withBalance = customers.filter(c => c.balance > 0);
-    const totalReceivables = customers.reduce((sum, c) => sum + c.balance, 0);
+    const totalReceivables = customers.reduce((sum, c) => sum + Number(c.balance || 0), 0);
     const topCustomers = [...customers]
       .sort((a, b) => b.balance - a.balance)
       .slice(0, 5);
@@ -226,7 +226,7 @@ export default function ReportsPage() {
   // Inventory Report Data
   const inventoryData = () => {
     const totalItems = products.length;
-    const totalValue = products.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0);
+    const totalValue = products.reduce((sum, p) => sum + (Number(p.unitPrice || 0) * Number(p.quantity || 0)), 0);
     const lowStock = products.filter(p => p.quantity <= (p.reorderLevel || 0) && p.quantity > 0);
     const outOfStock = products.filter(p => p.quantity === 0);
 

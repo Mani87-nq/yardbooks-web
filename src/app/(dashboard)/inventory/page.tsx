@@ -192,7 +192,7 @@ export default function InventoryPage() {
     active: products.filter(p => p.isActive).length,
     lowStock: products.filter(p => p.quantity <= (p.reorderLevel || 0) && p.quantity > 0).length,
     outOfStock: products.filter(p => p.quantity === 0).length,
-    totalValue: products.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0),
+    totalValue: products.reduce((sum, p) => sum + (Number(p.unitPrice || 0) * Number(p.quantity || 0)), 0),
   };
 
   const unitDisplay = (unit: string) => unit?.toLowerCase() || 'each';

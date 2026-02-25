@@ -167,16 +167,16 @@ export default function CustomerStatementsPage() {
     // Calculate running balances
     let balance = openingBalance;
     lines.forEach((line) => {
-      balance += line.debit - line.credit;
+      balance += Number(line.debit || 0) - Number(line.credit || 0);
       line.runningBalance = balance;
     });
 
     const closingBalance = balance;
-    const totalInvoiced = lines.reduce((sum, l) => sum + l.debit, 0);
-    const totalPayments = lines.reduce((sum, l) => sum + l.credit, 0);
+    const totalInvoiced = lines.reduce((sum, l) => sum + Number(l.debit || 0), 0);
+    const totalPayments = lines.reduce((sum, l) => sum + Number(l.credit || 0), 0);
     const totalCredits = lines
       .filter((l) => l.type === 'Credit Note')
-      .reduce((sum, l) => sum + l.credit, 0);
+      .reduce((sum, l) => sum + Number(l.credit || 0), 0);
 
     return {
       openingBalance,

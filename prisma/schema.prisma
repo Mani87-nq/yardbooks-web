@@ -779,6 +779,9 @@ model Company {
   primaryColor     String        @default("#1976D2")
   accentColor      String        @default("#FF9800")
   
+  // Integrations (WiPay, email, AI, etc.) — stored as JSON for flexibility
+  integrationSettings Json?     // { wipay: {...}, email: {...}, ai: {...} }
+
   // Onboarding
   onboardingCompleted Boolean    @default(false)
 

@@ -578,12 +578,15 @@ export const useDashboardStats = () => {
     (exp) => new Date(exp.date) >= startOfMonth
   );
 
+  // NOTE: All Number() wrappers are safety belts. Prisma Decimal fields
+  // serialize as strings in JSON. The server-side toJSON override should
+  // return numbers, but these wrappers protect against any edge cases.
   const totalReceivable = invoices
     .filter((inv) => inv.status !== 'paid' && inv.status !== 'cancelled')
-    .reduce((sum, inv) => sum + inv.balance, 0);
+    .reduce((sum, inv) => sum + Number(inv.balance || 0), 0);
 
-  const totalRevenue = monthlyInvoices.reduce((sum, inv) => sum + inv.total, 0);
-  const totalExpensesAmount = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalRevenue = monthlyInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+  const totalExpensesAmount = monthlyExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
 
   const overdueInvoices = invoices.filter(
     (inv) =>
@@ -593,7 +596,7 @@ export const useDashboardStats = () => {
   );
 
   const lowStockProducts = products.filter(
-    (prod) => prod.isActive && prod.quantity <= prod.reorderLevel
+    (prod) => prod.isActive && Number(prod.quantity || 0) <= Number(prod.reorderLevel || 0)
   );
 
   return {
@@ -602,7 +605,7 @@ export const useDashboardStats = () => {
     totalExpenses: totalExpensesAmount,
     profit: totalRevenue - totalExpensesAmount,
     overdueCount: overdueInvoices.length,
-    overdueAmount: overdueInvoices.reduce((sum, inv) => sum + inv.balance, 0),
+    overdueAmount: overdueInvoices.reduce((sum, inv) => sum + Number(inv.balance || 0), 0),
     lowStockCount: lowStockProducts.length,
     customerCount: customers.filter((c) => c.type !== 'vendor').length,
     invoiceCount: invoices.length,

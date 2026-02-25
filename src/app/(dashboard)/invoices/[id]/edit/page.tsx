@@ -156,8 +156,8 @@ export default function EditInvoicePage({ params }: PageProps) {
     );
   };
 
-  const subtotal = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0);
-  const gctAmount = items.reduce((sum, item) => sum + (item.gctAmount || 0), 0);
+  const subtotal = items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unitPrice || 0)), 0);
+  const gctAmount = items.reduce((sum, item) => sum + Number(item.gctAmount || 0), 0);
   const discountAmount = discountType === 'percentage' ? (subtotal + gctAmount) * (discount / 100) : discount;
   const total = subtotal + gctAmount - discountAmount;
 

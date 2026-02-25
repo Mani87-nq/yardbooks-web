@@ -169,9 +169,9 @@ export default function NewInvoicePage() {
     handleItemChange(itemId, 'gctRate', product.gctRate);
   };
 
-  const subtotal = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0);
-  const gctAmount = items.reduce((sum, item) => sum + (item.gctAmount || 0), 0);
-  const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
+  const subtotal = items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unitPrice || 0)), 0);
+  const gctAmount = items.reduce((sum, item) => sum + Number(item.gctAmount || 0), 0);
+  const total = items.reduce((sum, item) => sum + Number(item.total || 0), 0);
 
   const validateForm = (): boolean => {
     if (!customerId) {

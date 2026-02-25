@@ -74,8 +74,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const totalOutputTax = Object.values(outputByRate).reduce((sum, g) => sum + g.gctCollected, 0);
-    const totalSales = Object.values(outputByRate).reduce((sum, g) => sum + g.sales, 0);
+    const totalOutputTax = Object.values(outputByRate).reduce((sum, g) => sum + Number(g.gctCollected || 0), 0);
+    const totalSales = Object.values(outputByRate).reduce((sum, g) => sum + Number(g.sales || 0), 0);
 
     // ---- INPUT TAX (Purchases/Expenses) ----
     const expenses = await prisma.expense.findMany({
