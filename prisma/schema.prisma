@@ -449,6 +449,15 @@ enum BusinessDayStatus {
   FORCE_CLOSED
 }
 
+enum StockTransferStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  IN_TRANSIT
+  RECEIVED
+  CANCELLED
+}
+
 enum CashMovementType {
   OPENING_FLOAT
   SALE
@@ -799,6 +808,8 @@ model Company {
   fixedAssets      FixedAsset[]
   assetCategories  AssetCategory[]
   stockCounts      StockCount[]
+  warehouses       Warehouse[]
+  stockTransfers   StockTransfer[]
   posTerminals     PosTerminal[]
   posSessions      PosSession[]
   posOrders        PosOrder[]
@@ -971,7 +982,8 @@ model Product {
   // Relations
   invoiceItems     InvoiceItem[]
   quotationItems   QuotationItem[]
-  stockCountItems  StockCountItem[]
+  stockCountItems    StockCountItem[]
+  stockTransferItems StockTransferItem[]
   purchaseOrderItems PurchaseOrderItem[]
   grnItems         GoodsReceivedNoteItem[]
 
@@ -2283,6 +2295,106 @@ model StockCountItem {
   notes            String?
   
   @@index([stockCountId])
+  @@index([productId])
+}
+
+// ============================================
+// WAREHOUSE & STOCK TRANSFERS
+// ============================================
+
+/// Warehouse / store location for multi-location inventory
+model Warehouse {
+  id               String           @id @default(cuid())
+  companyId        String
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name             String
+  code             String           // Short code e.g. "KGN", "MOBAY"
+  address          String?
+  parish           JamaicanParish?
+  phone            String?
+  email            String?
+  manager          String?
+  isActive         Boolean          @default(true)
+  isDefault        Boolean          @default(false)
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  outgoingTransfers StockTransfer[] @relation("TransferFrom")
+  incomingTransfers StockTransfer[] @relation("TransferTo")
+
+  @@unique([companyId, code])
+  @@index([companyId])
+}
+
+/// Stock transfer between warehouses
+model StockTransfer {
+  id               String               @id @default(cuid())
+  companyId        String
+  company          Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  transferNumber   String
+  fromWarehouseId  String
+  fromWarehouse    Warehouse            @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouseId    String
+  toWarehouse      Warehouse            @relation("TransferTo", fields: [toWarehouseId], references: [id])
+
+  status           StockTransferStatus  @default(DRAFT)
+  notes            String?
+
+  // Workflow tracking
+  requestedBy      String
+  requestedAt      DateTime             @default(now())
+  approvedBy       String?
+  approvedAt       DateTime?
+  shippedBy        String?
+  shippedAt        DateTime?
+  receivedBy       String?
+  receivedAt       DateTime?
+  cancelledBy      String?
+  cancelledAt      DateTime?
+  cancelReason     String?
+
+  // Summary
+  totalItems       Int                  @default(0)
+  totalQuantity    Decimal              @default(0)  @db.Decimal(15, 4)
+  totalValue       Decimal              @default(0)  @db.Decimal(15, 2)
+
+  // Audit
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  // Relations
+  items            StockTransferItem[]
+
+  @@unique([companyId, transferNumber])
+  @@index([companyId])
+  @@index([status])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+}
+
+/// Stock transfer line item
+model StockTransferItem {
+  id                String        @id @default(cuid())
+  transferId        String
+  transfer          StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  productId         String
+  product           Product       @relation(fields: [productId], references: [id])
+  productName       String
+  sku               String
+
+  quantityRequested Decimal       @db.Decimal(15, 4)
+  quantityShipped   Decimal?      @db.Decimal(15, 4)
+  quantityReceived  Decimal?      @db.Decimal(15, 4)
+  unitCost          Decimal       @db.Decimal(15, 2)
+  uomCode           String        @default("EA")
+  notes             String?
+
+  @@index([transferId])
   @@index([productId])
 }
 
