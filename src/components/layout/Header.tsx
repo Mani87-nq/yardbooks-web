@@ -19,7 +19,7 @@ import { NotificationBell } from './NotificationBell';
 
 export function Header() {
   const router = useRouter();
-  const { setSidebarOpen, user, activeCompany, companies, switchCompany, clearCompanyData } = useAppStore();
+  const { setSidebarOpen, user, activeCompany, companies, switchCompany, clearCompanyData, settings } = useAppStore();
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -151,9 +151,9 @@ export function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
-        {/* Currency Display */}
+        {/* Currency Display — reads from user's display preference, falls back to company currency */}
         <div className="hidden md:flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
-          {activeCompany?.currency || 'JMD'}
+          {settings.currency || activeCompany?.currency || 'JMD'}
         </div>
 
         {/* Notifications */}

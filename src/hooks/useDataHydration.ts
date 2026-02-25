@@ -156,6 +156,7 @@ export function useDataHydration() {
           fixedAssetsRes,
           journalEntriesRes,
           bankTransactionsRes,
+          userSettingsRes,
         ] = await Promise.all([
           api.get<PaginatedResponse<Customer>>('/api/v1/customers?limit=100'),
           api.get<PaginatedResponse<Product>>('/api/v1/products?limit=100'),
@@ -170,6 +171,7 @@ export function useDataHydration() {
           api.get<PaginatedResponse<any>>('/api/v1/fixed-assets?limit=100').catch(() => ({ data: [] })),
           api.get<PaginatedResponse<any>>('/api/v1/journal-entries?limit=200').catch(() => ({ data: [] })),
           api.get<PaginatedResponse<any>>('/api/v1/banking/transactions?limit=200').catch(() => ({ data: [] })),
+          api.get<{ theme?: string; language?: string; currency?: string; dateFormat?: string; compactMode?: boolean }>('/api/v1/user-settings').catch(() => null),
         ]);
 
         // Populate the store in a single batch
@@ -187,6 +189,19 @@ export function useDataHydration() {
         state.setFixedAssets(fixedAssetsRes.data);
         state.setJournalEntries(journalEntriesRes.data);
         state.setBankTransactions(bankTransactionsRes.data);
+
+        // Apply user display preferences (currency, theme, dateFormat, etc.)
+        if (userSettingsRes) {
+          const prefs: Record<string, unknown> = {};
+          if (userSettingsRes.currency) prefs.currency = userSettingsRes.currency;
+          if (userSettingsRes.theme) prefs.theme = userSettingsRes.theme;
+          if (userSettingsRes.language) prefs.language = userSettingsRes.language;
+          if (userSettingsRes.dateFormat) prefs.dateFormat = userSettingsRes.dateFormat;
+          if (typeof userSettingsRes.compactMode === 'boolean') prefs.compactMode = userSettingsRes.compactMode;
+          if (Object.keys(prefs).length > 0) {
+            state.updateSettings(prefs as any);
+          }
+        }
 
         // Mark hydration complete
         store.setState({ hydrated: true });
