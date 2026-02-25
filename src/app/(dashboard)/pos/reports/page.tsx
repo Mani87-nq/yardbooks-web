@@ -2,17 +2,20 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { Card, CardHeader, CardTitle, CardContent, Button, Modal, ModalBody, ModalFooter } from '@/components/ui';
+import { format, subDays } from 'date-fns';
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalBody, ModalFooter } from '@/components/ui';
 import {
   usePosSessions,
   usePosOrders,
-  useClosePosSession,
+  useDailySalesReport,
+  useProductPerformanceReport,
   type ApiPosSession,
+  type DailySalesHour,
 } from '@/hooks/api/usePos';
 import { useAppStore } from '@/store/appStore';
 import { printContent, generateTable, generateStatCards } from '@/lib/print';
 import { useCurrency } from '@/hooks/useCurrency';
+import { cn } from '@/lib/utils';
 import {
   ArrowLeftIcon,
   DocumentChartBarIcon,
@@ -23,14 +26,44 @@ import {
   CheckCircleIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
+  ChartBarIcon,
+  CubeIcon,
+  CalendarDaysIcon,
+  ArrowTrendingUpIcon,
+  BanknotesIcon,
+  ShoppingCartIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline';
+
+// ---- Tab types ----
+type ReportTab = 'sessions' | 'daily-sales' | 'product-performance';
+
+const TABS: { id: ReportTab; label: string; icon: React.ElementType }[] = [
+  { id: 'sessions', label: 'X / Z Reports', icon: ReceiptPercentIcon },
+  { id: 'daily-sales', label: 'Daily Sales', icon: ChartBarIcon },
+  { id: 'product-performance', label: 'Product Performance', icon: CubeIcon },
+];
 
 export default function POSReportsPage() {
   const { fc, fcp } = useCurrency();
+  const [activeTab, setActiveTab] = useState<ReportTab>('sessions');
   const [showXReportModal, setShowXReportModal] = useState(false);
   const [xReportSessionId, setXReportSessionId] = useState<string | null>(null);
 
-  // Fetch open and closed sessions from API
+  // Daily sales state
+  const [dailySalesDate, setDailySalesDate] = useState(
+    format(new Date(), 'yyyy-MM-dd')
+  );
+
+  // Product performance state
+  const [perfFrom, setPerfFrom] = useState(
+    format(subDays(new Date(), 30), 'yyyy-MM-dd')
+  );
+  const [perfTo, setPerfTo] = useState(
+    format(new Date(), 'yyyy-MM-dd')
+  );
+
+  // ---- Sessions data (X/Z Reports) ----
   const {
     data: openSessionsData,
     isLoading: openLoading,
@@ -43,7 +76,6 @@ export default function POSReportsPage() {
     error: closedError,
   } = usePosSessions({ status: 'CLOSED', limit: 50 });
 
-  // Fetch completed orders for the selected session (X-report)
   const {
     data: sessionOrdersData,
     isLoading: ordersLoading,
@@ -53,12 +85,28 @@ export default function POSReportsPage() {
       : { limit: 0 }
   );
 
+  // ---- Daily sales data ----
+  const {
+    data: dailySalesData,
+    isLoading: dailySalesLoading,
+    error: dailySalesError,
+  } = useDailySalesReport(activeTab === 'daily-sales' ? dailySalesDate : null);
+
+  // ---- Product performance data ----
+  const {
+    data: perfData,
+    isLoading: perfLoading,
+    error: perfError,
+  } = useProductPerformanceReport(
+    activeTab === 'product-performance' ? { from: perfFrom, to: perfTo } : null
+  );
+
   const activeCompany = useAppStore((state) => state.activeCompany);
 
   const openSessions = openSessionsData?.data ?? [];
   const closedSessions = closedSessionsData?.data ?? [];
 
-  // Compute X-report data from session orders
+  // ---- X-Report computation ----
   const xReportData = useMemo(() => {
     if (!xReportSessionId || !sessionOrdersData?.data) return null;
     const session = openSessions.find((s) => s.id === xReportSessionId);
@@ -72,7 +120,6 @@ export default function POSReportsPage() {
     const netSales = grossSales - discounts;
     const gctCollected = completedOrders.reduce((sum, o) => sum + Number(o.gctAmount), 0);
 
-    // Payment breakdown from order payments
     const paymentMap = new Map<string, { count: number; total: number }>();
     completedOrders.forEach((order) => {
       (order.payments ?? [])
@@ -150,58 +197,14 @@ export default function POSReportsPage() {
     });
   };
 
-  const isLoading = openLoading || closedLoading;
-  const hasError = openError || closedError;
+  // ---- Hourly chart bar helpers ----
+  const maxHourlyTotal = useMemo(() => {
+    if (!dailySalesData?.salesByHour) return 1;
+    return Math.max(...dailySalesData.salesByHour.map((h) => h.total), 1);
+  }, [dailySalesData]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/pos">
-            <Button variant="ghost" size="sm">
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              Back to POS
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">POS Reports</h1>
-            <p className="text-gray-500">X-Reports (mid-day) and Z-Reports (end of day)</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center py-16">
-          <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  if (hasError) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/pos">
-            <Button variant="ghost" size="sm">
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              Back to POS
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">POS Reports</h1>
-            <p className="text-gray-500">X-Reports (mid-day) and Z-Reports (end of day)</p>
-          </div>
-        </div>
-        <Card>
-          <CardContent>
-            <div className="text-center py-12">
-              <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
-              <p className="text-gray-700 font-medium mb-2">Failed to load reports data</p>
-              <p className="text-gray-500 text-sm">Please try refreshing the page.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const sessionsLoading = openLoading || closedLoading;
+  const sessionsError = openError || closedError;
 
   return (
     <div className="space-y-6">
@@ -215,87 +218,71 @@ export default function POSReportsPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">POS Reports</h1>
-          <p className="text-gray-500">X-Reports (mid-day) and Z-Reports (end of day)</p>
+          <p className="text-gray-500">Sales analytics, product performance, and session reports</p>
         </div>
       </div>
 
-      {/* Open Sessions (X-Reports) */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <ClockIcon className="w-5 h-5 text-blue-600" />
-            <CardTitle>Active Sessions (X-Report)</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {openSessions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No active sessions</p>
-          ) : (
-            <div className="space-y-3">
-              {openSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div>
-                    <p className="font-medium text-gray-900">{session.terminalName}</p>
-                    <p className="text-sm text-gray-500">
-                      Opened: {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} | Cashier: {session.cashierName}
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={() => handleGenerateXReport(session)}>
-                    <DocumentChartBarIcon className="w-4 h-4 mr-2" />
-                    Generate X-Report
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'group inline-flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'border-emerald-500 text-emerald-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                )}
+              >
+                <Icon className={cn('w-5 h-5', isActive ? 'text-emerald-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
-      {/* Closed Sessions */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <ReceiptPercentIcon className="w-5 h-5 text-emerald-600" />
-            <CardTitle>Closed Sessions</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {closedSessions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No closed sessions</p>
-          ) : (
-            <div className="space-y-3">
-              {closedSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div>
-                    <p className="font-medium text-gray-900">{session.terminalName}</p>
-                    <p className="text-sm text-gray-500">
-                      {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} - {session.closedAt ? format(new Date(session.closedAt), 'HH:mm') : ''}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Sales: {fc(Number(session.netSales))} | Orders: {session._count?.orders ?? 0}
-                    </p>
-                    {session.cashVariance !== null && session.cashVariance !== undefined && (
-                      <p className={`text-sm ${Number(session.cashVariance) === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {Number(session.cashVariance) === 0 ? (
-                          <span className="inline-flex items-center gap-1">
-                            <CheckCircleIcon className="w-4 h-4" />
-                            No variance
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1">
-                            <ExclamationTriangleIcon className="w-4 h-4" />
-                            Variance: {Number(session.cashVariance) >= 0 ? '+' : ''}{fc(Number(session.cashVariance))}
-                          </span>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Tab Content */}
+      {activeTab === 'sessions' && (
+        <SessionsTab
+          openSessions={openSessions}
+          closedSessions={closedSessions}
+          isLoading={sessionsLoading}
+          hasError={!!sessionsError}
+          onGenerateXReport={handleGenerateXReport}
+          fc={fc}
+        />
+      )}
+
+      {activeTab === 'daily-sales' && (
+        <DailySalesTab
+          date={dailySalesDate}
+          onDateChange={setDailySalesDate}
+          data={dailySalesData ?? null}
+          isLoading={dailySalesLoading}
+          hasError={!!dailySalesError}
+          fc={fc}
+          maxHourlyTotal={maxHourlyTotal}
+        />
+      )}
+
+      {activeTab === 'product-performance' && (
+        <ProductPerformanceTab
+          from={perfFrom}
+          to={perfTo}
+          onFromChange={setPerfFrom}
+          onToChange={setPerfTo}
+          data={perfData ?? null}
+          isLoading={perfLoading}
+          hasError={!!perfError}
+          fc={fc}
+        />
+      )}
 
       {/* X-Report Modal */}
       <Modal
@@ -385,6 +372,671 @@ export default function POSReportsPage() {
           </Button>
         </ModalFooter>
       </Modal>
+    </div>
+  );
+}
+
+
+// ============================================================
+// Sessions Tab (X / Z Reports) — extracted from original page
+// ============================================================
+
+function SessionsTab({
+  openSessions,
+  closedSessions,
+  isLoading,
+  hasError,
+  onGenerateXReport,
+  fc,
+}: {
+  openSessions: ApiPosSession[];
+  closedSessions: ApiPosSession[];
+  isLoading: boolean;
+  hasError: boolean;
+  onGenerateXReport: (session: ApiPosSession) => void;
+  fc: (amount: number) => string;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <Card>
+        <CardContent>
+          <div className="text-center py-12">
+            <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
+            <p className="text-gray-700 font-medium mb-2">Failed to load session data</p>
+            <p className="text-gray-500 text-sm">Please try refreshing the page.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Open Sessions (X-Reports) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ClockIcon className="w-5 h-5 text-blue-600" />
+            <CardTitle>Active Sessions (X-Report)</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {openSessions.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No active sessions</p>
+          ) : (
+            <div className="space-y-3">
+              {openSessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div>
+                    <p className="font-medium text-gray-900">{session.terminalName}</p>
+                    <p className="text-sm text-gray-500">
+                      Opened: {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} | Cashier: {session.cashierName}
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => onGenerateXReport(session)}>
+                    <DocumentChartBarIcon className="w-4 h-4 mr-2" />
+                    Generate X-Report
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Closed Sessions */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ReceiptPercentIcon className="w-5 h-5 text-emerald-600" />
+            <CardTitle>Closed Sessions (Z-Reports)</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {closedSessions.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No closed sessions</p>
+          ) : (
+            <div className="space-y-3">
+              {closedSessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div>
+                    <p className="font-medium text-gray-900">{session.terminalName}</p>
+                    <p className="text-sm text-gray-500">
+                      {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} - {session.closedAt ? format(new Date(session.closedAt), 'HH:mm') : ''}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Sales: {fc(Number(session.netSales))} | Orders: {session._count?.orders ?? 0}
+                    </p>
+                    {session.cashVariance !== null && session.cashVariance !== undefined && (
+                      <p className={`text-sm ${Number(session.cashVariance) === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {Number(session.cashVariance) === 0 ? (
+                          <span className="inline-flex items-center gap-1">
+                            <CheckCircleIcon className="w-4 h-4" />
+                            No variance
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            <ExclamationTriangleIcon className="w-4 h-4" />
+                            Variance: {Number(session.cashVariance) >= 0 ? '+' : ''}{fc(Number(session.cashVariance))}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+// ============================================================
+// Daily Sales Tab
+// ============================================================
+
+function DailySalesTab({
+  date,
+  onDateChange,
+  data,
+  isLoading,
+  hasError,
+  fc,
+  maxHourlyTotal,
+}: {
+  date: string;
+  onDateChange: (d: string) => void;
+  data: import('@/hooks/api/usePos').DailySalesReport | null;
+  isLoading: boolean;
+  hasError: boolean;
+  fc: (amount: number) => string;
+  maxHourlyTotal: number;
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Date picker */}
+      <Card>
+        <CardContent>
+          <div className="flex items-center gap-4 py-2">
+            <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
+            <label className="text-sm font-medium text-gray-700">Report Date:</label>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => onDateChange(e.target.value)}
+              className="w-48"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      )}
+
+      {hasError && (
+        <Card>
+          <CardContent>
+            <div className="text-center py-12">
+              <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
+              <p className="text-gray-700 font-medium mb-2">Failed to load daily sales data</p>
+              <p className="text-gray-500 text-sm">Please try a different date or refresh the page.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !hasError && data && (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <SummaryCard
+              icon={ShoppingCartIcon}
+              label="Orders"
+              value={String(data.summary.orderCount)}
+              color="gray"
+            />
+            <SummaryCard
+              icon={BanknotesIcon}
+              label="Gross Sales"
+              value={fc(data.summary.grossSales)}
+              color="emerald"
+            />
+            <SummaryCard
+              icon={TagIcon}
+              label="Discounts"
+              value={fc(data.summary.discounts)}
+              color="red"
+            />
+            <SummaryCard
+              icon={ArrowTrendingUpIcon}
+              label="Net Sales"
+              value={fc(data.summary.netSales)}
+              color="emerald"
+            />
+            <SummaryCard
+              icon={ReceiptPercentIcon}
+              label="GCT Collected"
+              value={fc(data.summary.gctCollected)}
+              color="blue"
+            />
+            <SummaryCard
+              icon={ChartBarIcon}
+              label="Avg Transaction"
+              value={fc(data.summary.avgTransaction)}
+              color="gray"
+            />
+          </div>
+
+          {/* Sales by hour */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ClockIcon className="w-5 h-5 text-emerald-600" />
+                <CardTitle>Sales by Hour</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {data.summary.orderCount === 0 ? (
+                <p className="text-gray-500 text-center py-8">No sales recorded for this date</p>
+              ) : (
+                <div className="space-y-1">
+                  {data.salesByHour
+                    .filter((h) => h.orderCount > 0)
+                    .map((h) => (
+                    <HourlyBar
+                      key={h.hour}
+                      hour={h}
+                      maxTotal={maxHourlyTotal}
+                      fc={fc}
+                    />
+                  ))}
+                  {data.salesByHour.every((h) => h.orderCount === 0) && (
+                    <p className="text-gray-500 text-center py-4">No sales activity</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Products side-by-side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* By Quantity */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CubeIcon className="w-5 h-5 text-blue-600" />
+                  <CardTitle>Top 10 Products (by Quantity)</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {data.topProductsByQty.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No products sold</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                          <th className="px-3 py-2 w-8">#</th>
+                          <th className="px-3 py-2">Product</th>
+                          <th className="px-3 py-2 text-right">Qty</th>
+                          <th className="px-3 py-2 text-right">Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {data.topProductsByQty.map((p) => (
+                          <tr key={p.rank} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-gray-400 font-medium">{p.rank}</td>
+                            <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[200px]">{p.name}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">{p.quantity}</td>
+                            <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.revenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* By Revenue */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <BanknotesIcon className="w-5 h-5 text-emerald-600" />
+                  <CardTitle>Top 10 Products (by Revenue)</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {data.topProductsByRev.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No products sold</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                          <th className="px-3 py-2 w-8">#</th>
+                          <th className="px-3 py-2">Product</th>
+                          <th className="px-3 py-2 text-right">Revenue</th>
+                          <th className="px-3 py-2 text-right">Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {data.topProductsByRev.map((p) => (
+                          <tr key={p.rank} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-gray-400 font-medium">{p.rank}</td>
+                            <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[200px]">{p.name}</td>
+                            <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.revenue)}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">{p.quantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Payment Method Breakdown */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <BanknotesIcon className="w-5 h-5 text-emerald-600" />
+                <CardTitle>Payment Method Breakdown</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {data.paymentBreakdown.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No payments recorded</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                        <th className="px-3 py-2">Method</th>
+                        <th className="px-3 py-2 text-right">Transactions</th>
+                        <th className="px-3 py-2 text-right">Total</th>
+                        <th className="px-3 py-2 text-right">% of Sales</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.paymentBreakdown.map((p) => {
+                        const pct = data.summary.netSales > 0
+                          ? ((p.total / data.summary.netSales) * 100).toFixed(1)
+                          : '0.0';
+                        return (
+                          <tr key={p.method} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-medium text-gray-900">{p.methodLabel}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">{p.count}</td>
+                            <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.total)}</td>
+                            <td className="px-3 py-2 text-right text-gray-500">{pct}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50 font-semibold">
+                        <td className="px-3 py-2 text-gray-900">Total</td>
+                        <td className="px-3 py-2 text-right text-gray-700">
+                          {data.paymentBreakdown.reduce((s, p) => s + p.count, 0)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-emerald-700">
+                          {fc(data.paymentBreakdown.reduce((s, p) => s + p.total, 0))}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-500">100%</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// ============================================================
+// Product Performance Tab
+// ============================================================
+
+function ProductPerformanceTab({
+  from,
+  to,
+  onFromChange,
+  onToChange,
+  data,
+  isLoading,
+  hasError,
+  fc,
+}: {
+  from: string;
+  to: string;
+  onFromChange: (d: string) => void;
+  onToChange: (d: string) => void;
+  data: import('@/hooks/api/usePos').ProductPerformanceReport | null;
+  isLoading: boolean;
+  hasError: boolean;
+  fc: (amount: number) => string;
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Date range picker */}
+      <Card>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-4 py-2">
+            <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
+            <label className="text-sm font-medium text-gray-700">From:</label>
+            <Input
+              type="date"
+              value={from}
+              onChange={(e) => onFromChange(e.target.value)}
+              className="w-48"
+            />
+            <label className="text-sm font-medium text-gray-700">To:</label>
+            <Input
+              type="date"
+              value={to}
+              onChange={(e) => onToChange(e.target.value)}
+              className="w-48"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      )}
+
+      {hasError && (
+        <Card>
+          <CardContent>
+            <div className="text-center py-12">
+              <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
+              <p className="text-gray-700 font-medium mb-2">Failed to load product performance data</p>
+              <p className="text-gray-500 text-sm">Please try adjusting the date range or refreshing.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !hasError && data && (
+        <>
+          {/* Product Sales Ranking */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ArrowTrendingUpIcon className="w-5 h-5 text-emerald-600" />
+                  <CardTitle>Product Sales Ranking</CardTitle>
+                </div>
+                <Badge variant="outline">{data.products.length} products</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {data.products.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No product sales in this period</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                        <th className="px-3 py-2 w-8">#</th>
+                        <th className="px-3 py-2">Product</th>
+                        <th className="px-3 py-2 text-right">Qty Sold</th>
+                        <th className="px-3 py-2 text-right">Revenue</th>
+                        <th className="px-3 py-2 text-right">Cost</th>
+                        <th className="px-3 py-2 text-right">Margin</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.products.map((p, idx) => (
+                        <tr key={p.productId ?? p.name} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 text-gray-400 font-medium">{idx + 1}</td>
+                          <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[250px]">{p.name}</td>
+                          <td className="px-3 py-2 text-right text-gray-700">{p.quantitySold}</td>
+                          <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.revenue)}</td>
+                          <td className="px-3 py-2 text-right text-gray-500">
+                            {p.totalCost > 0 ? fc(p.totalCost) : '--'}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {p.profitMargin !== null ? (
+                              <span className={cn(
+                                'font-medium',
+                                p.profitMargin >= 30 ? 'text-emerald-600' :
+                                p.profitMargin >= 15 ? 'text-yellow-600' :
+                                'text-red-600'
+                              )}>
+                                {p.profitMargin.toFixed(1)}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">--</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Low Stock Alerts */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ExclamationTriangleIcon className="w-5 h-5 text-amber-500" />
+                  <CardTitle>Low Stock Alerts</CardTitle>
+                </div>
+                {data.lowStockAlerts.length > 0 && (
+                  <Badge variant="warning">{data.lowStockAlerts.length} items</Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {data.lowStockAlerts.length === 0 ? (
+                <div className="text-center py-8">
+                  <CheckCircleIcon className="w-12 h-12 mx-auto mb-3 text-emerald-400" />
+                  <p className="text-gray-700 font-medium">All products are above reorder levels</p>
+                  <p className="text-gray-500 text-sm">No restocking action needed at this time.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                        <th className="px-3 py-2">Product</th>
+                        <th className="px-3 py-2">SKU</th>
+                        <th className="px-3 py-2">Category</th>
+                        <th className="px-3 py-2 text-right">Current Stock</th>
+                        <th className="px-3 py-2 text-right">Reorder Level</th>
+                        <th className="px-3 py-2 text-right">Deficit</th>
+                        <th className="px-3 py-2 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.lowStockAlerts.map((p) => {
+                        const isOutOfStock = p.currentStock <= 0;
+                        return (
+                          <tr key={p.id} className={cn('hover:bg-gray-50', isOutOfStock && 'bg-red-50')}>
+                            <td className="px-3 py-2 font-medium text-gray-900">{p.name}</td>
+                            <td className="px-3 py-2 text-gray-500 font-mono text-xs">{p.sku}</td>
+                            <td className="px-3 py-2 text-gray-500">{p.category ?? '--'}</td>
+                            <td className="px-3 py-2 text-right font-medium">
+                              <span className={isOutOfStock ? 'text-red-600' : 'text-amber-600'}>
+                                {p.currentStock}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-gray-500">{p.reorderLevel}</td>
+                            <td className="px-3 py-2 text-right text-red-600 font-medium">{p.deficit}</td>
+                            <td className="px-3 py-2 text-right">
+                              {isOutOfStock ? (
+                                <Badge variant="danger">Out of Stock</Badge>
+                              ) : (
+                                <Badge variant="warning">Low Stock</Badge>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// ============================================================
+// Shared helper components
+// ============================================================
+
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  color: 'emerald' | 'red' | 'blue' | 'gray';
+}) {
+  const colorClasses = {
+    emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+    red: 'bg-red-50 border-red-200 text-red-700',
+    blue: 'bg-blue-50 border-blue-200 text-blue-700',
+    gray: 'bg-gray-50 border-gray-200 text-gray-700',
+  };
+
+  const iconColors = {
+    emerald: 'text-emerald-500',
+    red: 'text-red-500',
+    blue: 'text-blue-500',
+    gray: 'text-gray-400',
+  };
+
+  return (
+    <div className={cn('rounded-lg border p-4', colorClasses[color])}>
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className={cn('w-4 h-4', iconColors[color])} />
+        <p className="text-xs font-medium uppercase tracking-wider opacity-75">{label}</p>
+      </div>
+      <p className="text-lg font-bold">{value}</p>
+    </div>
+  );
+}
+
+function HourlyBar({
+  hour,
+  maxTotal,
+  fc,
+}: {
+  hour: DailySalesHour;
+  maxTotal: number;
+  fc: (amount: number) => string;
+}) {
+  const pct = maxTotal > 0 ? (hour.total / maxTotal) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <span className="text-xs font-mono text-gray-500 w-12 flex-shrink-0">{hour.label}</span>
+      <div className="flex-1 h-7 bg-gray-100 rounded overflow-hidden relative">
+        <div
+          className="h-full bg-emerald-500 rounded transition-all duration-300"
+          style={{ width: `${pct}%` }}
+        />
+        {hour.orderCount > 0 && (
+          <span className="absolute inset-0 flex items-center px-2 text-xs font-medium text-gray-700">
+            {hour.orderCount} order{hour.orderCount !== 1 ? 's' : ''} &middot; {fc(hour.total)}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

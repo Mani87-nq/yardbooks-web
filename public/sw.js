@@ -10,7 +10,7 @@
  * - Navigation: Network-first with offline fallback page
  */
 
-const CACHE_VERSION = 'yaadbooks-v2';
+const CACHE_VERSION = 'yaadbooks-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
@@ -21,6 +21,9 @@ const APP_SHELL = [
   '/dashboard',
   '/manifest.json',
   '/icons/icon.svg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/apple-touch-icon.png',
   '/offline',
 ];
 
