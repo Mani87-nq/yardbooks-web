@@ -8,10 +8,14 @@ import { useCustomers } from '@/hooks/api/useCustomers';
 import {
   usePosSettings,
   usePosOrders,
+  usePosSessions,
+  useCreatePosSession,
+  usePosTerminals,
   useCreatePosOrder,
   useAddPosPayment,
   useHoldPosOrder,
   frontendMethodToApi,
+  type ApiPosSession,
 } from '@/hooks/api/usePos';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -185,12 +189,27 @@ export default function POSPage() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [lastReceiptData, setLastReceiptData] = useState<ReceiptData | null>(null);
 
+  // ---- Session gate state ----
+  const [showStartSession, setShowStartSession] = useState(false);
+  const [sessionTerminalId, setSessionTerminalId] = useState('');
+  const [sessionOpeningCash, setSessionOpeningCash] = useState('');
+  const [startingSession, setStartingSession] = useState(false);
+
   // ---- API data fetching ----
   const { data: productsData, isLoading: productsLoading, error: productsError } = useProducts({ limit: 200 });
   const { data: customersData } = useCustomers({ type: 'CUSTOMER', limit: 100 });
   const { data: settingsData, isLoading: settingsLoading } = usePosSettings();
   const { data: heldOrdersData } = usePosOrders({ status: 'HELD', limit: 1 });
   const activeCompany = useAppStore((state) => state.activeCompany);
+
+  // Session management
+  const { data: openSessionsData, isLoading: sessionsLoading } = usePosSessions({ status: 'OPEN', limit: 1 });
+  const { data: terminalsData } = usePosTerminals({ isActive: true, limit: 20 });
+  const createSession = useCreatePosSession();
+  const currentSession: ApiPosSession | null = openSessionsData?.data?.[0] ?? null;
+  const terminals = terminalsData?.data ?? [];
+  const requireOpenSession = settingsData?.requireOpenSession ?? false;
+  const needsSession = requireOpenSession && !currentSession && !sessionsLoading;
 
   const products = productsData?.data ?? [];
   const customers = customersData?.data ?? [];
@@ -310,6 +329,27 @@ export default function POSPage() {
     });
   }, [products, searchQuery, selectedCategory]);
 
+  // ---- Start Session ----
+  const handleStartSession = async () => {
+    if (!sessionTerminalId || startingSession) return;
+    setStartingSession(true);
+    try {
+      const userName = activeCompany?.businessName ?? 'Cashier';
+      await createSession.mutateAsync({
+        terminalId: sessionTerminalId,
+        cashierName: userName,
+        openingCash: parseFloat(sessionOpeningCash) || 0,
+      });
+      setShowStartSession(false);
+      setSessionTerminalId('');
+      setSessionOpeningCash('');
+    } catch {
+      // Error is shown via mutation state
+    } finally {
+      setStartingSession(false);
+    }
+  };
+
   // Handle checkout
   const handleCheckout = () => {
     if (currentCart.items.length === 0) return;
@@ -350,6 +390,7 @@ export default function POSPage() {
         } : {}),
         notes: currentCart.notes,
         status: 'PENDING_PAYMENT',
+        ...(currentSession ? { sessionId: currentSession.id } : {}),
       });
 
       // Add payment to the order
@@ -442,6 +483,7 @@ export default function POSPage() {
         items: apiItems,
         notes: currentCart.notes,
         status: 'PENDING_PAYMENT',
+        ...(currentSession ? { sessionId: currentSession.id } : {}),
       });
 
       await holdOrderMutation.mutateAsync({
@@ -491,6 +533,113 @@ export default function POSPage() {
     );
   }
 
+  // Session gate: if settings require an open session and none exists, block POS
+  if (needsSession) {
+    return (
+      <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <Card>
+            <CardHeader>
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <PlayIcon className="w-8 h-8 text-emerald-600" />
+                </div>
+                <CardTitle>Start a Session</CardTitle>
+                <p className="text-sm text-gray-500 mt-2">
+                  You need to open a POS session before you can start ringing sales.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Terminal selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Terminal / Register
+                  </label>
+                  {terminals.length === 0 ? (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        No terminals configured.{' '}
+                        <Link href="/pos/grid-settings" className="text-emerald-600 hover:underline font-medium">
+                          Set up terminals first
+                        </Link>
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {terminals.map((t: any) => (
+                        <button
+                          key={t.id}
+                          onClick={() => setSessionTerminalId(t.id)}
+                          className={cn(
+                            'p-3 rounded-lg border-2 text-sm font-medium transition-all touch-manipulation',
+                            sessionTerminalId === t.id
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                          )}
+                        >
+                          {t.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Opening cash */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Opening Cash (Float)
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={sessionOpeningCash}
+                    onChange={(e) => setSessionOpeningCash(e.target.value)}
+                    leftIcon={<span className="text-gray-400">$</span>}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the starting cash amount in the drawer.
+                  </p>
+                </div>
+
+                {/* Session error */}
+                {createSession.error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700">
+                      {createSession.error instanceof Error
+                        ? createSession.error.message
+                        : 'Failed to start session'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Start button */}
+                <Button
+                  className="w-full min-h-[48px]"
+                  onClick={handleStartSession}
+                  disabled={!sessionTerminalId || startingSession || terminals.length === 0}
+                >
+                  {startingSession ? (
+                    <>
+                      <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
+                      Starting Session...
+                    </>
+                  ) : (
+                    <>
+                      <PlayIcon className="w-4 h-4 mr-2" />
+                      Start Session
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4 lg:gap-6">
       {/* Mutation error banner */}
@@ -505,6 +654,27 @@ export default function POSPage() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Session info bar */}
+      {currentSession && (
+        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 bg-emerald-50 border border-emerald-200 rounded-full px-4 py-1.5 flex items-center gap-3 shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-xs font-medium text-emerald-700">
+            Session Active
+          </span>
+          {currentSession.terminal && (
+            <span className="text-xs text-emerald-600">
+              &middot; {(currentSession.terminal as any).name ?? 'Terminal'}
+            </span>
+          )}
+          <Link
+            href="/pos/sessions"
+            className="text-xs text-emerald-600 hover:text-emerald-800 font-medium underline-offset-2 hover:underline"
+          >
+            Manage
+          </Link>
         </div>
       )}
 

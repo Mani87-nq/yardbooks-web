@@ -567,6 +567,141 @@ export function taxDeadlineEmail(params: TaxDeadlineEmailParams) {
   return { subject, html: layout(subject, body, { companyName, companyLogoUrl }), text };
 }
 
+// ─── Template: POS Receipt ───────────────────────────────────────────
+
+export interface PosReceiptEmailParams {
+  customerName: string;
+  orderNumber: string;
+  date: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  subtotal: number;
+  discount: number;
+  gctAmount: number;
+  total: number;
+  amountPaid: number;
+  changeGiven: number;
+  paymentMethod: string;
+  currency: string;
+  companyName: string;
+  companyLogoUrl?: string;
+}
+
+export function posReceiptEmail(params: PosReceiptEmailParams) {
+  const {
+    customerName, orderNumber, date, items,
+    subtotal, discount, gctAmount, total, amountPaid, changeGiven,
+    paymentMethod, currency, companyName, companyLogoUrl,
+  } = params;
+
+  const fmt = (n: number) => formatCurrency(n, currency);
+  const subject = `Receipt ${orderNumber} from ${companyName}`;
+
+  // Build item rows
+  const itemRows = items.map((item, idx) => {
+    const bg = idx % 2 === 0 ? '#f9fafb' : '#ffffff';
+    return `
+      <tr style="background-color:${bg};">
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${escapeHtml(item.name)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${item.quantity}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;">${fmt(item.unitPrice)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;">${fmt(item.total)}</td>
+      </tr>`;
+  }).join('');
+
+  const body = `
+    <p>Dear ${escapeHtml(customerName)},</p>
+    <p>Thank you for your purchase! Here is your receipt from <strong>${escapeHtml(companyName)}</strong>.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 8px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+      <tr style="background-color:#f9fafb;">
+        <td style="padding:10px 12px;font-weight:600;border-bottom:1px solid #e5e7eb;">Receipt #</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">${escapeHtml(orderNumber)}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;font-weight:600;border-bottom:1px solid #e5e7eb;">Date</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">${escapeHtml(date)}</td>
+      </tr>
+      <tr style="background-color:#f9fafb;">
+        <td style="padding:10px 12px;font-weight:600;">Payment</td>
+        <td style="padding:10px 12px;">${escapeHtml(paymentMethod)}</td>
+      </tr>
+    </table>
+
+    <!-- Line items -->
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+      <tr style="background-color:${BRAND_COLOR};color:#ffffff;">
+        <td style="padding:8px 12px;font-weight:600;">Item</td>
+        <td style="padding:8px 12px;font-weight:600;text-align:center;">Qty</td>
+        <td style="padding:8px 12px;font-weight:600;text-align:right;">Price</td>
+        <td style="padding:8px 12px;font-weight:600;text-align:right;">Total</td>
+      </tr>
+      ${itemRows}
+    </table>
+
+    <!-- Totals -->
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:8px 0 20px 0;">
+      <tr>
+        <td style="padding:6px 12px;text-align:right;color:${MUTED_COLOR};">Subtotal</td>
+        <td style="padding:6px 12px;text-align:right;width:120px;">${fmt(subtotal)}</td>
+      </tr>
+      ${discount > 0 ? `<tr>
+        <td style="padding:6px 12px;text-align:right;color:${MUTED_COLOR};">Discount</td>
+        <td style="padding:6px 12px;text-align:right;width:120px;color:#dc2626;">-${fmt(discount)}</td>
+      </tr>` : ''}
+      ${gctAmount > 0 ? `<tr>
+        <td style="padding:6px 12px;text-align:right;color:${MUTED_COLOR};">GCT</td>
+        <td style="padding:6px 12px;text-align:right;width:120px;">${fmt(gctAmount)}</td>
+      </tr>` : ''}
+      <tr style="border-top:2px solid ${BRAND_COLOR};">
+        <td style="padding:10px 12px;text-align:right;font-weight:700;font-size:16px;">Total</td>
+        <td style="padding:10px 12px;text-align:right;width:120px;font-weight:700;font-size:16px;color:${BRAND_COLOR};">${fmt(total)}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 12px;text-align:right;color:${MUTED_COLOR};">Amount Paid</td>
+        <td style="padding:6px 12px;text-align:right;width:120px;">${fmt(amountPaid)}</td>
+      </tr>
+      ${changeGiven > 0 ? `<tr>
+        <td style="padding:6px 12px;text-align:right;color:${MUTED_COLOR};">Change</td>
+        <td style="padding:6px 12px;text-align:right;width:120px;">${fmt(changeGiven)}</td>
+      </tr>` : ''}
+    </table>
+
+    <p style="color:${MUTED_COLOR};font-size:13px;text-align:center;">Thank you for your business!</p>
+  `;
+
+  // Plain text fallback
+  const itemLines = items.map(
+    (i) => `  ${i.name} x${i.quantity} @ ${fmt(i.unitPrice)} = ${fmt(i.total)}`
+  ).join('\n');
+
+  const text = [
+    `Receipt from ${companyName}`,
+    `Receipt #: ${orderNumber}`,
+    `Date: ${date}`,
+    `Payment: ${paymentMethod}`,
+    '',
+    'Items:',
+    itemLines,
+    '',
+    `Subtotal: ${fmt(subtotal)}`,
+    discount > 0 ? `Discount: -${fmt(discount)}` : '',
+    gctAmount > 0 ? `GCT: ${fmt(gctAmount)}` : '',
+    `Total: ${fmt(total)}`,
+    `Paid: ${fmt(amountPaid)}`,
+    changeGiven > 0 ? `Change: ${fmt(changeGiven)}` : '',
+    '',
+    'Thank you for your business!',
+    '',
+    `Sent via YaadBooks (https://yaadbooks.com)`,
+  ].filter(Boolean).join('\n');
+
+  return { subject, html: layout(subject, body, { companyName, companyLogoUrl }), text };
+}
+
 // --- Template: Customer Statement ----------------------------------------
 
 export interface CustomerStatementEmailParams {

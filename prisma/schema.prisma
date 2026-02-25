@@ -176,6 +176,7 @@ enum JournalSourceModule {
   YEAR_END
   OPENING
   SYSTEM
+  POS
 }
 
 enum PeriodStatus {
@@ -414,6 +415,30 @@ enum PosSessionStatus {
   OPEN
   SUSPENDED
   CLOSED
+}
+
+enum PosReturnStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  REJECTED
+  VOIDED
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  WRONG_ITEM
+  CUSTOMER_CHANGED_MIND
+  DAMAGED
+  OVERCHARGED
+  DUPLICATE
+  OTHER
+}
+
+enum RefundMethod {
+  CASH
+  ORIGINAL_METHOD
+  STORE_CREDIT
 }
 
 enum CashMovementType {
@@ -769,6 +794,7 @@ model Company {
   posTerminals     PosTerminal[]
   posSessions      PosSession[]
   posOrders        PosOrder[]
+  posReturns       PosReturn[]
   customerPOs      CustomerPurchaseOrder[]
   notifications    Notification[]
   documents        Document[]
@@ -2337,7 +2363,8 @@ model PosSession {
   // Relations
   cashMovements   CashMovement[]
   orders          PosOrder[]
-  
+  returns         PosReturn[]
+
   @@index([companyId])
   @@index([terminalId])
   @@index([status])
@@ -2430,7 +2457,8 @@ model PosOrder {
   // Relations
   items               PosOrderItem[]
   payments            PosPayment[]
-  
+  returns             PosReturn[]
+
   @@unique([companyId, orderNumber])
   @@index([companyId])
   @@index([companyId, status])
@@ -2509,6 +2537,89 @@ model PosPayment {
   
   @@index([orderId])
   @@index([status])
+}
+
+// ============================================
+// POS RETURN
+// ============================================
+
+/// POS Return / Refund transaction
+model PosReturn {
+  id                  String          @id @default(cuid())
+  companyId           String
+  company             Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  returnNumber        String
+  originalOrderId     String
+  originalOrder       PosOrder        @relation(fields: [originalOrderId], references: [id])
+  originalOrderNumber String
+
+  // Session context
+  sessionId           String?
+  session             PosSession?     @relation(fields: [sessionId], references: [id])
+
+  // Customer
+  customerId          String?
+  customerName        String
+
+  // Financials
+  subtotal            Decimal         @db.Decimal(15, 2)
+  gctAmount           Decimal         @db.Decimal(15, 2)
+  totalRefund         Decimal         @db.Decimal(15, 2)
+
+  // Return details
+  refundMethod        RefundMethod
+  returnReason        ReturnReason
+  notes               String?
+
+  status              PosReturnStatus @default(PENDING)
+
+  // Approval
+  processedBy         String
+  approvedBy          String?
+
+  // GL link
+  glTransactionId     String?
+
+  // Audit
+  createdAt           DateTime        @default(now())
+  completedAt         DateTime?
+  voidedAt            DateTime?
+  updatedAt           DateTime        @updatedAt
+
+  // Relations
+  items               PosReturnItem[]
+
+  @@unique([companyId, returnNumber])
+  @@index([companyId])
+  @@index([companyId, status])
+  @@index([originalOrderId])
+  @@index([sessionId])
+}
+
+/// POS Return line item
+model PosReturnItem {
+  id                  String        @id @default(cuid())
+  returnId            String
+  return              PosReturn     @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  orderItemId         String
+  productId           String?
+  sku                 String?
+  barcode             String?
+  name                String
+
+  quantityReturned    Decimal       @db.Decimal(15, 4)
+  unitPrice           Decimal       @db.Decimal(15, 2)
+  refundAmount        Decimal       @db.Decimal(15, 2)
+
+  returnReason        ReturnReason
+  reasonNotes         String?
+  condition           String?       // "resellable" | "damaged" | "defective"
+  restockItem         Boolean       @default(true)
+  inventoryRestocked  Boolean       @default(false)
+
+  @@index([returnId])
 }
 
 // ============================================
