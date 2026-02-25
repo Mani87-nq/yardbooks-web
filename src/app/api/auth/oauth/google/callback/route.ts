@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ------- Find or create user -------
+    console.log('[Google OAuth] Step 1: Google auth succeeded, finding/creating user for:', googleUser.email);
 
     let userId: string;
     let userEmail: string;
@@ -149,8 +150,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('[Google OAuth] Step 2: OAuth lookup complete, found:', !!existingOAuth);
+
     if (existingOAuth) {
       // Returning user — update tokens (encrypted at rest)
+      console.log('[Google OAuth] Step 3a: Updating tokens for returning user:', existingOAuth.user.email);
       await prisma.oAuthAccount.update({
         where: { id: existingOAuth.id },
         data: {
@@ -170,7 +174,9 @@ export async function GET(request: NextRequest) {
       activeCompanyId = user.activeCompanyId;
       companyIds = user.companyMemberships.map((m) => m.companyId);
       memberRole = user.companyMemberships[0]?.role ?? 'OWNER';
+      console.log('[Google OAuth] Step 3a: Returning user tokens updated successfully');
     } else {
+      console.log('[Google OAuth] Step 3b: No existing OAuth, checking for email match');
       // Reject Google accounts with unverified email to prevent account takeover
       if (!googleUser.email_verified) {
         const redirectUrl = new URL(errorPage, request.url);
@@ -295,10 +301,12 @@ export async function GET(request: NextRequest) {
     }
 
     // ------- Create session + JWT tokens -------
+    console.log('[Google OAuth] Step 4: Creating session for userId:', userId);
 
     // Delete existing sessions (single-session enforcement)
     await prisma.session.deleteMany({ where: { userId } });
 
+    console.log('[Google OAuth] Step 5: Signing access token...');
     const accessToken = await signAccessToken({
       sub: userId,
       email: userEmail,
@@ -306,7 +314,9 @@ export async function GET(request: NextRequest) {
       activeCompanyId,
       companies: companyIds,
     });
+    console.log('[Google OAuth] Step 5: Access token signed OK');
 
+    console.log('[Google OAuth] Step 6: Creating session record...');
     const session = await prisma.session.create({
       data: {
         userId,
@@ -317,6 +327,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('[Google OAuth] Step 7: Signing refresh token...');
     const refreshToken = await signRefreshToken({
       sub: userId,
       sessionId: session.id,
@@ -326,12 +337,14 @@ export async function GET(request: NextRequest) {
       where: { id: session.id },
       data: { refreshToken },
     });
+    console.log('[Google OAuth] Step 7: Session fully created');
 
     // Update last login
     await prisma.user.update({
       where: { id: userId },
       data: { lastLoginAt: new Date() },
     });
+    console.log('[Google OAuth] Step 8: Last login updated, redirecting...');
 
     // ------- Redirect: new users → onboarding, returning → dashboard -------
     const redirectPath = isNewUser ? '/onboarding' : '/dashboard';
@@ -357,7 +370,13 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('[Google OAuth] Callback error:', error);
+    // Enhanced logging to diagnose Google OAuth failures
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : 'no stack';
+    const errName = error instanceof Error ? error.name : 'unknown';
+    console.error(`[Google OAuth] Callback FATAL — ${errName}: ${errMsg}`);
+    console.error(`[Google OAuth] Stack: ${errStack}`);
+
     // Read intent from cookie in outer catch (errorPage may not be defined here)
     const intent = request.cookies.get('google_oauth_intent')?.value;
     const fallbackPage = intent === 'signup' ? '/signup' : '/login';
