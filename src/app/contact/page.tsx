@@ -180,8 +180,8 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="text-emerald-200 text-sm font-medium">Email</p>
-                      <a href="mailto:hello@yaadbooks.com" className="text-white hover:text-emerald-100 transition-colors">
-                        hello@yaadbooks.com
+                      <a href="mailto:support@yaadbooks.com" className="text-white hover:text-emerald-100 transition-colors">
+                        support@yaadbooks.com
                       </a>
                     </div>
                   </div>
@@ -524,7 +524,7 @@ export default function ContactPage() {
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  <a href="mailto:hello@yaadbooks.com" className="hover:text-white">hello@yaadbooks.com</a>
+                  <a href="mailto:support@yaadbooks.com" className="hover:text-white">support@yaadbooks.com</a>
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
