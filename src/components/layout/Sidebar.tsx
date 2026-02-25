@@ -35,6 +35,7 @@ import {
   ArrowTrendingUpIcon,
   ShieldCheckIcon,
   CalendarDaysIcon,
+  ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -79,6 +80,7 @@ const navigation: NavGroup[] = [
     name: 'Operations',
     items: [
       { name: 'Inventory', href: '/inventory', icon: CubeIcon, permission: 'inventory:read' },
+      { name: 'Stock Transfers', href: '/stock-transfers', icon: ArrowsRightLeftIcon, permission: 'inventory:read' },
       { name: 'Expenses', href: '/expenses', icon: BanknotesIcon, permission: 'expenses:read' },
     ],
   },
