@@ -31,6 +31,15 @@ import {
   XMarkIcon,
   ExclamationTriangleIcon,
   CalculatorIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  CheckCircleIcon,
+  ClipboardDocumentIcon,
+  ArrowDownTrayIcon,
+  ComputerDesktopIcon,
+  DevicePhoneMobileIcon,
+  LockClosedIcon,
+  KeyIcon,
 } from '@heroicons/react/24/outline';
 
 // ============================================
@@ -592,6 +601,1070 @@ function TeamTab() {
 }
 
 // ============================================
+// BILLING TAB COMPONENT
+// ============================================
+
+interface BillingSubscription {
+  isActive: boolean;
+  plan: string | null;
+  status: string;
+  currentPeriodEnd: string | null;
+  trialDaysRemaining: number;
+}
+
+interface BillingPlan {
+  id: string;
+  name: string;
+  priceUsd: number;
+  priceUsdAnnual: number;
+  perUser: boolean;
+  maxUsers: number;
+  maxCompanies: number;
+  features: string[];
+}
+
+interface BillingData {
+  subscription: BillingSubscription;
+  plan: BillingPlan | null;
+  plans: BillingPlan[];
+}
+
+function getStatusBadgeVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
+  switch (status) {
+    case 'ACTIVE': return 'success';
+    case 'TRIALING': return 'warning';
+    case 'PAST_DUE': return 'danger';
+    case 'CANCELLED':
+    case 'INACTIVE':
+    default: return 'default';
+  }
+}
+
+function BillingTab() {
+  const [billingData, setBillingData] = useState<BillingData | null>(null);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  const fetchBilling = useCallback(async () => {
+    setBillingLoading(true);
+    setBillingError(null);
+    try {
+      const data = await api.get<BillingData>('/api/v1/billing');
+      setBillingData(data);
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : 'Failed to load billing info');
+    } finally {
+      setBillingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBilling();
+  }, [fetchBilling]);
+
+  const handleUpgrade = async (planId: string) => {
+    setCheckoutLoading(planId);
+    try {
+      const result = await api.post<{ checkoutUrl: string }>('/api/v1/billing', {
+        planId,
+        billingInterval: 'month',
+        successUrl: `${window.location.origin}/settings?tab=billing&success=true`,
+        cancelUrl: `${window.location.origin}/settings?tab=billing`,
+      });
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to start checkout');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  if (billingLoading) {
+    return (
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-center py-12">
+            <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin" />
+            <span className="ml-2 text-gray-500">Loading billing information...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (billingError) {
+    return (
+      <Card>
+        <CardContent>
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+            <p className="text-sm">{billingError}</p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={fetchBilling}>
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const subscription = billingData?.subscription;
+  const currentPlan = billingData?.plan;
+  const plans = billingData?.plans ?? [];
+  const status = subscription?.status ?? 'INACTIVE';
+  const isTrialing = status === 'TRIALING';
+  const trialDays = subscription?.trialDaysRemaining ?? 0;
+  const TRIAL_LENGTH = 14;
+  const trialProgress = TRIAL_LENGTH > 0 ? Math.max(0, Math.min(100, ((TRIAL_LENGTH - trialDays) / TRIAL_LENGTH) * 100)) : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Trial countdown banner */}
+      {isTrialing && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-yellow-800">
+                  Your free trial ends in {trialDays} day{trialDays !== 1 ? 's' : ''}
+                </p>
+                <p className="text-sm text-yellow-600">
+                  Upgrade now to keep using all features without interruption.
+                </p>
+              </div>
+            </div>
+            <Button size="sm" onClick={() => handleUpgrade(currentPlan?.id === 'team' ? 'team' : 'solo')}>
+              Upgrade Now
+            </Button>
+          </div>
+          {/* Trial progress bar */}
+          <div className="mt-3">
+            <div className="flex justify-between text-xs text-yellow-600 mb-1">
+              <span>Trial started</span>
+              <span>{trialDays} day{trialDays !== 1 ? 's' : ''} left</span>
+            </div>
+            <div className="h-2 bg-yellow-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-500 rounded-full transition-all"
+                style={{ width: `${trialProgress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Current subscription status */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Billing & Subscription</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className={`rounded-lg p-4 border ${
+              status === 'ACTIVE' ? 'bg-emerald-50 border-emerald-200' :
+              status === 'TRIALING' ? 'bg-yellow-50 border-yellow-200' :
+              status === 'PAST_DUE' ? 'bg-red-50 border-red-200' :
+              'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-gray-900">
+                      {currentPlan?.name ?? 'No Plan'} Plan
+                    </p>
+                    <Badge variant={getStatusBadgeVariant(status)} size="sm">
+                      {status === 'TRIALING' ? 'Trial' :
+                       status === 'ACTIVE' ? 'Active' :
+                       status === 'PAST_DUE' ? 'Past Due' :
+                       status === 'CANCELLED' ? 'Cancelled' :
+                       'Inactive'}
+                    </Badge>
+                  </div>
+                  {currentPlan && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      ${currentPlan.priceUsd}/mo{currentPlan.perUser ? ' per user' : ''}
+                      {' '}&middot;{' '}
+                      {currentPlan.maxUsers === -1 ? 'Unlimited users' : `${currentPlan.maxUsers} user${currentPlan.maxUsers !== 1 ? 's' : ''}`}
+                    </p>
+                  )}
+                  {subscription?.currentPeriodEnd && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {isTrialing ? 'Trial ends' : 'Next billing date'}:{' '}
+                      {new Date(subscription.currentPeriodEnd).toLocaleDateString('en-JM', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Plan comparison cards */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Available Plans</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {plans.map((plan) => {
+              const isCurrent = currentPlan?.id === plan.id;
+              const annualMonthlyCost = (plan.priceUsdAnnual / 12).toFixed(2);
+              const annualSavings = Math.round(((plan.priceUsd * 12 - plan.priceUsdAnnual) / (plan.priceUsd * 12)) * 100);
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative rounded-lg border-2 p-6 transition-colors ${
+                    isCurrent
+                      ? 'border-emerald-500 bg-emerald-50/30'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {isCurrent && (
+                    <div className="absolute -top-3 left-4">
+                      <Badge variant="success" size="sm">Current Plan</Badge>
+                    </div>
+                  )}
+
+                  <h4 className="text-lg font-semibold text-gray-900">{plan.name}</h4>
+
+                  <div className="mt-3">
+                    <p className="text-3xl font-bold text-gray-900">
+                      ${plan.priceUsd}
+                      <span className="text-sm font-normal text-gray-500">
+                        /{plan.perUser ? 'user/' : ''}mo
+                      </span>
+                    </p>
+                    <p className="text-sm text-emerald-600 font-medium mt-1">
+                      or ${plan.priceUsdAnnual}/{plan.perUser ? 'user/' : ''}yr{' '}
+                      <span className="text-xs text-gray-500">
+                        (~${annualMonthlyCost}/mo &mdash; save {annualSavings}%)
+                      </span>
+                    </p>
+                  </div>
+
+                  <ul className="mt-4 space-y-2">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                        <CheckCircleIcon className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-6">
+                    {isCurrent ? (
+                      <Button variant="outline" className="w-full" disabled>
+                        Current Plan
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full"
+                        onClick={() => handleUpgrade(plan.id)}
+                        disabled={checkoutLoading === plan.id}
+                      >
+                        {checkoutLoading === plan.id
+                          ? 'Redirecting...'
+                          : currentPlan && plans.indexOf(plan) < plans.indexOf(currentPlan)
+                            ? 'Downgrade'
+                            : 'Upgrade'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============================================
+// SECURITY TAB COMPONENT
+// ============================================
+
+interface SessionItem {
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+}
+
+function getPasswordStrength(password: string): { score: number; label: string; color: string; bgColor: string } {
+  let score = 0;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { score, label: 'Weak', color: 'text-red-600', bgColor: 'bg-red-500' };
+  if (score <= 2) return { score, label: 'Fair', color: 'text-yellow-600', bgColor: 'bg-yellow-500' };
+  if (score <= 3) return { score, label: 'Good', color: 'text-blue-600', bgColor: 'bg-blue-500' };
+  return { score, label: 'Strong', color: 'text-emerald-600', bgColor: 'bg-emerald-500' };
+}
+
+function parseUserAgent(ua: string | null): { device: string; icon: 'desktop' | 'mobile' } {
+  if (!ua) return { device: 'Unknown Device', icon: 'desktop' };
+  const isMobile = /mobile|android|iphone|ipad/i.test(ua);
+
+  let browser = 'Unknown Browser';
+  if (/firefox/i.test(ua)) browser = 'Firefox';
+  else if (/edg/i.test(ua)) browser = 'Edge';
+  else if (/chrome/i.test(ua)) browser = 'Chrome';
+  else if (/safari/i.test(ua)) browser = 'Safari';
+
+  let os = '';
+  if (/windows/i.test(ua)) os = 'Windows';
+  else if (/macintosh|mac os/i.test(ua)) os = 'macOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad/i.test(ua)) os = 'iOS';
+
+  return {
+    device: `${browser}${os ? ` on ${os}` : ''}`,
+    icon: isMobile ? 'mobile' : 'desktop',
+  };
+}
+
+function SecurityTab() {
+  // ── Change Password State ──
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordChangedAt, setPasswordChangedAt] = useState<string | null>(null);
+
+  // ── 2FA State ──
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
+  const [setupStep, setSetupStep] = useState<'idle' | 'qr' | 'backup'>('idle');
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
+  const [setupBackupCodes, setSetupBackupCodes] = useState<string[]>([]);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [showDisable2FA, setShowDisable2FA] = useState(false);
+  const [disablePassword, setDisablePassword] = useState('');
+  const [disableTotpCode, setDisableTotpCode] = useState('');
+  const [disableLoading, setDisableLoading] = useState(false);
+
+  // ── Sessions State ──
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [revokeLoading, setRevokeLoading] = useState<string | null>(null);
+  const [revokeAllLoading, setRevokeAllLoading] = useState(false);
+
+  // ── Fetch user security info on mount ──
+  useEffect(() => {
+    async function fetchSecurityInfo() {
+      try {
+        const res = await api.get<{
+          user: {
+            passwordChangedAt?: string | null;
+            twoFactorEnabled?: boolean;
+          };
+        }>('/api/auth/me');
+        setPasswordChangedAt(res.user.passwordChangedAt ?? null);
+        setTwoFactorEnabled(res.user.twoFactorEnabled ?? false);
+      } catch {
+        // Silently fail — we still show the UI
+      }
+    }
+    fetchSecurityInfo();
+  }, []);
+
+  // ── Fetch sessions on mount ──
+  const fetchSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    setSessionsError(null);
+    try {
+      const res = await api.get<{ data: SessionItem[] }>('/api/auth/sessions');
+      setSessions(res.data);
+    } catch (err) {
+      setSessionsError(err instanceof Error ? err.message : 'Failed to load sessions');
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  // ── Password handlers ──
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const res = await api.post<{ message: string }>('/api/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
+      setPasswordSuccess(res.message);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordChangedAt(new Date().toISOString());
+      setTimeout(() => {
+        setShowPasswordForm(false);
+        setPasswordSuccess(null);
+      }, 3000);
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // ── 2FA handlers ──
+  const handleSetup2FA = async () => {
+    setTwoFactorLoading(true);
+    setTwoFactorError(null);
+    try {
+      const res = await api.post<{
+        secret: string;
+        otpauthUrl: string;
+        backupCodes: string[];
+        message: string;
+      }>('/api/auth/2fa/setup');
+      setTotpSecret(res.secret);
+      setQrCodeUrl(res.otpauthUrl);
+      setSetupBackupCodes(res.backupCodes);
+      setSetupStep('qr');
+    } catch (err) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Failed to start 2FA setup');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    setVerifyLoading(true);
+    setTwoFactorError(null);
+    try {
+      await api.post<{ success: boolean; message: string }>('/api/auth/2fa/verify', {
+        code: verifyCode,
+        action: 'setup',
+      });
+      setBackupCodes(setupBackupCodes);
+      setSetupStep('backup');
+      setTwoFactorEnabled(true);
+      setVerifyCode('');
+    } catch (err) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Invalid verification code');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    setDisableLoading(true);
+    setTwoFactorError(null);
+    try {
+      await api.post<{ success: boolean; message: string }>('/api/auth/2fa/disable', {
+        password: disablePassword || undefined,
+        totpCode: disableTotpCode || undefined,
+      });
+      setTwoFactorEnabled(false);
+      setShowDisable2FA(false);
+      setDisablePassword('');
+      setDisableTotpCode('');
+      setSetupStep('idle');
+    } catch (err) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Failed to disable 2FA');
+    } finally {
+      setDisableLoading(false);
+    }
+  };
+
+  const handleCopyBackupCodes = () => {
+    const text = backupCodes.join('\n');
+    navigator.clipboard.writeText(text);
+  };
+
+  const handleDownloadBackupCodes = () => {
+    const text = `YaadBooks Backup Codes\nGenerated: ${new Date().toISOString()}\n\n${backupCodes.join('\n')}\n\nEach code can only be used once. Store them securely.`;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'yaadbooks-backup-codes.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Session handlers ──
+  const handleRevokeSession = async (sessionId: string) => {
+    setRevokeLoading(sessionId);
+    try {
+      await api.post(`/api/auth/sessions/${sessionId}/revoke`);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to revoke session');
+    } finally {
+      setRevokeLoading(null);
+    }
+  };
+
+  const handleRevokeAllSessions = async () => {
+    setRevokeAllLoading(true);
+    try {
+      await api.post<{ message: string; revokedCount: number }>('/api/auth/sessions/revoke-all');
+      setSessions((prev) => prev.filter((s) => s.isCurrent));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to revoke sessions');
+    } finally {
+      setRevokeAllLoading(false);
+    }
+  };
+
+  const passwordStrength = getPasswordStrength(newPassword);
+  const otherSessions = sessions.filter((s) => !s.isCurrent);
+
+  return (
+    <div className="space-y-6">
+      {/* ── Change Password Section ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <LockClosedIcon className="w-5 h-5 text-gray-600" />
+              <CardTitle>Password</CardTitle>
+            </div>
+            {!showPasswordForm && (
+              <Button variant="outline" size="sm" onClick={() => { setShowPasswordForm(true); setPasswordError(null); setPasswordSuccess(null); }}>
+                Change Password
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500 mb-1">
+            Last changed: {passwordChangedAt ? formatDate(passwordChangedAt) : 'Never'}
+          </p>
+
+          {showPasswordForm && (
+            <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
+              {passwordError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4" />
+                  {passwordSuccess}
+                </div>
+              )}
+
+              {/* Current Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    placeholder="Enter your current password"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showCurrentPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    placeholder="Enter a strong new password"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showNewPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Password Strength Meter */}
+                {newPassword.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${passwordStrength.bgColor}`}
+                          style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                        />
+                      </div>
+                      <span className={`text-xs font-medium ${passwordStrength.color}`}>
+                        {passwordStrength.label}
+                      </span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {[
+                        { check: newPassword.length >= 12, label: 'At least 12 characters' },
+                        { check: /[A-Z]/.test(newPassword), label: 'Uppercase letter' },
+                        { check: /[a-z]/.test(newPassword), label: 'Lowercase letter' },
+                        { check: /[0-9]/.test(newPassword), label: 'Number' },
+                        { check: /[^A-Za-z0-9]/.test(newPassword), label: 'Special character' },
+                      ].map((req) => (
+                        <li key={req.label} className={`text-xs flex items-center gap-1.5 ${req.check ? 'text-emerald-600' : 'text-gray-400'}`}>
+                          {req.check ? (
+                            <CheckCircleIcon className="w-3.5 h-3.5" />
+                          ) : (
+                            <span className="w-3.5 h-3.5 rounded-full border border-gray-300 inline-block" />
+                          )}
+                          {req.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${
+                      confirmPassword && confirmPassword !== newPassword ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Confirm your new password"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+                {confirmPassword && confirmPassword !== newPassword && (
+                  <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowPasswordForm(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordError(null);
+                    setPasswordSuccess(null);
+                  }}
+                  disabled={passwordLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleChangePassword}
+                  disabled={
+                    passwordLoading ||
+                    !currentPassword ||
+                    !newPassword ||
+                    !confirmPassword ||
+                    newPassword !== confirmPassword ||
+                    passwordStrength.score < 5
+                  }
+                >
+                  {passwordLoading ? 'Changing...' : 'Update Password'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Two-Factor Authentication Section ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <KeyIcon className="w-5 h-5 text-gray-600" />
+              <CardTitle>Two-Factor Authentication</CardTitle>
+            </div>
+            {twoFactorEnabled && (
+              <Badge variant="success" size="sm">Enabled</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {twoFactorError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">
+              {twoFactorError}
+            </div>
+          )}
+
+          {/* 2FA Not Enabled */}
+          {!twoFactorEnabled && setupStep === 'idle' && (
+            <div>
+              <p className="text-sm text-gray-500 mb-4">
+                Add an extra layer of security to your account. When enabled, you will need to enter a code from
+                your authenticator app each time you sign in.
+              </p>
+              <Button
+                size="sm"
+                onClick={handleSetup2FA}
+                disabled={twoFactorLoading}
+              >
+                {twoFactorLoading ? (
+                  <>
+                    <ArrowPathIcon className="w-4 h-4 mr-1 animate-spin" />
+                    Setting up...
+                  </>
+                ) : (
+                  'Enable 2FA'
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* 2FA Setup: QR Code Step */}
+          {!twoFactorEnabled && setupStep === 'qr' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-sm">
+                <p className="font-medium mb-1">Step 1: Scan QR Code</p>
+                <p>Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, etc.)</p>
+              </div>
+
+              {/* QR Code Image */}
+              <div className="flex justify-center py-4">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
+                    alt="2FA QR Code"
+                    width={200}
+                    height={200}
+                    className="rounded"
+                  />
+                </div>
+              </div>
+
+              {/* Manual Entry Secret */}
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Or enter this key manually:</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-gray-100 px-3 py-2 rounded-lg text-sm font-mono break-all select-all">
+                    {totpSecret}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(totpSecret)}
+                    className="p-2 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg"
+                    title="Copy secret"
+                  >
+                    <ClipboardDocumentIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Verification Code Input */}
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">Step 2: Enter verification code</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    placeholder="000000"
+                    maxLength={6}
+                    disabled={verifyLoading}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleVerify2FA}
+                    disabled={verifyLoading || verifyCode.length !== 6}
+                  >
+                    {verifyLoading ? 'Verifying...' : 'Verify & Enable'}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex justify-start pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSetupStep('idle');
+                    setQrCodeUrl('');
+                    setTotpSecret('');
+                    setVerifyCode('');
+                    setTwoFactorError(null);
+                  }}
+                >
+                  Cancel Setup
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* 2FA Setup: Backup Codes Step */}
+          {setupStep === 'backup' && backupCodes.length > 0 && (
+            <div className="space-y-4">
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                <CheckCircleIcon className="w-5 h-5 flex-shrink-0" />
+                <p className="font-medium">Two-factor authentication has been enabled!</p>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm">
+                <p className="font-medium mb-1">Save your backup codes</p>
+                <p>Store these codes in a safe place. Each code can only be used once. If you lose access to your authenticator app, you can use a backup code to sign in.</p>
+              </div>
+
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {backupCodes.map((code, i) => (
+                    <code key={i} className="text-sm font-mono text-gray-800 bg-white px-3 py-1.5 rounded border border-gray-200 text-center">
+                      {code}
+                    </code>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyBackupCodes}
+                >
+                  <ClipboardDocumentIcon className="w-4 h-4 mr-1" />
+                  Copy Codes
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadBackupCodes}
+                >
+                  <ArrowDownTrayIcon className="w-4 h-4 mr-1" />
+                  Download Codes
+                </Button>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setSetupStep('idle');
+                    setBackupCodes([]);
+                  }}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* 2FA Enabled: Show status and disable option */}
+          {twoFactorEnabled && setupStep === 'idle' && (
+            <div>
+              <p className="text-sm text-gray-500 mb-4">
+                Your account is secured with two-factor authentication. You will be prompted for a verification code
+                when signing in.
+              </p>
+              {!showDisable2FA ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setShowDisable2FA(true); setTwoFactorError(null); }}
+                >
+                  Disable 2FA
+                </Button>
+              ) : (
+                <div className="space-y-3 border-t border-gray-100 pt-4">
+                  <p className="text-sm font-medium text-gray-700">Confirm your identity to disable 2FA</p>
+                  <p className="text-xs text-gray-500">Enter your password or a TOTP code from your authenticator app.</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={disablePassword}
+                        onChange={(e) => setDisablePassword(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        placeholder="Your password"
+                        disabled={disableLoading}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Or TOTP Code</label>
+                      <input
+                        type="text"
+                        value={disableTotpCode}
+                        onChange={(e) => setDisableTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        placeholder="000000"
+                        maxLength={6}
+                        disabled={disableLoading}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={handleDisable2FA}
+                      disabled={disableLoading || (!disablePassword && disableTotpCode.length !== 6)}
+                    >
+                      {disableLoading ? 'Disabling...' : 'Confirm Disable'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowDisable2FA(false);
+                        setDisablePassword('');
+                        setDisableTotpCode('');
+                        setTwoFactorError(null);
+                      }}
+                      disabled={disableLoading}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Active Sessions Section ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ComputerDesktopIcon className="w-5 h-5 text-gray-600" />
+              <CardTitle>Active Sessions</CardTitle>
+            </div>
+            {otherSessions.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRevokeAllSessions}
+                disabled={revokeAllLoading}
+              >
+                {revokeAllLoading ? 'Revoking...' : 'Logout All Other Devices'}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {sessionsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <ArrowPathIcon className="w-5 h-5 text-gray-400 animate-spin" />
+              <span className="ml-2 text-sm text-gray-500">Loading sessions...</span>
+            </div>
+          ) : sessionsError ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+              {sessionsError}
+              <Button variant="outline" size="sm" className="ml-3" onClick={fetchSessions}>Retry</Button>
+            </div>
+          ) : sessions.length === 0 ? (
+            <p className="text-sm text-gray-500 py-4 text-center">No active sessions found.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {sessions.map((session) => {
+                const parsed = parseUserAgent(session.userAgent);
+                return (
+                  <div key={session.id} className="py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        {parsed.icon === 'mobile' ? (
+                          <DevicePhoneMobileIcon className="w-5 h-5 text-gray-500" />
+                        ) : (
+                          <ComputerDesktopIcon className="w-5 h-5 text-gray-500" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-900">{parsed.device}</p>
+                          {session.isCurrent && (
+                            <Badge variant="success" size="sm">This device</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          {session.ipAddress && <span>{session.ipAddress}</span>}
+                          <span>Started {formatRelativeDate(session.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {!session.isCurrent && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRevokeSession(session.id)}
+                        disabled={revokeLoading === session.id}
+                      >
+                        {revokeLoading === session.id ? 'Revoking...' : 'Revoke'}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============================================
 // MAIN SETTINGS PAGE
 // ============================================
 
@@ -599,7 +1672,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('company');
   const [showResetModal, setShowResetModal] = useState(false);
 
-  const { activeCompany, setActiveCompany, user, updateUser } = useAppStore();
+  const { activeCompany, setActiveCompany, user, updateUser, updateSettings } = useAppStore();
   const { settings: posSettings, updateSettings: updatePosSettings } = usePosStore();
 
   const getAddressString = (addr?: string | { street?: string; city?: string; parish?: string; country?: string }) => {
@@ -639,10 +1712,76 @@ export default function SettingsPage() {
   const [displaySettings, setDisplaySettings] = useState({
     currency: 'JMD',
     dateFormat: 'DD/MM/YYYY',
-    language: 'en',
+    language: 'english',
     darkMode: false,
     compactMode: false,
   });
+
+  // Load display settings from API on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.get<{
+          theme: string;
+          language: string;
+          currency: string;
+          dateFormat: string;
+          compactMode: boolean;
+        }>('/api/v1/user-settings');
+        setDisplaySettings({
+          currency: data.currency || 'JMD',
+          dateFormat: data.dateFormat || 'DD/MM/YYYY',
+          language: data.language || 'english',
+          darkMode: data.theme === 'dark',
+          compactMode: data.compactMode ?? false,
+        });
+        // Apply dark mode and compact mode classes on load
+        if (data.theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        if (data.compactMode) {
+          document.documentElement.classList.add('compact');
+        } else {
+          document.documentElement.classList.remove('compact');
+        }
+      } catch {
+        // Silently fall back to defaults if API is unavailable
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load notification settings from API on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.get<{
+          enableNotifications: boolean;
+          settings: Array<{
+            key: string;
+            label: string;
+            description: string;
+            email: boolean;
+            push: boolean;
+            inApp: boolean;
+          }>;
+        }>('/api/v1/notifications/settings');
+        // Map the API response to our simple toggle format
+        const systemSetting = data.settings.find((s) => s.key === 'system');
+        const expenseSetting = data.settings.find((s) => s.key === 'expense_status');
+        setNotificationSettings({
+          emailNotifications: data.enableNotifications,
+          lowStockAlerts: data.settings.find((s) => s.key === 'low_stock')?.email ?? true,
+          paymentReminders: data.settings.find((s) => s.key === 'payment_received')?.email ?? true,
+          dailySummary: expenseSetting?.email ?? false,
+          weeklyReport: systemSetting?.email ?? true,
+        });
+      } catch {
+        // Silently fall back to defaults
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [invoiceSettings, setInvoiceSettings] = useState({
     prefix: activeCompany?.invoiceSettings?.prefix || 'INV-',
@@ -679,6 +1818,61 @@ export default function SettingsPage() {
       alert(err instanceof Error ? err.message : 'Failed to save company settings');
     } finally {
       setIsSavingCompany(false);
+    }
+  };
+
+  // ── Company Logo Upload ──
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(
+    (activeCompany as any)?.logoUrl || null
+  );
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState('');
+
+  const handleCompanyLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeCompany) return;
+    setLogoError('');
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const res = await fetch(`/api/v1/companies/${activeCompany.id}/logo`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setLogoError(err.error || 'Failed to upload logo');
+        return;
+      }
+      const data = await res.json();
+      setCompanyLogoUrl(data.logoUrl);
+      alert('Logo uploaded successfully!');
+    } catch {
+      setLogoError('Network error uploading logo.');
+    } finally {
+      setLogoUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveCompanyLogo = async () => {
+    if (!activeCompany) return;
+    setLogoError('');
+    setLogoUploading(true);
+    try {
+      const res = await fetch(`/api/v1/companies/${activeCompany.id}/logo`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        setLogoError(err.error || 'Failed to remove logo');
+        return;
+      }
+      setCompanyLogoUrl(null);
+      alert('Logo removed.');
+    } catch {
+      setLogoError('Network error.');
+    } finally {
+      setLogoUploading(false);
     }
   };
 
@@ -738,6 +1932,87 @@ export default function SettingsPage() {
       alert(err instanceof Error ? err.message : 'Failed to save profile');
     } finally {
       setIsSavingUser(false);
+    }
+  };
+
+  const [isSavingDisplay, setIsSavingDisplay] = useState(false);
+  const handleSaveDisplay = async () => {
+    setIsSavingDisplay(true);
+    try {
+      await api.put('/api/v1/user-settings', {
+        theme: displaySettings.darkMode ? 'dark' : 'light',
+        language: displaySettings.language,
+        currency: displaySettings.currency,
+        dateFormat: displaySettings.dateFormat,
+        compactMode: displaySettings.compactMode,
+      });
+      // Apply dark mode immediately
+      if (displaySettings.darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      // Apply compact mode immediately
+      if (displaySettings.compactMode) {
+        document.documentElement.classList.add('compact');
+      } else {
+        document.documentElement.classList.remove('compact');
+      }
+      // Also update the app store settings
+      updateSettings({
+        theme: displaySettings.darkMode ? 'dark' : 'light',
+        language: displaySettings.language as 'english' | 'patois' | 'bilingual',
+        currency: displaySettings.currency as 'JMD' | 'USD',
+        dateFormat: displaySettings.dateFormat as 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD',
+      });
+      alert('Display settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save display settings');
+    } finally {
+      setIsSavingDisplay(false);
+    }
+  };
+
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const handleSaveNotifications = async () => {
+    setIsSavingNotifications(true);
+    try {
+      // Convert our simple toggles to the API format
+      const settings = [
+        { key: 'invoice_due', label: 'Invoice Due Reminders', description: 'Get notified when invoices are approaching due date', email: notificationSettings.emailNotifications, push: notificationSettings.emailNotifications, inApp: true },
+        { key: 'invoice_overdue', label: 'Overdue Invoices', description: 'Alerts for invoices past their due date', email: notificationSettings.emailNotifications, push: notificationSettings.emailNotifications, inApp: true },
+        { key: 'payment_received', label: 'Payment Received', description: 'Notification when a payment is recorded', email: notificationSettings.paymentReminders, push: false, inApp: true },
+        { key: 'low_stock', label: 'Low Stock Alerts', description: 'When inventory falls below reorder level', email: notificationSettings.lowStockAlerts, push: notificationSettings.lowStockAlerts, inApp: true },
+        { key: 'payroll_due', label: 'Payroll Reminders', description: 'Reminders for upcoming payroll runs', email: notificationSettings.emailNotifications, push: true, inApp: true },
+        { key: 'expense_status', label: 'Expense Updates', description: 'When expenses are approved or rejected', email: notificationSettings.dailySummary, push: false, inApp: true },
+        { key: 'po_received', label: 'New Purchase Orders', description: 'When a new customer PO is received', email: notificationSettings.emailNotifications, push: true, inApp: true },
+        { key: 'bank_sync', label: 'Bank Sync Updates', description: 'Status of bank transaction imports', email: false, push: false, inApp: true },
+        { key: 'system', label: 'System Notifications', description: 'Important system updates and announcements', email: notificationSettings.weeklyReport, push: false, inApp: true },
+      ];
+      await api.put('/api/v1/notifications/settings', { settings });
+      alert('Notification preferences saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save notification preferences');
+    } finally {
+      setIsSavingNotifications(false);
+    }
+  };
+
+  const [isSavingTax, setIsSavingTax] = useState(false);
+  const handleSaveTax = async () => {
+    setIsSavingTax(true);
+    try {
+      await api.put('/api/v1/pos/settings', {
+        gctRate: posSettings.gctRate,
+        gctRegistrationNumber: posSettings.gctRegistrationNumber || null,
+        taxIncludedInPrice: posSettings.taxIncludedInPrice,
+        businessTRN: posSettings.businessTRN || null,
+      });
+      alert('GCT / Tax settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save tax settings');
+    } finally {
+      setIsSavingTax(false);
     }
   };
 
@@ -885,6 +2160,64 @@ export default function SettingsPage() {
                     onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })}
                     placeholder="e.g., Retail, Agriculture, Services"
                   />
+
+                  {/* Company Logo Upload */}
+                  <div className="pt-4 border-t">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Company Logo
+                    </label>
+                    <div className="flex items-center gap-4">
+                      {companyLogoUrl ? (
+                        <div className="relative group">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={companyLogoUrl}
+                            alt="Company logo"
+                            className="w-24 h-24 rounded-lg object-contain border border-gray-200 dark:border-gray-700 bg-white p-1"
+                          />
+                          <button
+                            onClick={handleRemoveCompanyLogo}
+                            disabled={logoUploading}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-md transition-colors"
+                            title="Remove logo"
+                          >
+                            <XMarkIcon className="w-3.5 h-3.5 text-white" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                          <PhotoIcon className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/svg+xml,image/gif"
+                            className="hidden"
+                            onChange={handleCompanyLogoUpload}
+                            disabled={logoUploading}
+                          />
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                            {logoUploading ? (
+                              <>
+                                <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <CloudArrowUpIcon className="w-4 h-4" />
+                                {companyLogoUrl ? 'Change Logo' : 'Upload Logo'}
+                              </>
+                            )}
+                          </span>
+                        </label>
+                        <p className="text-xs text-gray-500">PNG, JPG, SVG, WebP. Max 2 MB.</p>
+                        {logoError && <p className="text-xs text-red-500">{logoError}</p>}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-end pt-4">
                     <Button onClick={handleSaveCompany} disabled={isSavingCompany}>
                       {isSavingCompany ? 'Saving...' : 'Save Changes'}
@@ -1158,7 +2491,9 @@ export default function SettingsPage() {
                     </label>
                   ))}
                   <div className="flex justify-end pt-4">
-                    <Button>Save Preferences</Button>
+                    <Button onClick={handleSaveNotifications} disabled={isSavingNotifications}>
+                      {isSavingNotifications ? 'Saving...' : 'Save Preferences'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -1207,7 +2542,15 @@ export default function SettingsPage() {
                       <input
                         type="checkbox"
                         checked={displaySettings.darkMode}
-                        onChange={(e) => setDisplaySettings({ ...displaySettings, darkMode: e.target.checked })}
+                        onChange={(e) => {
+                          setDisplaySettings({ ...displaySettings, darkMode: e.target.checked });
+                          // Apply dark mode immediately on toggle
+                          if (e.target.checked) {
+                            document.documentElement.classList.add('dark');
+                          } else {
+                            document.documentElement.classList.remove('dark');
+                          }
+                        }}
                         className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       />
                     </label>
@@ -1219,93 +2562,32 @@ export default function SettingsPage() {
                       <input
                         type="checkbox"
                         checked={displaySettings.compactMode}
-                        onChange={(e) => setDisplaySettings({ ...displaySettings, compactMode: e.target.checked })}
+                        onChange={(e) => {
+                          setDisplaySettings({ ...displaySettings, compactMode: e.target.checked });
+                          // Apply compact mode immediately on toggle
+                          if (e.target.checked) {
+                            document.documentElement.classList.add('compact');
+                          } else {
+                            document.documentElement.classList.remove('compact');
+                          }
+                        }}
                         className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       />
                     </label>
                   </div>
                   <div className="flex justify-end pt-4">
-                    <Button>Save Settings</Button>
+                    <Button onClick={handleSaveDisplay} disabled={isSavingDisplay}>
+                      {isSavingDisplay ? 'Saving...' : 'Save Settings'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {activeTab === 'billing' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing & Subscription</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-emerald-800">Current Plan</p>
-                        <p className="text-sm text-emerald-600">All features included</p>
-                      </div>
-                      <Button variant="outline">Manage Subscription</Button>
-                    </div>
-                  </div>
+          {activeTab === 'billing' && <BillingTab />}
 
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Available Plans</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        { name: 'Solo', priceMonthly: '$19.99/mo', priceAnnual: '$199.99/yr', annualNote: '~$16.67/mo — save 17%', features: ['1 user', '1 company', 'All features included', 'Email support'] },
-                        { name: 'Team', priceMonthly: '$14.99/user/mo', priceAnnual: '$149.99/user/yr', annualNote: '~$12.50/user/mo — save 17%', features: ['Unlimited users', 'Unlimited companies', 'All features included', 'Priority support'] },
-                      ].map((plan) => (
-                        <div key={plan.name} className="border rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900">{plan.name}</h4>
-                          <p className="text-2xl font-bold text-gray-900 mt-2">{plan.priceMonthly}</p>
-                          <p className="text-sm text-emerald-600 font-medium mb-2">or {plan.priceAnnual} <span className="text-xs">({plan.annualNote})</span></p>
-                          <ul className="space-y-1 text-sm text-gray-600">
-                            {plan.features.map((f, i) => (
-                              <li key={i}>- {f}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === 'security' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                    <div>
-                      <p className="font-medium text-gray-900">Change Password</p>
-                      <p className="text-sm text-gray-500">Update your account password</p>
-                    </div>
-                    <Button variant="outline">Change</Button>
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                    <div>
-                      <p className="font-medium text-gray-900">Two-Factor Authentication</p>
-                      <p className="text-sm text-gray-500">Add an extra layer of security</p>
-                    </div>
-                    <Button variant="outline">Enable</Button>
-                  </div>
-                  <div className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="font-medium text-gray-900">Active Sessions</p>
-                      <p className="text-sm text-gray-500">Manage your active login sessions</p>
-                    </div>
-                    <Button variant="outline">View Sessions</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {activeTab === 'security' && <SecurityTab />}
 
           {activeTab === 'data' && (
             <div className="space-y-4">
@@ -1460,6 +2742,13 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-400 mt-1">
                         Your Jamaica Tax Administration TRN number.
                       </p>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="flex justify-end pt-4 border-t border-gray-100">
+                      <Button onClick={handleSaveTax} disabled={isSavingTax}>
+                        {isSavingTax ? 'Saving...' : 'Save Tax Settings'}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

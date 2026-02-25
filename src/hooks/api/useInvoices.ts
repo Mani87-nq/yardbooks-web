@@ -52,8 +52,9 @@ interface PaginatedResponse<T> {
   pagination: { nextCursor: string | null; hasMore: boolean; limit: number };
 }
 
-export function useInvoices(params?: { status?: string; customerId?: string; limit?: number }) {
+export function useInvoices(params?: { search?: string; status?: string; customerId?: string; limit?: number }) {
   const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.set('search', params.search);
   if (params?.status) searchParams.set('status', params.status);
   if (params?.customerId) searchParams.set('customerId', params.customerId);
   if (params?.limit) searchParams.set('limit', String(params.limit));

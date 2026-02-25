@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import {
   CheckIcon,
   InformationCircleIcon,
   PencilSquareIcon,
+  CameraIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 
 // Role display labels
@@ -36,6 +38,12 @@ export default function ProfilePage() {
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
 
+  // Avatar upload state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+
   // Populate form fields from user
   useEffect(() => {
     if (user) {
@@ -43,8 +51,68 @@ export default function ProfilePage() {
       setLastName(user.lastName || '');
       setEmail(user.email || '');
       setPhone(user.phone || '');
+      setAvatarUrl((user as any).avatarUrl || null);
     }
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Avatar upload handler
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    setAvatarError('');
+    setAvatarUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch(`/api/auth/users/${user.id}/avatar`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setAvatarError(err.error || 'Failed to upload photo');
+        return;
+      }
+
+      const data = await res.json();
+      setAvatarUrl(data.avatarUrl);
+      updateAppUser({ avatarUrl: data.avatarUrl } as any);
+      setProfileSuccess('Photo updated!');
+    } catch {
+      setAvatarError('Network error uploading photo.');
+    } finally {
+      setAvatarUploading(false);
+      // Reset input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Avatar remove handler
+  const handleAvatarRemove = async () => {
+    if (!user?.id) return;
+    setAvatarError('');
+    setAvatarUploading(true);
+
+    try {
+      const res = await fetch(`/api/auth/users/${user.id}/avatar`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        setAvatarError(err.error || 'Failed to remove photo');
+        return;
+      }
+      setAvatarUrl(null);
+      updateAppUser({ avatarUrl: null } as any);
+      setProfileSuccess('Photo removed.');
+    } catch {
+      setAvatarError('Network error.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   // Validation helpers
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -156,17 +224,63 @@ export default function ProfilePage() {
         <CardContent>
           {/* Avatar + Role */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                {initials}
-              </span>
+            {/* Uploadable Avatar */}
+            <div className="relative group flex-shrink-0">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={`${user.firstName}'s photo`}
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center border-2 border-gray-200 dark:border-gray-700">
+                  <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    {initials}
+                  </span>
+                </div>
+              )}
+              {/* Hover overlay */}
+              <div
+                className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {avatarUploading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CameraIcon className="w-6 h-6 text-white" />
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarUpload}
+                disabled={avatarUploading}
+              />
+              {/* Remove button (when photo exists) */}
+              {avatarUrl && !avatarUploading && (
+                <button
+                  onClick={handleAvatarRemove}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-md transition-colors"
+                  title="Remove photo"
+                >
+                  <TrashIcon className="w-3.5 h-3.5 text-white" />
+                </button>
+              )}
             </div>
             <div>
               <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${roleBadgeColor}`}>
                 {roleLabel}
               </span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                Click photo to change
+              </p>
+              {avatarError && (
+                <p className="text-xs text-red-500 mt-1">{avatarError}</p>
+              )}
               {user.createdAt && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   Member since {new Date(user.createdAt).toLocaleDateString()}
                 </p>
               )}

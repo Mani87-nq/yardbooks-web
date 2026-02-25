@@ -6,7 +6,6 @@ import { useAppStore } from '@/store/appStore';
 import api, { setAccessToken } from '@/lib/api-client';
 import {
   Bars3Icon,
-  BellIcon,
   MagnifyingGlassIcon,
   UserCircleIcon,
   BuildingOfficeIcon,
@@ -16,6 +15,7 @@ import {
   Cog6ToothIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
+import { NotificationBell } from './NotificationBell';
 
 export function Header() {
   const router = useRouter();
@@ -157,10 +157,7 @@ export function Header() {
         </div>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-lg hover:bg-gray-100">
-          <BellIcon className="h-6 w-6 text-gray-600" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
-        </button>
+        <NotificationBell />
 
         {/* User Menu with Dropdown */}
         <div className="relative">

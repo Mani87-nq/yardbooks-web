@@ -18,8 +18,8 @@ export function ServiceWorkerRegistration() {
           companyId: '',
           title: 'Saved offline',
           message: `Your ${event.data.mutation.method} action has been queued and will sync when you reconnect.`,
-          type: 'system',
-          priority: 'low',
+          type: 'SYSTEM',
+          priority: 'LOW',
           isRead: false,
           isArchived: false,
           createdAt: new Date(),
@@ -37,8 +37,8 @@ export function ServiceWorkerRegistration() {
             message: `${synced} offline action${synced !== 1 ? 's' : ''} synced successfully.${
               remaining > 0 ? ` ${remaining} still pending.` : ''
             }`,
-            type: 'system',
-            priority: 'low',
+            type: 'SYSTEM',
+            priority: 'LOW',
             isRead: false,
             isArchived: false,
             createdAt: new Date(),

@@ -29,8 +29,11 @@ export default function InvoicesPage() {
   const [emailMessage, setEmailMessage] = useState('');
   const [emailSending, setEmailSending] = useState(false);
 
-  // API hooks
-  const { data: invoicesResponse, isLoading } = useInvoices({ limit: 200 });
+  // API hooks — pass search to server for scalable filtering
+  const { data: invoicesResponse, isLoading } = useInvoices({
+    search: searchQuery || undefined,
+    limit: 200,
+  });
   const { data: customersResponse } = useCustomers({ limit: 200 });
   const updateInvoiceMutation = useUpdateInvoice();
   const invoices: Invoice[] = (invoicesResponse as any)?.data ?? [];

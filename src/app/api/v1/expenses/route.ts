@@ -8,6 +8,7 @@ import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 import { postExpenseCreated } from '@/lib/accounting/engine';
+import { createNotification } from '@/lib/notification-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -113,6 +114,23 @@ export async function POST(request: NextRequest) {
 
       return exp;
     });
+
+    // Fire-and-forget notification
+    const formatAmount = new Intl.NumberFormat('en-JM', {
+      style: 'currency',
+      currency: 'JMD',
+    }).format(Number(expense.amount));
+
+    createNotification({
+      companyId: companyId!,
+      type: 'EXPENSE_APPROVED',
+      priority: 'LOW',
+      title: 'New Expense Recorded',
+      message: `Expense of ${formatAmount} for ${expense.description || expense.category}`,
+      link: `/expenses`,
+      relatedId: expense.id,
+      relatedType: 'expense',
+    }).catch(() => {});
 
     return NextResponse.json(expense, { status: 201 });
   } catch (error) {

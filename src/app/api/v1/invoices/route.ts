@@ -8,6 +8,7 @@ import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 import { postInvoiceCreated } from '@/lib/accounting/engine';
+import { createNotification } from '@/lib/notification-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,13 +27,21 @@ export async function GET(request: NextRequest) {
       return badRequest('Invalid invoice status');
     }
     const customerId = searchParams.get('customerId') ?? undefined;
+    const search = searchParams.get('search') ?? undefined;
 
-    const where = {
+    const where: Record<string, unknown> = {
       companyId: companyId!,
       deletedAt: null,
       ...(status ? { status: status as any } : {}),
       ...(customerId ? { customerId } : {}),
     };
+
+    if (search) {
+      where.OR = [
+        { invoiceNumber: { contains: search, mode: 'insensitive' } },
+        { customer: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
 
     const invoices = await prisma.invoice.findMany({
       where,
@@ -142,6 +151,23 @@ export async function POST(request: NextRequest) {
 
       return inv;
     });
+
+    // Fire-and-forget notification
+    const formatAmount = new Intl.NumberFormat('en-JM', {
+      style: 'currency',
+      currency: 'JMD',
+    }).format(Number(invoice.total));
+
+    createNotification({
+      companyId: companyId!,
+      type: 'INVOICE_DUE',
+      priority: 'LOW',
+      title: 'New Invoice Created',
+      message: `Invoice ${invoice.invoiceNumber} created for ${invoice.customer?.name ?? 'Customer'} — ${formatAmount}`,
+      link: `/invoices/${invoice.id}`,
+      relatedId: invoice.id,
+      relatedType: 'invoice',
+    }).catch(() => {});
 
     return NextResponse.json(invoice, { status: 201 });
   } catch (error) {

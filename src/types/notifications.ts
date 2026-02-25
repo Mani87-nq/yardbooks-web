@@ -1,19 +1,22 @@
 // YaadBooks Web - Notification Types
+// These match the Prisma enums (UPPERCASE)
 
 export type NotificationType =
-  | 'invoice_due'
-  | 'invoice_overdue'
-  | 'payment_received'
-  | 'low_stock'
-  | 'payroll_due'
-  | 'expense_approved'
-  | 'expense_rejected'
-  | 'po_received'
-  | 'bank_sync'
-  | 'system'
-  | 'reminder';
+  | 'INVOICE_DUE'
+  | 'INVOICE_OVERDUE'
+  | 'PAYMENT_RECEIVED'
+  | 'LOW_STOCK'
+  | 'PAYROLL_DUE'
+  | 'EXPENSE_APPROVED'
+  | 'EXPENSE_REJECTED'
+  | 'PO_RECEIVED'
+  | 'BANK_SYNC'
+  | 'TAX_DEADLINE'
+  | 'SECURITY_ALERT'
+  | 'SYSTEM'
+  | 'REMINDER';
 
-export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type NotificationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface Notification {
   id: string;
@@ -24,45 +27,50 @@ export interface Notification {
   message: string;
   isRead: boolean;
   isArchived: boolean;
+  link?: string;
   actionUrl?: string;
   actionLabel?: string;
   relatedId?: string;
   relatedType?: 'invoice' | 'expense' | 'customer' | 'product' | 'employee' | 'po';
-  createdAt: Date;
-  readAt?: Date;
+  createdAt: string | Date;
+  readAt?: string | Date | null;
 }
 
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
-  invoice_due: 'Invoice Due',
-  invoice_overdue: 'Invoice Overdue',
-  payment_received: 'Payment Received',
-  low_stock: 'Low Stock Alert',
-  payroll_due: 'Payroll Due',
-  expense_approved: 'Expense Approved',
-  expense_rejected: 'Expense Rejected',
-  po_received: 'PO Received',
-  bank_sync: 'Bank Sync',
-  system: 'System',
-  reminder: 'Reminder',
+  INVOICE_DUE: 'Invoice Due',
+  INVOICE_OVERDUE: 'Invoice Overdue',
+  PAYMENT_RECEIVED: 'Payment Received',
+  LOW_STOCK: 'Low Stock Alert',
+  PAYROLL_DUE: 'Payroll Due',
+  EXPENSE_APPROVED: 'Expense Approved',
+  EXPENSE_REJECTED: 'Expense Rejected',
+  PO_RECEIVED: 'PO Received',
+  BANK_SYNC: 'Bank Sync',
+  TAX_DEADLINE: 'Tax Deadline',
+  SECURITY_ALERT: 'Security Alert',
+  SYSTEM: 'System',
+  REMINDER: 'Reminder',
 };
 
 export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, string> = {
-  invoice_due: 'DocumentTextIcon',
-  invoice_overdue: 'ExclamationTriangleIcon',
-  payment_received: 'BanknotesIcon',
-  low_stock: 'CubeIcon',
-  payroll_due: 'UserGroupIcon',
-  expense_approved: 'CheckCircleIcon',
-  expense_rejected: 'XCircleIcon',
-  po_received: 'ClipboardDocumentListIcon',
-  bank_sync: 'BuildingLibraryIcon',
-  system: 'CogIcon',
-  reminder: 'BellIcon',
+  INVOICE_DUE: 'DocumentTextIcon',
+  INVOICE_OVERDUE: 'ExclamationTriangleIcon',
+  PAYMENT_RECEIVED: 'BanknotesIcon',
+  LOW_STOCK: 'CubeIcon',
+  PAYROLL_DUE: 'UserGroupIcon',
+  EXPENSE_APPROVED: 'CheckCircleIcon',
+  EXPENSE_REJECTED: 'XCircleIcon',
+  PO_RECEIVED: 'ClipboardDocumentListIcon',
+  BANK_SYNC: 'BuildingLibraryIcon',
+  TAX_DEADLINE: 'CalendarIcon',
+  SECURITY_ALERT: 'ShieldExclamationIcon',
+  SYSTEM: 'CogIcon',
+  REMINDER: 'BellIcon',
 };
 
 export const PRIORITY_COLORS: Record<NotificationPriority, string> = {
-  low: '#9E9E9E',
-  medium: '#2196F3',
-  high: '#FF9800',
-  urgent: '#F44336',
+  LOW: '#9E9E9E',
+  MEDIUM: '#2196F3',
+  HIGH: '#FF9800',
+  URGENT: '#F44336',
 };

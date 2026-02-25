@@ -8,6 +8,7 @@ import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { notFound, badRequest, internalError } from '@/lib/api-error';
 import { postPaymentReceived } from '@/lib/accounting/engine';
+import { createNotification } from '@/lib/notification-service';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -91,6 +92,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       return { payment, invoice: updatedInvoice };
     });
+
+    // Fire-and-forget notification
+    const formatAmount = new Intl.NumberFormat('en-JM', {
+      style: 'currency',
+      currency: 'JMD',
+    }).format(paymentAmount.toDecimalPlaces(2).toNumber());
+
+    createNotification({
+      companyId: companyId!,
+      type: 'PAYMENT_RECEIVED',
+      priority: 'MEDIUM',
+      title: 'Payment Received',
+      message: `Payment of ${formatAmount} received for invoice ${invoice.invoiceNumber}`,
+      link: `/invoices/${id}`,
+      relatedId: id,
+      relatedType: 'invoice',
+    }).catch(() => {});
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
