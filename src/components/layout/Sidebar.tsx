@@ -34,6 +34,7 @@ import {
   CalculatorIcon,
   ArrowTrendingUpIcon,
   ShieldCheckIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -56,9 +57,10 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, permission: null },
       { name: 'Point of Sale', href: '/pos', icon: ShoppingCartIcon, badge: 'NEW', permission: 'pos:read' },
+      { name: 'Day Management', href: '/pos/day-management', icon: CalendarDaysIcon, permission: 'pos:read' },
       { name: 'POS Returns', href: '/pos/returns', icon: ReceiptRefundIcon, permission: 'pos:read' },
-      { name: 'POS Grid Settings', href: '/pos/grid-settings', icon: Cog6ToothIcon, permission: 'pos:read' },
       { name: 'POS Sessions', href: '/pos/sessions', icon: ClockIcon, permission: 'pos:read' },
+      { name: 'POS Grid Settings', href: '/pos/grid-settings', icon: Cog6ToothIcon, permission: 'pos:read' },
     ],
   },
   {

@@ -441,6 +441,14 @@ enum RefundMethod {
   STORE_CREDIT
 }
 
+enum BusinessDayStatus {
+  SCHEDULED
+  OPEN
+  CLOSING_SOON
+  CLOSED
+  FORCE_CLOSED
+}
+
 enum CashMovementType {
   OPENING_FLOAT
   SALE
@@ -795,6 +803,8 @@ model Company {
   posSessions      PosSession[]
   posOrders        PosOrder[]
   posReturns       PosReturn[]
+  businessDays     BusinessDay[]
+  eodReports       EndOfDayReport[]
   customerPOs      CustomerPurchaseOrder[]
   notifications    Notification[]
   documents        Document[]
@@ -2331,35 +2341,39 @@ model PosSession {
   id              String           @id @default(cuid())
   companyId       String
   company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
+
   terminalId      String
   terminal        PosTerminal      @relation(fields: [terminalId], references: [id])
   terminalName    String
-  
+
   cashierName     String
   cashierId       String?
-  
+
+  // Business day link (optional — sessions can exist without a business day)
+  businessDayId   String?
+  businessDay     BusinessDay?     @relation(fields: [businessDayId], references: [id])
+
   openedAt        DateTime         @default(now())
   closedAt        DateTime?
-  
+
   openingCash     Decimal          @db.Decimal(15, 2)
   expectedCash    Decimal          @default(0) @db.Decimal(15, 2)
   closingCash     Decimal?         @db.Decimal(15, 2)
   cashVariance    Decimal?         @db.Decimal(15, 2)
-  
+
   // Summary
   totalSales      Decimal          @default(0) @db.Decimal(15, 2)
   totalRefunds    Decimal          @default(0) @db.Decimal(15, 2)
   totalVoids      Decimal          @default(0) @db.Decimal(15, 2)
   netSales        Decimal          @default(0) @db.Decimal(15, 2)
-  
+
   status          PosSessionStatus @default(OPEN)
   closingNotes    String?
-  
+
   // Audit
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  
+
   // Relations
   cashMovements   CashMovement[]
   orders          PosOrder[]
@@ -2368,6 +2382,7 @@ model PosSession {
   @@index([companyId])
   @@index([terminalId])
   @@index([status])
+  @@index([businessDayId])
 }
 
 /// Cash movement within session
@@ -2620,6 +2635,122 @@ model PosReturnItem {
   inventoryRestocked  Boolean       @default(false)
 
   @@index([returnId])
+}
+
+// ============================================
+// BUSINESS DAY MANAGEMENT
+// ============================================
+
+/// Business day — tracks one store operating day with open/close and reconciliation
+model BusinessDay {
+  id                   String             @id @default(cuid())
+  companyId            String
+  company              Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  date                 String             // ISO date "2026-02-24" — one per company per date
+  status               BusinessDayStatus  @default(SCHEDULED)
+
+  scheduledOpen        String?            // e.g. "08:00"
+  scheduledClose       String?            // e.g. "18:00"
+  actualOpenTime       DateTime?
+  actualCloseTime      DateTime?
+
+  openedBy             String?
+  closedBy             String?
+  openingNotes         String?
+  closingNotes         String?
+
+  // Session tracking
+  activeSessionCount   Int                @default(0)
+
+  // Daily aggregates (updated when sessions close)
+  totalSales           Decimal            @default(0)  @db.Decimal(15, 2)
+  totalRefunds         Decimal            @default(0)  @db.Decimal(15, 2)
+  totalVoids           Decimal            @default(0)  @db.Decimal(15, 2)
+  netSales             Decimal            @default(0)  @db.Decimal(15, 2)
+  totalTransactions    Int                @default(0)
+
+  // Cash reconciliation
+  totalCashExpected    Decimal            @default(0)  @db.Decimal(15, 2)
+  totalCashActual      Decimal            @default(0)  @db.Decimal(15, 2)
+  totalCashVariance    Decimal            @default(0)  @db.Decimal(15, 2)
+  hasVariance          Boolean            @default(false)
+  varianceApproved     Boolean            @default(false)
+  varianceApprovedBy   String?
+  varianceApprovedAt   DateTime?
+
+  // Audit
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  // Relations
+  sessions             PosSession[]
+  eodReport            EndOfDayReport?
+
+  @@unique([companyId, date])
+  @@index([companyId])
+  @@index([date])
+  @@index([status])
+}
+
+/// End-of-Day Report — generated when a business day is closed
+model EndOfDayReport {
+  id                   String             @id @default(cuid())
+  companyId            String
+  company              Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  reportNumber         String             // "EOD-2026-02-24"
+  date                 String             // ISO date
+
+  businessDayId        String             @unique
+  businessDay          BusinessDay        @relation(fields: [businessDayId], references: [id], onDelete: Cascade)
+
+  // Operating hours
+  openTime             DateTime?
+  closeTime            DateTime?
+
+  // Sales summary
+  grossSales           Decimal            @default(0) @db.Decimal(15, 2)
+  totalDiscounts       Decimal            @default(0) @db.Decimal(15, 2)
+  totalRefunds         Decimal            @default(0) @db.Decimal(15, 2)
+  totalVoids           Decimal            @default(0) @db.Decimal(15, 2)
+  netSales             Decimal            @default(0) @db.Decimal(15, 2)
+  totalTransactions    Int                @default(0)
+
+  // Tax summary
+  gctRate              Decimal            @db.Decimal(5, 4)
+  taxableAmount        Decimal            @default(0) @db.Decimal(15, 2)
+  exemptAmount         Decimal            @default(0) @db.Decimal(15, 2)
+  gctCollected         Decimal            @default(0) @db.Decimal(15, 2)
+
+  // Cash reconciliation
+  totalOpeningCash     Decimal            @default(0) @db.Decimal(15, 2)
+  totalCashSales       Decimal            @default(0) @db.Decimal(15, 2)
+  totalCashRefunds     Decimal            @default(0) @db.Decimal(15, 2)
+  totalPayouts         Decimal            @default(0) @db.Decimal(15, 2)
+  totalDrops           Decimal            @default(0) @db.Decimal(15, 2)
+  expectedCash         Decimal            @default(0) @db.Decimal(15, 2)
+  actualCash           Decimal            @default(0) @db.Decimal(15, 2)
+  cashVariance         Decimal            @default(0) @db.Decimal(15, 2)
+  cashStatus           String             @default("balanced") // "balanced" | "over" | "short"
+
+  // Payment breakdown (JSON: { method: { count, amount } })
+  paymentBreakdown     Json               @default("{}")
+
+  // Session count
+  sessionCount         Int                @default(0)
+
+  // Approval
+  approved             Boolean            @default(false)
+  approvedBy           String?
+  approvedAt           DateTime?
+
+  // Audit
+  createdAt            DateTime           @default(now())
+
+  @@unique([companyId, date])
+  @@index([companyId])
+  @@index([date])
 }
 
 // ============================================
@@ -2927,6 +3058,16 @@ model PosSettings {
   autoDeductInventory     Boolean            @default(true)
   autoPostToGL            Boolean            @default(true)
   defaultToWalkIn         Boolean            @default(true)
+
+  // Day management settings
+  storeHours              Json?              // { monday: { open: "08:00", close: "18:00", isClosed: false }, ... }
+  specialHours            Json?              // [ { date: "2026-12-25", isClosed: true, reason: "Christmas" }, ... ]
+  requireManagerToOpenDay Boolean            @default(false)
+  requireManagerToCloseDay Boolean           @default(false)
+  autoGenerateEodReport   Boolean            @default(true)
+  allowCloseWithVariance  Boolean            @default(true)
+  varianceThreshold       Decimal            @default(1000) @db.Decimal(15, 2)
+  closingReminderMinutes  Int                @default(30)
   
   enabledPaymentMethods   PosPaymentMethod[]
   
