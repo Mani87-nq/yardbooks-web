@@ -14,6 +14,8 @@ import {
   frontendMethodToApi,
 } from '@/hooks/api/usePos';
 import { formatJMD, cn } from '@/lib/utils';
+import { useAppStore } from '@/store/appStore';
+import { printReceipt, type ReceiptData } from '@/lib/pos-receipt';
 import {
   ShoppingCartIcon,
   MagnifyingGlassIcon,
@@ -34,6 +36,7 @@ import {
   ArrowPathIcon,
   ExclamationCircleIcon,
   ReceiptRefundIcon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline';
 
 // ---- Local cart types (client-only, not persisted to API until order creation) ----
@@ -86,7 +89,7 @@ const PaymentMethodIcon = ({ method }: { method: string }) => {
   }
 };
 
-// Product Grid Item
+// Product Grid Item — touch-optimized with min 48px tap target
 function ProductCard({
   product,
   onAdd,
@@ -97,29 +100,29 @@ function ProductCard({
   return (
     <button
       onClick={onAdd}
-      className="p-4 bg-white rounded-xl border border-gray-200 hover:border-emerald-400 hover:shadow-md transition-all text-left group"
+      className="p-3 sm:p-4 bg-white rounded-xl border border-gray-200 hover:border-emerald-400 active:border-emerald-500 active:scale-[0.97] hover:shadow-md transition-all text-left group touch-manipulation select-none min-h-[100px]"
     >
-      <div className="aspect-square mb-3 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
-        <ShoppingCartIcon className="w-8 h-8 text-gray-400 group-hover:text-emerald-500" />
+      <div className="aspect-square mb-2 sm:mb-3 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+        <ShoppingCartIcon className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400 group-hover:text-emerald-500" />
       </div>
-      <h3 className="font-medium text-gray-900 text-sm truncate">{product.name}</h3>
-      <p className="text-xs text-gray-500 mb-2">{product.sku}</p>
-      <div className="flex items-center justify-between">
-        <span className="font-bold text-emerald-600">{formatJMD(product.unitPrice)}</span>
+      <h3 className="font-medium text-gray-900 text-sm leading-tight truncate">{product.name}</h3>
+      <p className="text-xs text-gray-500 mb-1 sm:mb-2 truncate">{product.sku}</p>
+      <div className="flex items-center justify-between gap-1">
+        <span className="font-bold text-emerald-600 text-sm">{formatJMD(product.unitPrice)}</span>
         <span className={cn(
-          "text-xs px-2 py-0.5 rounded-full",
+          "text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap",
           product.quantity <= 0 ? "bg-red-100 text-red-700" :
           product.quantity <= 10 ? "bg-yellow-100 text-yellow-700" :
           "bg-emerald-100 text-emerald-700"
         )}>
-          {product.quantity} left
+          {product.quantity}
         </span>
       </div>
     </button>
   );
 }
 
-// Cart Item
+// Cart Item — touch-optimized with 44px+ tap targets
 function CartItemRow({
   item,
   onUpdateQuantity,
@@ -132,32 +135,32 @@ function CartItemRow({
   const total = item.quantity * item.unitPrice;
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-gray-900 text-sm truncate">{item.name}</h4>
         <p className="text-xs text-gray-500">{formatJMD(item.unitPrice)} / {item.uomCode}</p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <button
           onClick={() => onUpdateQuantity(Math.max(1, item.quantity - 1))}
-          className="w-7 h-7 flex items-center justify-center rounded-md bg-white border border-gray-200 hover:bg-gray-100"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-100 active:bg-gray-200 touch-manipulation select-none"
         >
           <MinusIcon className="w-4 h-4" />
         </button>
-        <span className="w-8 text-center font-medium">{item.quantity}</span>
+        <span className="w-8 text-center font-semibold tabular-nums">{item.quantity}</span>
         <button
           onClick={() => onUpdateQuantity(item.quantity + 1)}
-          className="w-7 h-7 flex items-center justify-center rounded-md bg-white border border-gray-200 hover:bg-gray-100"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-100 active:bg-gray-200 touch-manipulation select-none"
         >
           <PlusIcon className="w-4 h-4" />
         </button>
       </div>
-      <div className="text-right min-w-[80px]">
-        <p className="font-medium text-gray-900">{formatJMD(total)}</p>
+      <div className="text-right min-w-[72px]">
+        <p className="font-medium text-gray-900 text-sm tabular-nums">{formatJMD(total)}</p>
       </div>
       <button
         onClick={onRemove}
-        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+        className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 active:text-red-600 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation select-none"
       >
         <TrashIcon className="w-4 h-4" />
       </button>
@@ -175,11 +178,15 @@ export default function POSPage() {
   const [currentCart, setCurrentCart] = useState<LocalCart>(EMPTY_CART);
   const [processingPayment, setProcessingPayment] = useState(false);
 
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [lastReceiptData, setLastReceiptData] = useState<ReceiptData | null>(null);
+
   // ---- API data fetching ----
   const { data: productsData, isLoading: productsLoading, error: productsError } = useProducts({ limit: 200 });
   const { data: customersData } = useCustomers({ type: 'CUSTOMER', limit: 100 });
   const { data: settingsData, isLoading: settingsLoading } = usePosSettings();
   const { data: heldOrdersData } = usePosOrders({ status: 'HELD', limit: 1 });
+  const activeCompany = useAppStore((state) => state.activeCompany);
 
   const products = productsData?.data ?? [];
   const customers = customersData?.data ?? [];
@@ -343,7 +350,7 @@ export default function POSPage() {
 
       // Add payment to the order
       const tenderedAmount = parseFloat(cashTendered) || cartTotals.total;
-      await addPayment.mutateAsync({
+      const paymentResult = await addPayment.mutateAsync({
         orderId: order.id,
         method: frontendMethodToApi(paymentMethod),
         amount: Number(order.total),
@@ -351,7 +358,51 @@ export default function POSPage() {
         status: 'COMPLETED',
       });
 
-      // Reset
+      // Build receipt data for print
+      const changeAmt = paymentMethod === 'cash' ? Math.max(0, tenderedAmount - Number(order.total)) : 0;
+      const receiptData: ReceiptData = {
+        businessName: posSettings?.businessName || activeCompany?.businessName || 'YaadBooks',
+        businessAddress: posSettings?.businessAddress ?? undefined,
+        businessPhone: posSettings?.businessPhone ?? undefined,
+        businessTRN: posSettings?.businessTRN ?? undefined,
+        gctRegistrationNumber: posSettings?.gctRegistrationNumber ?? undefined,
+        logoUrl: posSettings?.businessLogo ?? undefined,
+        showLogo: posSettings?.showLogo ?? false,
+        orderNumber: order.orderNumber,
+        date: order.createdAt,
+        customerName: currentCart.customerName,
+        items: currentCart.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          lineTotal: item.quantity * item.unitPrice * (item.isGctExempt ? 1 : (1 + gctRate)),
+          isGctExempt: item.isGctExempt,
+        })),
+        subtotal: cartTotals.subtotal,
+        discountAmount: cartTotals.discountAmount > 0 ? cartTotals.discountAmount : undefined,
+        discountLabel: currentCart.orderDiscountReason
+          ? `Discount (${currentCart.orderDiscountReason})`
+          : 'Discount',
+        taxableAmount: cartTotals.taxableAmount,
+        exemptAmount: cartTotals.exemptAmount,
+        gctRate,
+        gctAmount: cartTotals.gctAmount,
+        total: Number(order.total),
+        payments: [{
+          method: paymentMethod,
+          amount: Number(order.total),
+          amountTendered: paymentMethod === 'cash' ? tenderedAmount : undefined,
+          changeGiven: changeAmt > 0 ? changeAmt : undefined,
+        }],
+        changeGiven: changeAmt > 0 ? changeAmt : undefined,
+        receiptFooter: posSettings?.receiptFooter ?? undefined,
+      };
+
+      // Show receipt confirmation modal
+      setLastReceiptData(receiptData);
+      setShowReceiptModal(true);
+
+      // Reset cart
       setShowPaymentModal(false);
       setCashTendered('');
       setPaymentMethod('cash');
@@ -437,7 +488,7 @@ export default function POSPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex gap-6">
+    <div className="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4 lg:gap-6">
       {/* Mutation error banner */}
       {mutationError && (
         <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 max-w-md shadow-lg">
@@ -454,7 +505,7 @@ export default function POSPage() {
       )}
 
       {/* Products Section */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <div className="flex-1">
@@ -469,10 +520,10 @@ export default function POSPage() {
             <button
               onClick={() => setSelectedCategory(null)}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
+                "px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors touch-manipulation select-none",
                 !selectedCategory
                   ? "bg-emerald-600 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100"
               )}
             >
               All
@@ -482,10 +533,10 @@ export default function POSPage() {
                 key={category}
                 onClick={() => setSelectedCategory(category)}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
+                  "px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors touch-manipulation select-none",
                   selectedCategory === category
                     ? "bg-emerald-600 text-white"
-                    : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100"
                 )}
               >
                 {category}
@@ -507,7 +558,7 @@ export default function POSPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {filteredProducts.map((product: any) => (
                 <ProductCard
                   key={product.id}
@@ -521,7 +572,7 @@ export default function POSPage() {
       </div>
 
       {/* Cart Section */}
-      <div className="w-96 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="w-full lg:w-96 lg:max-w-96 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden min-h-[300px] lg:min-h-0">
         {/* Cart Header */}
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
@@ -632,7 +683,7 @@ export default function POSPage() {
             </Button>
           </div>
           <Button
-            className="w-full"
+            className="w-full touch-manipulation min-h-[52px]"
             size="lg"
             onClick={handleCheckout}
             disabled={currentCart.items.length === 0}
@@ -673,14 +724,14 @@ export default function POSPage() {
                     key={method.id}
                     onClick={() => setPaymentMethod(method.id)}
                     className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                      "flex flex-col items-center gap-2 p-4 sm:p-5 rounded-xl border-2 transition-all touch-manipulation select-none min-h-[80px]",
                       paymentMethod === method.id
                         ? "border-emerald-500 bg-emerald-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-gray-200 hover:border-gray-300 active:bg-gray-50"
                     )}
                   >
                     <method.icon className={cn(
-                      "w-6 h-6",
+                      "w-7 h-7",
                       paymentMethod === method.id ? "text-emerald-600" : "text-gray-400"
                     )} />
                     <span className={cn(
@@ -712,7 +763,7 @@ export default function POSPage() {
                     <button
                       key={amount}
                       onClick={() => setCashTendered(amount.toString())}
-                      className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                      className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-sm font-medium text-gray-700 transition-colors touch-manipulation select-none"
                     >
                       {formatJMD(amount)}
                     </button>
@@ -804,6 +855,53 @@ export default function POSPage() {
             )}
           </div>
         </ModalBody>
+      </Modal>
+
+      {/* Receipt Confirmation Modal (post-payment) */}
+      <Modal
+        isOpen={showReceiptModal}
+        onClose={() => { setShowReceiptModal(false); setLastReceiptData(null); }}
+        title="Payment Successful"
+        size="sm"
+      >
+        <ModalBody>
+          <div className="text-center py-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Order Complete!</h3>
+            {lastReceiptData && (
+              <p className="text-2xl font-bold text-emerald-600 mb-1">{formatJMD(Number(lastReceiptData.total))}</p>
+            )}
+            {lastReceiptData && Number(lastReceiptData.changeGiven || 0) > 0 && (
+              <p className="text-sm text-gray-600 mb-4">
+                Change: <span className="font-semibold">{formatJMD(Number(lastReceiptData.changeGiven))}</span>
+              </p>
+            )}
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="outline"
+            onClick={() => { setShowReceiptModal(false); setLastReceiptData(null); }}
+            className="flex-1"
+          >
+            No Receipt
+          </Button>
+          <Button
+            onClick={() => {
+              if (lastReceiptData) printReceipt(lastReceiptData);
+              setShowReceiptModal(false);
+              setLastReceiptData(null);
+            }}
+            className="flex-1"
+          >
+            <PrinterIcon className="w-4 h-4 mr-2" />
+            Print Receipt
+          </Button>
+        </ModalFooter>
       </Modal>
     </div>
   );
