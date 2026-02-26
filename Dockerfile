@@ -1,5 +1,6 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Build stage — use Debian slim (glibc) instead of Alpine (musl)
+# for reliable native binary support (lightningcss, @tailwindcss/oxide, swc)
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -8,11 +9,8 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies (including devDependencies for build)
-# Use npm install instead of npm ci for cross-platform compatibility
+# npm install (not npm ci) to resolve platform-specific optional deps
 RUN npm install
-# Explicitly install platform-specific native binaries for Alpine Linux (musl)
-# These are optional deps that npm may not resolve correctly cross-platform
-RUN npm install --no-save lightningcss-linux-x64-musl@1.30.2
 
 # Copy source code
 COPY . .
@@ -27,7 +25,7 @@ ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_51RlcqrLiXrJVafWfxwLSgxRKx6ewuhF
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
@@ -35,8 +33,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 --gid nodejs nextjs
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
@@ -48,8 +46,8 @@ COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-# Install curl for health checks (lighter than spawning Node.js)
-RUN apk add --no-cache curl
+# Install curl for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Fix permissions for .well-known
 RUN chown -R nextjs:nodejs /app/public
