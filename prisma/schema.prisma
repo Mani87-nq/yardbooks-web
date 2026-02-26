@@ -1432,7 +1432,10 @@ model Employee {
   employmentType   EmploymentType
   paymentFrequency PaymentFrequency
   baseSalary       Decimal        @db.Decimal(15, 2)
-  
+  hourlyRate       Decimal?       @db.Decimal(15, 2)
+  dailyRate        Decimal?       @db.Decimal(15, 2)
+  pensionRate      Decimal?       @db.Decimal(5, 4)  // Employee pension contribution rate (e.g. 0.05 = 5%)
+
   // Banking
   bankName         String?
   bankAccountNumber String?

@@ -55,16 +55,17 @@ export const JAMAICA_TAX_RATES = {
 export type PaymentFrequency = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
 
 export interface PayrollInput {
-  basicSalary: number;          // Period salary (monthly/bi-weekly/weekly)
-  overtime: number;             // Overtime earnings for period
-  bonus: number;                // Bonus for period
-  commission: number;           // Commission for period
-  allowances: number;           // Non-taxable allowances for period
-  pensionContribution: number;  // Employee approved pension contribution
-  otherDeductions: number;      // Other non-statutory deductions (loans, etc.)
+  basicSalary: number;              // Period salary (monthly/bi-weekly/weekly)
+  overtime: number;                 // Overtime earnings for period
+  bonus: number;                    // Bonus for period
+  commission: number;               // Commission for period
+  allowances: number;               // Allowances for period (taxable by default)
+  nonTaxableAllowances?: number;    // Non-taxable portion of allowances (travel/meal/laundry)
+  pensionContribution: number;      // Employee approved pension contribution
+  otherDeductions: number;          // Other non-statutory deductions (loans, etc.)
   frequency: PaymentFrequency;
-  ytdGross?: number;            // Year-to-date gross (for NIS ceiling tracking)
-  ytdNis?: number;              // Year-to-date NIS paid (for ceiling tracking)
+  ytdGross?: number;                // Year-to-date gross (for NIS ceiling tracking)
+  ytdNis?: number;                  // Year-to-date NIS paid (for ceiling tracking)
 }
 
 export interface EmployeeDeductions {
@@ -139,26 +140,30 @@ export function calculatePayroll(input: PayrollInput): PayrollCalculation {
 
   // ── Step 0: Calculate gross pay ──
   const grossPay = basicSalary + overtime + bonus + commission + allowances;
-  // Taxable gross excludes non-taxable allowances (simplified: all allowances taxable for now)
-  const taxableGross = grossPay;
+  // Taxable gross excludes non-taxable allowances (travel, meals, laundry up to statutory limits)
+  const nonTaxable = input.nonTaxableAllowances ?? 0;
+  const taxableGross = Math.max(grossPay - nonTaxable, 0);
 
   // ── Step 1: NIS (on gross, capped at ceiling) ──
   const nisCeiling = getNisCeiling(frequency);
   const nisableIncome = Math.min(taxableGross, nisCeiling);
 
-  // Check YTD ceiling for NIS
+  // Check YTD ceiling for NIS (both employee and employer are capped at J$150K/yr each)
   let employeeNis: number;
-  if (input.ytdGross !== undefined && input.ytdNis !== undefined) {
-    const remainingNisCap = JAMAICA_TAX_RATES.NIS_MAX_ANNUAL_CONTRIBUTION - input.ytdNis;
-    employeeNis = Math.min(
-      Math.round(nisableIncome * JAMAICA_TAX_RATES.NIS_EMPLOYEE_RATE * 100) / 100,
-      Math.max(remainingNisCap, 0)
-    );
-  } else {
-    employeeNis = Math.round(nisableIncome * JAMAICA_TAX_RATES.NIS_EMPLOYEE_RATE * 100) / 100;
-  }
+  let employerNis: number;
+  const periodNisEmployee = Math.round(nisableIncome * JAMAICA_TAX_RATES.NIS_EMPLOYEE_RATE * 100) / 100;
+  const periodNisEmployer = Math.round(nisableIncome * JAMAICA_TAX_RATES.NIS_EMPLOYER_RATE * 100) / 100;
 
-  const employerNis = Math.round(nisableIncome * JAMAICA_TAX_RATES.NIS_EMPLOYER_RATE * 100) / 100;
+  if (input.ytdGross !== undefined && input.ytdNis !== undefined) {
+    // Cap employee NIS based on YTD contributions
+    const remainingEmployeeNisCap = Math.max(JAMAICA_TAX_RATES.NIS_MAX_ANNUAL_CONTRIBUTION - input.ytdNis, 0);
+    employeeNis = Math.min(periodNisEmployee, remainingEmployeeNisCap);
+    // Employer NIS mirrors employee cap (both hit ceiling at same time)
+    employerNis = Math.min(periodNisEmployer, remainingEmployeeNisCap);
+  } else {
+    employeeNis = periodNisEmployee;
+    employerNis = periodNisEmployer;
+  }
 
   // ── Step 2: Education Tax (on statutory income: gross - NIS - pension) ──
   const statutoryIncome = Math.max(taxableGross - employeeNis - pensionContribution, 0);

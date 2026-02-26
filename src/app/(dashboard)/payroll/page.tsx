@@ -12,12 +12,6 @@ import {
   useDeleteEmployee,
 } from '@/hooks/api';
 import { api } from '@/lib/api-client';
-import Decimal from 'decimal.js';
-
-// Configure Decimal.js for financial calculations
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
-/** Round to 2dp and return a number */
-const d2 = (v: Decimal): number => v.toDecimalPlaces(2).toNumber();
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -81,12 +75,7 @@ const PAY_FREQUENCIES = [
   { value: 'monthly', label: 'Monthly' },
 ];
 
-// Jamaica statutory deductions (2024-2026 rates per TAJ)
-const NIS_RATE = 0.03;
-const NIS_ANNUAL_CEILING = 5000000;
-const NHT_RATE = 0.02;
-const EDUCATION_TAX_RATE = 0.0225;
-const PAYE_ANNUAL_THRESHOLD = 1902360;
+// Server handles all tax calculations — no client-side deduction constants needed
 
 export default function PayrollPage() {
   const { fc } = useCurrency();
@@ -199,11 +188,19 @@ export default function PayrollPage() {
     hireDate: new Date().toISOString().split('T')[0],
   });
 
+  interface PayrollEmployeeOverride {
+    overtime: string;
+    bonus: string;
+    commission: string;
+    allowances: string;
+  }
+
   const [payrollForm, setPayrollForm] = useState({
     payPeriodStart: '',
     payPeriodEnd: '',
     payDate: '',
     selectedEmployees: [] as string[],
+    overrides: {} as Record<string, PayrollEmployeeOverride>,
   });
 
   const handleOpenEmployeeModal = (employee?: EmployeeAPI) => {
@@ -305,45 +302,19 @@ export default function PayrollPage() {
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
+    const activeEmps = employees.filter(e => e.isActive);
+    const defaultOverrides: Record<string, PayrollEmployeeOverride> = {};
+    activeEmps.forEach(e => {
+      defaultOverrides[e.id] = { overtime: '0', bonus: '0', commission: '0', allowances: '0' };
+    });
     setPayrollForm({
       payPeriodStart: firstDay.toISOString().split('T')[0],
       payPeriodEnd: lastDay.toISOString().split('T')[0],
       payDate: today.toISOString().split('T')[0],
-      selectedEmployees: employees.filter(e => e.isActive).map(e => e.id),
+      selectedEmployees: activeEmps.map(e => e.id),
+      overrides: defaultOverrides,
     });
     setShowPayrollModal(true);
-  };
-
-  const calculateDeductions = (grossPay: number) => {
-    const dGross = new Decimal(grossPay);
-    const dMonthlyCeiling = new Decimal(NIS_ANNUAL_CEILING).dividedBy(12);
-    const dNisCapped = Decimal.min(dGross, dMonthlyCeiling);
-
-    const dNis = dNisCapped.times(NIS_RATE);
-    const dNht = dGross.times(NHT_RATE);
-    const dEduTax = dGross.times(EDUCATION_TAX_RATE);
-
-    const dAnnualGross = dGross.times(12);
-    let dPaye = new Decimal(0);
-    if (dAnnualGross.greaterThan(PAYE_ANNUAL_THRESHOLD)) {
-      const dTaxable = dAnnualGross.minus(PAYE_ANNUAL_THRESHOLD);
-      if (dTaxable.lessThanOrEqualTo(6000000)) {
-        dPaye = dTaxable.times(0.25).dividedBy(12);
-      } else {
-        dPaye = new Decimal(6000000).times(0.25)
-          .plus(dTaxable.minus(6000000).times(0.30))
-          .dividedBy(12);
-      }
-    }
-
-    const dTotal = dNis.plus(dNht).plus(dEduTax).plus(dPaye);
-    return {
-      nis: d2(dNis),
-      nht: d2(dNht),
-      eduTax: d2(dEduTax),
-      paye: d2(dPaye),
-      total: d2(dTotal),
-    };
   };
 
   const handleRunPayroll = async () => {
@@ -358,30 +329,19 @@ export default function PayrollPage() {
 
     setPayrollRunning(true);
     try {
-      // Build payroll entries for the API
+      // Build payroll employee data for the API (server calculates all deductions)
       const selectedEmps = employees.filter(e => payrollForm.selectedEmployees.includes(e.id));
-      const entries = selectedEmps.map(emp => {
-        const gross = Number(emp.baseSalary || 0);
-        const deductions = calculateDeductions(gross);
+      const employeeEntries = selectedEmps.map(emp => {
+        const ov = payrollForm.overrides[emp.id] ?? { overtime: '0', bonus: '0', commission: '0', allowances: '0' };
         return {
           employeeId: emp.id,
-          basicSalary: gross,
-          overtime: 0,
-          bonus: 0,
-          commission: 0,
-          allowances: 0,
-          grossPay: gross,
-          paye: deductions.paye,
-          nis: deductions.nis,
-          nht: deductions.nht,
-          educationTax: deductions.eduTax,
+          basicSalary: Number(emp.baseSalary || 0),
+          overtime: parseFloat(ov.overtime) || 0,
+          bonus: parseFloat(ov.bonus) || 0,
+          commission: parseFloat(ov.commission) || 0,
+          allowances: parseFloat(ov.allowances) || 0,
+          pensionContribution: 0,
           otherDeductions: 0,
-          totalDeductions: deductions.total,
-          netPay: d2(new Decimal(gross).minus(deductions.total)),
-          employerNis: d2(new Decimal(gross).times(NIS_RATE)),
-          employerNht: d2(new Decimal(gross).times(NHT_RATE)),
-          employerEducationTax: d2(new Decimal(gross).times(EDUCATION_TAX_RATE)),
-          heartContribution: d2(new Decimal(gross).times(0.03)),
         };
       });
 
@@ -389,7 +349,7 @@ export default function PayrollPage() {
         periodStart: payrollForm.payPeriodStart,
         periodEnd: payrollForm.payPeriodEnd,
         payDate: payrollForm.payDate,
-        entries,
+        employees: employeeEntries,
       });
 
       setShowPayrollModal(false);
@@ -876,37 +836,95 @@ export default function PayrollPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Employees</label>
-              <div className="border rounded-lg max-h-48 overflow-y-auto">
-                {employees.filter(e => e.isActive).map((emp) => (
-                  <label key={emp.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0">
-                    <input
-                      type="checkbox"
-                      checked={payrollForm.selectedEmployees.includes(emp.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setPayrollForm({
-                            ...payrollForm,
-                            selectedEmployees: [...payrollForm.selectedEmployees, emp.id],
-                          });
-                        } else {
-                          setPayrollForm({
-                            ...payrollForm,
-                            selectedEmployees: payrollForm.selectedEmployees.filter(id => id !== emp.id),
-                          });
-                        }
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{emp.firstName} {emp.lastName}</p>
-                      <p className="text-sm text-gray-500">{emp.position || emp.department}</p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Employees &amp; Earnings</label>
+              <div className="border rounded-lg max-h-64 overflow-y-auto">
+                {employees.filter(e => e.isActive).map((emp) => {
+                  const isSelected = payrollForm.selectedEmployees.includes(emp.id);
+                  const ov = payrollForm.overrides[emp.id] ?? { overtime: '0', bonus: '0', commission: '0', allowances: '0' };
+                  const updateOverride = (field: keyof PayrollEmployeeOverride, value: string) => {
+                    setPayrollForm(prev => ({
+                      ...prev,
+                      overrides: { ...prev.overrides, [emp.id]: { ...ov, [field]: value } },
+                    }));
+                  };
+                  return (
+                    <div key={emp.id} className={`p-3 border-b last:border-b-0 ${isSelected ? 'bg-emerald-50/50' : ''}`}>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setPayrollForm(prev => ({
+                                ...prev,
+                                selectedEmployees: [...prev.selectedEmployees, emp.id],
+                                overrides: { ...prev.overrides, [emp.id]: ov },
+                              }));
+                            } else {
+                              setPayrollForm(prev => ({
+                                ...prev,
+                                selectedEmployees: prev.selectedEmployees.filter(id => id !== emp.id),
+                              }));
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{emp.firstName} {emp.lastName}</p>
+                          <p className="text-xs text-gray-500">{emp.position} &middot; Base: {emp.baseSalary ? fc(emp.baseSalary) : '-'}</p>
+                        </div>
+                      </label>
+                      {isSelected && (
+                        <div className="grid grid-cols-4 gap-2 mt-2 ml-8">
+                          <div>
+                            <label className="text-xs text-gray-500">Overtime</label>
+                            <input
+                              type="number"
+                              value={ov.overtime}
+                              onChange={(e) => updateOverride('overtime', e.target.value)}
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-500">Bonus</label>
+                            <input
+                              type="number"
+                              value={ov.bonus}
+                              onChange={(e) => updateOverride('bonus', e.target.value)}
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-500">Commission</label>
+                            <input
+                              type="number"
+                              value={ov.commission}
+                              onChange={(e) => updateOverride('commission', e.target.value)}
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-500">Allowances</label>
+                            <input
+                              type="number"
+                              value={ov.allowances}
+                              onChange={(e) => updateOverride('allowances', e.target.value)}
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <span className="text-sm font-medium">
-                      {emp.baseSalary ? fc(emp.baseSalary) : '-'}
-                    </span>
-                  </label>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -921,7 +939,12 @@ export default function PayrollPage() {
                   {fc(
                     employees
                       .filter(e => payrollForm.selectedEmployees.includes(e.id))
-                      .reduce((sum, e) => sum + Number(e.baseSalary || 0), 0)
+                      .reduce((sum, e) => {
+                        const ov = payrollForm.overrides[e.id];
+                        const extras = ov ? (parseFloat(ov.overtime) || 0) + (parseFloat(ov.bonus) || 0) +
+                          (parseFloat(ov.commission) || 0) + (parseFloat(ov.allowances) || 0) : 0;
+                        return sum + Number(e.baseSalary || 0) + extras;
+                      }, 0)
                   )}
                 </span>
               </div>
