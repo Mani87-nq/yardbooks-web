@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
 
   if (!clientId) {
     // Not configured — redirect back to login with error
-    const { origin } = new URL(request.url);
-    const loginUrl = new URL('/login', origin);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+    const loginUrl = new URL('/login', appUrl);
     loginUrl.searchParams.set('error', 'google_oauth_not_configured');
     return NextResponse.redirect(loginUrl);
   }
