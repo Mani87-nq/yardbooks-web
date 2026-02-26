@@ -800,6 +800,7 @@ model Company {
   activeUsers      User[]        @relation("ActiveCompany")
   customers        Customer[]
   products         Product[]
+  stockMovements   StockMovement[]
   invoices         Invoice[]
   quotations       Quotation[]
   expenses         Expense[]
@@ -1013,11 +1014,47 @@ model Product {
   stockTransferItems StockTransferItem[]
   purchaseOrderItems PurchaseOrderItem[]
   grnItems         GoodsReceivedNoteItem[]
+  stockMovements   StockMovement[]
+
+  // Costing
+  costingMethod    String        @default("WEIGHTED_AVERAGE") // WEIGHTED_AVERAGE, FIFO, SPECIFIC
+  averageCost      Decimal       @default(0) @db.Decimal(15, 4)
 
   @@unique([companyId, sku])
   @@index([companyId])
   @@index([companyId, category])
   @@index([barcode])
+}
+
+// ============================================
+// STOCK MOVEMENT (inventory costing audit trail)
+// ============================================
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  movementType  String   // PURCHASE, SALE, RETURN, ADJUSTMENT, TRANSFER_IN, TRANSFER_OUT
+  quantity      Decimal  @db.Decimal(15, 4)  // Positive for in, negative for out
+  unitCost      Decimal  @db.Decimal(15, 4)
+  totalCost     Decimal  @db.Decimal(15, 2)
+  avgCostAfter  Decimal  @db.Decimal(15, 4)  // Weighted avg cost after this movement
+  qtyAfter      Decimal  @db.Decimal(15, 4)  // Stock qty after this movement
+
+  referenceType String?  // GRN, POS_ORDER, INVOICE, ADJUSTMENT, TRANSFER
+  referenceId   String?
+  description   String?
+
+  createdAt     DateTime @default(now())
+  createdBy     String?
+
+  @@index([companyId])
+  @@index([productId])
+  @@index([companyId, productId, createdAt])
+  @@index([referenceType, referenceId])
 }
 
 // ============================================
