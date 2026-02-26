@@ -17,7 +17,11 @@ import {
   ClockIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
+  PrinterIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import { printContent, downloadAsCSV, generateStatCards, formatPrintCurrency } from '@/lib/print';
+import { useAppStore } from '@/store/appStore';
 
 interface KPIData {
   // Revenue
@@ -119,6 +123,7 @@ function KPICard({
 
 export default function KPIDashboardPage() {
   const { fc } = useCurrency();
+  const { activeCompany } = useAppStore();
   const [asOfDate, setAsOfDate] = useState(
     () => new Date().toISOString().split('T')[0]
   );
@@ -137,6 +142,74 @@ export default function KPIDashboardPage() {
   const fmtDays = (v: number | null) =>
     v !== null ? v + ' days' : 'N/A';
   const fmtPct = (v: number) => v.toFixed(1) + '%';
+
+  const handlePrint = () => {
+    if (!kpis) return;
+    const currency = (data as any)?.currency ?? 'JMD';
+    const revenueStats = generateStatCards([
+      { label: 'Revenue (This Month)', value: formatPrintCurrency(kpis.revenueCurrentMonth, currency) },
+      { label: 'Revenue (YTD)', value: formatPrintCurrency(kpis.revenueYTD, currency) },
+      { label: 'Revenue (Last Month)', value: formatPrintCurrency(kpis.revenuePrevMonth, currency) },
+      { label: 'MoM Growth', value: fmtPct(kpis.revenueGrowthMoM) },
+    ]);
+    const profitabilityStats = generateStatCards([
+      { label: 'Gross Margin (Month)', value: fmtPct(kpis.grossMarginCurrentMonth) },
+      { label: 'Gross Margin (YTD)', value: fmtPct(kpis.grossMarginYTD) },
+      { label: 'Net Margin (Month)', value: fmtPct(kpis.netMarginCurrentMonth) },
+      { label: 'Net Margin (YTD)', value: fmtPct(kpis.netMarginYTD) },
+    ]);
+    const liquidityStats = generateStatCards([
+      { label: 'Cash on Hand', value: formatPrintCurrency(kpis.cashOnHand, currency) },
+      { label: 'Current Ratio', value: fmtRatio(kpis.currentRatio) },
+      { label: 'Quick Ratio', value: fmtRatio(kpis.quickRatio) },
+      { label: 'Cash Runway', value: kpis.cashRunwayMonths !== null ? `${kpis.cashRunwayMonths} months` : 'N/A' },
+    ]);
+    const efficiencyStats = generateStatCards([
+      { label: 'AR Days (DSO)', value: fmtDays(kpis.arDays) },
+      { label: 'AP Days (DPO)', value: fmtDays(kpis.apDays) },
+      { label: 'Open Invoices', value: kpis.openInvoices.toString() },
+      { label: 'Payroll % of Revenue', value: fmtPct(kpis.payrollPercentOfRevenue) },
+    ]);
+    const content = `
+      <h3 style="margin-top:20px;margin-bottom:10px;color:#059669;">Revenue</h3>${revenueStats}
+      <h3 style="margin-top:20px;margin-bottom:10px;color:#3b82f6;">Profitability</h3>${profitabilityStats}
+      <h3 style="margin-top:20px;margin-bottom:10px;color:#8b5cf6;">Liquidity</h3>${liquidityStats}
+      <h3 style="margin-top:20px;margin-bottom:10px;color:#f97316;">Efficiency</h3>${efficiencyStats}
+    `;
+    printContent({
+      title: 'KPI Dashboard',
+      subtitle: `As of ${asOfDate}`,
+      companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      content,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!kpis) return;
+    downloadAsCSV([
+      { KPI: 'Revenue (This Month)', Value: kpis.revenueCurrentMonth },
+      { KPI: 'Revenue (YTD)', Value: kpis.revenueYTD },
+      { KPI: 'Revenue (Last Month)', Value: kpis.revenuePrevMonth },
+      { KPI: 'MoM Growth %', Value: kpis.revenueGrowthMoM },
+      { KPI: 'Gross Margin (Month) %', Value: kpis.grossMarginCurrentMonth },
+      { KPI: 'Gross Margin (YTD) %', Value: kpis.grossMarginYTD },
+      { KPI: 'Net Margin (Month) %', Value: kpis.netMarginCurrentMonth },
+      { KPI: 'Net Margin (YTD) %', Value: kpis.netMarginYTD },
+      { KPI: 'Cash on Hand', Value: kpis.cashOnHand },
+      { KPI: 'Current Ratio', Value: kpis.currentRatio ?? 'N/A' },
+      { KPI: 'Quick Ratio', Value: kpis.quickRatio ?? 'N/A' },
+      { KPI: 'Cash Runway (Months)', Value: kpis.cashRunwayMonths ?? 'N/A' },
+      { KPI: 'AR Days (DSO)', Value: kpis.arDays ?? 'N/A' },
+      { KPI: 'AP Days (DPO)', Value: kpis.apDays ?? 'N/A' },
+      { KPI: 'Open Invoices', Value: kpis.openInvoices },
+      { KPI: 'Overdue Invoices', Value: kpis.overdueInvoices },
+      { KPI: 'Monthly Burn Rate', Value: kpis.monthlyBurnRate },
+      { KPI: 'Payroll Cost (YTD)', Value: kpis.payrollCostYTD },
+      { KPI: 'Payroll % of Revenue', Value: kpis.payrollPercentOfRevenue },
+      { KPI: 'Total Employees', Value: kpis.totalEmployees },
+    ], `kpi-dashboard-${asOfDate}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -176,6 +249,18 @@ export default function KPIDashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Print / Export Toolbar */}
+      {kpis && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <PrinterIcon className="w-4 h-4 mr-1" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <ArrowDownTrayIcon className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Error */}
       {error && (

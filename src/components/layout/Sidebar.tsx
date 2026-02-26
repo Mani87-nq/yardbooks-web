@@ -94,6 +94,7 @@ const navigation: NavGroup[] = [
       { name: 'Fixed Assets', href: '/fixed-assets', icon: WrenchScrewdriverIcon, permission: 'fixed_assets:read' },
       { name: 'Banking', href: '/banking', icon: BuildingLibraryIcon, permission: 'banking:read' },
       { name: 'Bank Reconciliation', href: '/banking/reconciliation', icon: ScaleIcon, permission: 'banking:reconcile' },
+      { name: 'Budgets', href: '/accounting/budgets', icon: CalculatorIcon, badge: 'NEW', permission: 'gl:read' },
     ],
   },
   {

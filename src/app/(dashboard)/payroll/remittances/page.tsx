@@ -28,7 +28,11 @@ import {
   ClockIcon,
   ExclamationTriangleIcon,
   XCircleIcon,
+  PrinterIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import { printContent, downloadAsCSV, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
+import { useAppStore } from '@/store/appStore';
 import { PermissionGate } from '@/components/PermissionGate';
 
 interface Remittance {
@@ -70,6 +74,7 @@ const REMITTANCE_TYPE_COLORS: Record<string, string> = {
 
 export default function RemittancesPage() {
   const { fc } = useCurrency();
+  const { activeCompany } = useAppStore();
   const queryClient = useQueryClient();
   const now = new Date();
   const [filterYear, setFilterYear] = useState(now.getFullYear().toString());
@@ -148,6 +153,66 @@ export default function RemittancesPage() {
     return d.toLocaleDateString('en-JM', { year: 'numeric', month: 'long' });
   };
 
+  const handlePrint = () => {
+    if (remittances.length === 0) return;
+    const summaryHtml = generateStatCards([
+      { label: 'Total Due', value: formatPrintCurrency(summary.totalDue) },
+      { label: 'Total Paid', value: formatPrintCurrency(summary.totalPaid), color: '#059669' },
+      { label: 'Outstanding', value: formatPrintCurrency(summary.outstanding), color: '#d97706' },
+      { label: 'Overdue', value: summary.overdue.toString(), color: summary.overdue > 0 ? '#dc2626' : '#059669' },
+    ]);
+    const tableHtml = generateTable(
+      [
+        { key: 'type', label: 'Type' },
+        { key: 'period', label: 'Period' },
+        { key: 'amountDue', label: 'Amount Due', align: 'right' },
+        { key: 'amountPaid', label: 'Amount Paid', align: 'right' },
+        { key: 'dueDate', label: 'Due Date' },
+        { key: 'status', label: 'Status' },
+        { key: 'reference', label: 'Reference' },
+      ],
+      remittances.map((r) => ({
+        type: REMITTANCE_TYPE_LABELS[r.remittanceType] ?? r.remittanceType,
+        period: formatPeriod(r.periodMonth),
+        amountDue: Number(r.amountDue),
+        amountPaid: Number(r.amountPaid),
+        dueDate: r.dueDate,
+        status: r.status,
+        reference: r.referenceNumber || '-',
+      })),
+      {
+        formatters: {
+          amountDue: (v: number) => formatPrintCurrency(v),
+          amountPaid: (v: number) => v > 0 ? formatPrintCurrency(v) : '-',
+        },
+      }
+    );
+    printContent({
+      title: 'Statutory Remittances',
+      subtitle: `Year: ${filterYear}`,
+      companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      content: summaryHtml + tableHtml,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (remittances.length === 0) return;
+    downloadAsCSV(
+      remittances.map((r) => ({
+        Type: REMITTANCE_TYPE_LABELS[r.remittanceType] ?? r.remittanceType,
+        Period: formatPeriod(r.periodMonth),
+        'Amount Due': Number(r.amountDue),
+        'Amount Paid': Number(r.amountPaid),
+        'Due Date': r.dueDate,
+        Status: r.status,
+        'Payment Date': r.paymentDate ?? '',
+        Reference: r.referenceNumber ?? '',
+      })),
+      `remittances-${filterYear}`
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -186,6 +251,18 @@ export default function RemittancesPage() {
           </PermissionGate>
         </div>
       </div>
+
+      {/* Print / Export Toolbar */}
+      {remittances.length > 0 && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <PrinterIcon className="w-4 h-4 mr-1" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <ArrowDownTrayIcon className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">

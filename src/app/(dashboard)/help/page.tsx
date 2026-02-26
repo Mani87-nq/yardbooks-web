@@ -26,6 +26,7 @@ import {
   Cog6ToothIcon,
   HomeIcon,
   BanknotesIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 // ---------------------------------------------------------------------------
@@ -262,6 +263,56 @@ const FAQ_DATA: FAQItem[] = [
     answer:
       'Go to Reports > Cash Flow. This report shows money coming in (from invoices, POS sales) and going out (expenses, payroll) over a period. It is broken into Operating, Investing, and Financing activities following standard accounting formats, giving you a clear picture of your liquidity.',
   },
+
+  // ── New Features ─────────────────────────────────────────────────
+  {
+    category: 'New Features',
+    question: 'What are Pension Plans and how do I set them up?',
+    answer:
+      'Go to HR & Payroll > Pension Plans to manage TAJ-approved pension plans. Click "Add Pension Plan" to create a new plan with the provider name, policy number, employee contribution rate, and employer contribution rate. Mark plans as TAJ-approved to enable automatic PAYE tax relief for enrolled employees. Employee contributions to approved plans are deducted from statutory income before PAYE calculation.',
+  },
+  {
+    category: 'New Features',
+    question: 'How do Statutory Remittances work?',
+    answer:
+      'Go to HR & Payroll > Remittances to track PAYE, NIS, NHT, Education Tax, and HEART/NTA payments to government agencies. Click "Generate Remittances" to automatically calculate amounts due from approved payroll runs for a given month. All statutory deductions must be remitted by the 14th of the following month. The page shows payment status, amounts due vs paid, and overdue items.',
+  },
+  {
+    category: 'New Features',
+    question: 'What is the KPI Dashboard?',
+    answer:
+      'Go to Reports & AI > KPI Dashboard for a real-time view of your key financial metrics. This includes revenue (monthly and YTD), gross and net profit margins, cash on hand, current and quick ratios, AR/AP days, payroll as a percentage of revenue, cash runway, and MoM revenue growth. All metrics use the Jamaica fiscal year (April 1 - March 31) and are calculated from your actual GL data.',
+  },
+  {
+    category: 'New Features',
+    question: 'How do I create and use Budgets?',
+    answer:
+      'Go to Accounting > Budgets to create annual budgets. Click "Create Budget", enter a name, select the fiscal year, and add budget lines by choosing GL accounts and entering monthly amounts. Once created, go to Reports & AI > Budget vs Actual to compare your budgeted amounts against actual GL activity, with variance analysis showing where you are over or under budget.',
+  },
+  {
+    category: 'New Features',
+    question: 'What is the Stock Valuation Report?',
+    answer:
+      'Go to Reports & AI > Stock Valuation to see the total value of your inventory using the weighted average cost method. The report shows each product with its quantity, average cost, total value, retail value, and potential margin. You can filter to see only low-stock items, view a category breakdown, and export the data to CSV or print it.',
+  },
+  {
+    category: 'New Features',
+    question: 'How does Customer Profitability analysis work?',
+    answer:
+      'Go to Reports & AI > Customer Profitability to rank customers by gross profit contribution. Select a date range and the report shows each customer\'s revenue, COGS, gross profit, margin, revenue share, invoice count, outstanding balance, and payment rate. A Pareto insight shows what percentage of revenue comes from your top 20% of customers.',
+  },
+  {
+    category: 'New Features',
+    question: 'What is the Departmental P&L?',
+    answer:
+      'Go to Reports & AI > Departmental P&L to see a Profit & Loss breakdown by department. Revenue and expenses are allocated based on journal entries and employee departments (from payroll). Click on any department row to expand and see the individual account balances. This helps identify which departments are most and least profitable.',
+  },
+  {
+    category: 'New Features',
+    question: 'Can I print or export the new reports?',
+    answer:
+      'Yes! All new report pages include Print and Export CSV buttons. Click "Print" to open a formatted print view (which can also be saved as PDF via your browser\'s print dialog). Click "Export CSV" to download the data as a spreadsheet-compatible CSV file for further analysis in Excel or Google Sheets.',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -276,6 +327,7 @@ const CATEGORIES = [
   'Accounting',
   'Payroll',
   'Reports',
+  'New Features',
 ];
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -286,6 +338,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   Accounting: BookOpenIcon,
   Payroll: UserGroupIcon,
   Reports: ChartBarIcon,
+  'New Features': SparklesIcon,
 };
 
 // ---------------------------------------------------------------------------
