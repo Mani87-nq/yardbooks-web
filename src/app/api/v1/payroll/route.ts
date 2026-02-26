@@ -115,6 +115,40 @@ export async function POST(request: NextRequest) {
       return badRequest(`Employees not found: ${invalidIds.join(', ')}`);
     }
 
+    // ── Determine fiscal year boundaries for YTD NIS ceiling tracking ──
+    // Jamaica fiscal year: April 1 - March 31
+    const periodStartDate = new Date(periodStart);
+    const fiscalYearStart = periodStartDate.getMonth() >= 3 // April (0-indexed) = 3
+      ? new Date(periodStartDate.getFullYear(), 3, 1)    // April 1 of current year
+      : new Date(periodStartDate.getFullYear() - 1, 3, 1); // April 1 of previous year
+
+    // Batch-fetch YTD NIS for all employees in this payroll
+    const ytdData = await prisma.payrollEntry.groupBy({
+      by: ['employeeId'],
+      where: {
+        employeeId: { in: employeeIds },
+        payrollRun: {
+          companyId: companyId!,
+          periodEnd: { gte: fiscalYearStart, lt: periodStart },
+          status: { in: ['DRAFT', 'APPROVED', 'PAID'] },
+        },
+      },
+      _sum: {
+        grossPay: true,
+        nis: true,
+      },
+    });
+
+    const ytdMap = new Map(
+      ytdData.map((row) => [
+        row.employeeId,
+        {
+          ytdGross: Number(row._sum.grossPay ?? 0),
+          ytdNis: Number(row._sum.nis ?? 0),
+        },
+      ])
+    );
+
     // Calculate taxes server-side for each employee
     const calculations: Array<{
       employeeId: string;
@@ -123,6 +157,7 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const emp of employees) {
+      const ytd = ytdMap.get(emp.employeeId) ?? { ytdGross: 0, ytdNis: 0 };
       const result = calculatePayroll({
         basicSalary: emp.basicSalary,
         overtime: emp.overtime,
@@ -132,6 +167,8 @@ export async function POST(request: NextRequest) {
         pensionContribution: emp.pensionContribution,
         otherDeductions: emp.otherDeductions,
         frequency,
+        ytdGross: ytd.ytdGross,
+        ytdNis: ytd.ytdNis,
       });
       calculations.push({ employeeId: emp.employeeId, input: emp, result });
     }
@@ -182,15 +219,13 @@ export async function POST(request: NextRequest) {
           totalEmployerContributions: totals.totalEmployerContributions,
           createdBy: user!.sub,
           entries: {
-            create: calculations.map(({ employeeId, result }) => ({
+            create: calculations.map(({ employeeId, input: empInput, result }) => ({
               employeeId,
-              basicSalary: result.grossPay - (result.employee.pension + result.employee.otherDeductions > 0
-                ? result.grossPay - result.netPay - result.employee.totalDeductions + result.employee.pension + result.employee.otherDeductions
-                : 0),
-              overtime: 0,
-              bonus: 0,
-              commission: 0,
-              allowances: 0,
+              basicSalary: empInput.basicSalary,
+              overtime: empInput.overtime,
+              bonus: empInput.bonus,
+              commission: empInput.commission,
+              allowances: empInput.allowances,
               grossPay: result.grossPay,
               paye: result.employee.paye,
               nis: result.employee.nis,
