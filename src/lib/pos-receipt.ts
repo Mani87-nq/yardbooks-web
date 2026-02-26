@@ -348,17 +348,67 @@ export function generateReceiptHTML(data: ReceiptData): string {
  * Opens a print window with a POS receipt layout.
  * Designed for 58mm or 80mm thermal printers,
  * but also works well with standard printers.
+ * @param copies Number of copies to print (default 1). Each copy is separated by a page break.
  */
-export function printReceipt(data: ReceiptData): void {
-  const html = generateReceiptHTML(data);
+export function printReceipt(data: ReceiptData, copies: number = 1): void {
+  const singleHtml = generateReceiptHTML(data);
+
+  if (copies <= 1) {
+    const printWindow = window.open('', '_blank', 'width=360,height=600');
+    if (!printWindow) {
+      alert('Please allow popups to print receipts.');
+      return;
+    }
+    printWindow.document.write(singleHtml);
+    printWindow.document.close();
+    return;
+  }
+
+  // For multiple copies, extract the <body> content and repeat it with page breaks
+  const bodyMatch = singleHtml.match(/<body[^>]*>([\s\S]*)<script>/);
+  const headMatch = singleHtml.match(/<head[^>]*>([\s\S]*)<\/head>/);
+
+  if (!bodyMatch || !headMatch) {
+    // Fallback: just print single copy
+    const printWindow = window.open('', '_blank', 'width=360,height=600');
+    if (!printWindow) {
+      alert('Please allow popups to print receipts.');
+      return;
+    }
+    printWindow.document.write(singleHtml);
+    printWindow.document.close();
+    return;
+  }
+
+  const headContent = headMatch[1];
+  const bodyContent = bodyMatch[1];
+
+  const copiesArray = Array.from({ length: copies }, (_, i) => {
+    const isLast = i === copies - 1;
+    return `<div${!isLast ? ' style="page-break-after: always;"' : ''}>${bodyContent}</div>`;
+  });
+
+  const multiHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>${headContent}</head>
+    <body>
+      ${copiesArray.join('\n')}
+      <script>
+        window.onload = function() {
+          setTimeout(function() { window.print(); }, 200);
+        };
+      </script>
+    </body>
+    </html>
+  `;
 
   const printWindow = window.open('', '_blank', 'width=360,height=600');
   if (!printWindow) {
     alert('Please allow popups to print receipts.');
     return;
   }
-
-  printWindow.document.write(html);
+  printWindow.document.write(multiHtml);
   printWindow.document.close();
 }
 

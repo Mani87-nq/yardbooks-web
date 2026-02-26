@@ -272,6 +272,24 @@ export interface PosSettings {
   wipayMerchantId?: string;
   wipayApiKey?: string;
   updatedAt: Date;
+
+  // Receipt printer settings
+  receiptHeader?: string;
+  receiptShowLogo?: boolean;
+  receiptShowGctNumber?: boolean;
+  receiptShowTrn?: boolean;
+  receiptShowItemDescription?: boolean;
+  receiptShowGctBreakdown?: boolean;
+  receiptShowDiscountDetails?: boolean;
+  receiptShowPaymentMethod?: boolean;
+  receiptShowCashierName?: boolean;
+  receiptShowBarcode?: boolean;
+  receiptDefaultCopies?: number;
+  receiptAskBeforePrint?: boolean;
+  receiptAutoPrint?: boolean;
+  cashDrawerOpenOnPayment?: boolean;
+  cashDrawerOpenOnSessionStart?: boolean;
+  cashDrawerTriggerType?: 'printer_trigger' | 'usb' | 'none';
 }
 
 // ============================================

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
 import api, { setAccessToken } from '@/lib/api-client';
@@ -13,9 +13,12 @@ import {
   ArrowRightOnRectangleIcon,
   Cog6ToothIcon,
   UserIcon,
+  SunIcon,
+  MoonIcon,
 } from '@heroicons/react/24/outline';
 import { NotificationBell } from './NotificationBell';
 import { GlobalSearch } from './GlobalSearch';
+import { useTheme } from 'next-themes';
 
 export function Header() {
   const router = useRouter();
@@ -24,6 +27,10 @@ export function Header() {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [switchingCompany, setSwitchingCompany] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => setMounted(true), []);
 
   const handleSwitchCompany = async (companyId: string) => {
     if (companyId === activeCompany?.id || switchingCompany) return;
@@ -57,7 +64,7 @@ export function Header() {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         // Cookies are httpOnly — server cleared them in the logout response.
         // Clear in-memory token and redirect to login.
@@ -73,14 +80,14 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 lg:px-6">
       {/* Left side */}
       <div className="flex items-center gap-4">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden -ml-2 p-2 rounded-md hover:bg-gray-100"
+          className="lg:hidden -ml-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
         >
-          <Bars3Icon className="h-6 w-6 text-gray-600" />
+          <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
         </button>
 
         {/* Company Switcher */}
@@ -88,13 +95,13 @@ export function Header() {
           <div className="relative">
             <button
               onClick={() => setShowCompanyDropdown(!showCompanyDropdown)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <BuildingOfficeIcon className="h-5 w-5 text-emerald-600" />
-              <span className="hidden sm:block text-sm font-medium text-gray-900 max-w-[150px] truncate">
+              <span className="hidden sm:block text-sm font-medium text-gray-900 dark:text-white max-w-[150px] truncate">
                 {activeCompany?.tradingName || activeCompany?.businessName}
               </span>
-              <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+              <ChevronDownIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             </button>
 
             {showCompanyDropdown && (
@@ -103,8 +110,8 @@ export function Header() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowCompanyDropdown(false)}
                 />
-                <div className="absolute left-0 top-full mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                  <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                <div className="absolute left-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
+                  <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
                     Switch Company
                   </div>
                   {companies.map((company) => (
@@ -112,18 +119,18 @@ export function Header() {
                       key={company.id}
                       disabled={switchingCompany}
                       onClick={() => handleSwitchCompany(company.id)}
-                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                     >
-                      <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                        <span className="text-emerald-700 font-medium text-sm">
+                      <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                        <span className="text-emerald-700 dark:text-emerald-300 font-medium text-sm">
                           {company.businessName.charAt(0)}
                         </span>
                       </div>
                       <div className="flex-1 text-left">
-                        <div className="text-sm font-medium text-gray-900 truncate">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {company.tradingName || company.businessName}
                         </div>
-                        <div className="text-xs text-gray-500">{company.industry}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{company.industry}</div>
                       </div>
                       {activeCompany?.id === company.id && (
                         <CheckIcon className="h-5 w-5 text-emerald-600" />
@@ -143,9 +150,24 @@ export function Header() {
       {/* Right side */}
       <div className="flex items-center gap-3">
         {/* Currency Display — reads from user's display preference, falls back to company currency */}
-        <div className="hidden md:flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
+        <div className="hidden md:flex items-center px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm font-medium">
           {settings.currency || activeCompany?.currency || 'JMD'}
         </div>
+
+        {/* Theme Toggle */}
+        {mounted && (
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? (
+              <SunIcon className="h-5 w-5 text-yellow-400" />
+            ) : (
+              <MoonIcon className="h-5 w-5 text-gray-500" />
+            )}
+          </button>
+        )}
 
         {/* Notifications */}
         <NotificationBell />
@@ -154,26 +176,26 @@ export function Header() {
         <div className="relative">
           <button
             onClick={() => setShowUserDropdown(!showUserDropdown)}
-            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100"
+            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             {user?.avatarUrl ? (
               <img
                 src={user.avatarUrl}
                 alt={`${user.firstName} ${user.lastName}`}
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-emerald-100"
+                className="h-8 w-8 rounded-full object-cover ring-2 ring-emerald-100 dark:ring-emerald-900/30"
               />
             ) : (
-              <UserCircleIcon className="h-8 w-8 text-gray-400" />
+              <UserCircleIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
             )}
             <div className="hidden lg:block text-left">
-              <div className="text-sm font-medium text-gray-900">
+              <div className="text-sm font-medium text-gray-900 dark:text-white">
                 {user?.firstName} {user?.lastName}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {activeCompany?.businessName}
               </div>
             </div>
-            <ChevronDownIcon className="hidden lg:block h-4 w-4 text-gray-500" />
+            <ChevronDownIcon className="hidden lg:block h-4 w-4 text-gray-500 dark:text-gray-400" />
           </button>
 
           {showUserDropdown && (
@@ -182,13 +204,13 @@ export function Header() {
                 className="fixed inset-0 z-10"
                 onClick={() => setShowUserDropdown(false)}
               />
-              <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
                 {/* User Info */}
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
                     {user?.firstName} {user?.lastName}
                   </div>
-                  <div className="text-xs text-gray-500">{user?.email}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</div>
                 </div>
 
                 {/* Menu Items */}
@@ -198,7 +220,7 @@ export function Header() {
                       setShowUserDropdown(false);
                       router.push('/profile');
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <UserIcon className="h-4 w-4" />
                     Your Profile
@@ -208,7 +230,7 @@ export function Header() {
                       setShowUserDropdown(false);
                       router.push('/settings');
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <Cog6ToothIcon className="h-4 w-4" />
                     Settings
@@ -216,11 +238,11 @@ export function Header() {
                 </div>
 
                 {/* Sign Out */}
-                <div className="border-t border-gray-100 py-1">
+                <div className="border-t border-gray-100 dark:border-gray-700 py-1">
                   <button
                     onClick={handleLogout}
                     disabled={loggingOut}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
                   >
                     <ArrowRightOnRectangleIcon className="h-4 w-4" />
                     {loggingOut ? 'Signing out...' : 'Sign Out'}

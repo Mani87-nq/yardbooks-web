@@ -38,6 +38,7 @@ import {
   ArrowsRightLeftIcon,
   QuestionMarkCircleIcon,
   BuildingOffice2Icon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -126,6 +127,7 @@ const navigation: NavGroup[] = [
     name: 'System',
     items: [
       { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, permission: 'settings:read' },
+      { name: 'Receipt Printer', href: '/settings/receipt-printer', icon: PrinterIcon, badge: 'NEW', permission: null },
       { name: 'Help Center', href: '/help', icon: QuestionMarkCircleIcon, permission: null },
     ],
   },

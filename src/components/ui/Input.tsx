@@ -26,41 +26,41 @@ export function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
           {label}
         </label>
       )}
       <div className="relative">
         {leftIcon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
             {leftIcon}
           </div>
         )}
         <input
           id={inputId}
           className={cn(
-            'w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 transition-colors',
-            'placeholder:text-gray-400',
+            'w-full rounded-lg border bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white transition-colors',
+            'placeholder:text-gray-400 dark:placeholder:text-gray-500',
             'focus:outline-none focus:ring-2 focus:ring-offset-0',
             error
               ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
-              : 'border-gray-300 focus:border-emerald-500 focus:ring-emerald-500/20',
+              : 'border-gray-300 dark:border-gray-600 focus:border-emerald-500 focus:ring-emerald-500/20',
             leftIcon && 'pl-10',
             rightIcon && 'pr-10',
-            props.disabled && 'bg-gray-50 text-gray-500 cursor-not-allowed',
+            props.disabled && 'bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed',
             className
           )}
           {...props}
         />
         {rightIcon && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 dark:text-gray-500">
             {rightIcon}
           </div>
         )}
       </div>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-      {hint && !error && <p className="mt-1 text-sm text-gray-500">{hint}</p>}
+      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {hint && !error && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{hint}</p>}
     </div>
   );
 }
@@ -86,7 +86,7 @@ export function Select({
       {label && (
         <label
           htmlFor={selectId}
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
           {label}
         </label>
@@ -94,12 +94,12 @@ export function Select({
       <select
         id={selectId}
         className={cn(
-          'w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 transition-colors appearance-none',
+          'w-full rounded-lg border bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white transition-colors appearance-none',
           'focus:outline-none focus:ring-2 focus:ring-offset-0',
           error
             ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
-            : 'border-gray-300 focus:border-emerald-500 focus:ring-emerald-500/20',
-          props.disabled && 'bg-gray-50 text-gray-500 cursor-not-allowed',
+            : 'border-gray-300 dark:border-gray-600 focus:border-emerald-500 focus:ring-emerald-500/20',
+          props.disabled && 'bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed',
           className
         )}
         {...props}
@@ -110,7 +110,7 @@ export function Select({
           </option>
         ))}
       </select>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }
@@ -134,7 +134,7 @@ export function Textarea({
       {label && (
         <label
           htmlFor={textareaId}
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
           {label}
         </label>
@@ -142,18 +142,18 @@ export function Textarea({
       <textarea
         id={textareaId}
         className={cn(
-          'w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 transition-colors resize-none',
-          'placeholder:text-gray-400',
+          'w-full rounded-lg border bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white transition-colors resize-none',
+          'placeholder:text-gray-400 dark:placeholder:text-gray-500',
           'focus:outline-none focus:ring-2 focus:ring-offset-0',
           error
             ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
-            : 'border-gray-300 focus:border-emerald-500 focus:ring-emerald-500/20',
-          props.disabled && 'bg-gray-50 text-gray-500 cursor-not-allowed',
+            : 'border-gray-300 dark:border-gray-600 focus:border-emerald-500 focus:ring-emerald-500/20',
+          props.disabled && 'bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed',
           className
         )}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }

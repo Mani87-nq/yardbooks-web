@@ -9,6 +9,8 @@ import {
 } from '@/components/ui';
 import { useAppStore } from '@/store/appStore';
 import { usePosStore } from '@/store/posStore';
+import { useTheme } from 'next-themes';
+import InvoicePreview from '@/components/settings/InvoicePreview';
 import api from '@/lib/api-client';
 import {
   BuildingOfficeIcon,
@@ -975,6 +977,27 @@ function SecurityTab() {
   const [disableTotpCode, setDisableTotpCode] = useState('');
   const [disableLoading, setDisableLoading] = useState(false);
 
+  // ── Forgot Password State ──
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const { user } = useAppStore();
+
+  const handleForgotPassword = async () => {
+    const email = (user as any)?.email;
+    if (!email) return;
+    setForgotLoading(true);
+    setForgotSuccess(false);
+    try {
+      await api.post('/api/auth/forgot-password', { email });
+      setForgotSuccess(true);
+    } catch {
+      // Silently handle — still show success for security reasons
+      setForgotSuccess(true);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   // ── Sessions State ──
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -1331,6 +1354,24 @@ function SecurityTab() {
               </div>
             </div>
           )}
+          {/* Forgot Password Link */}
+          <div className="mt-3 text-center">
+            {forgotSuccess ? (
+              <p className="text-sm text-emerald-600 flex items-center justify-center gap-1">
+                <CheckCircleIcon className="w-4 h-4" />
+                Password reset link sent to your email
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={forgotLoading}
+                className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline disabled:opacity-50"
+              >
+                {forgotLoading ? 'Sending reset link...' : 'Forgot your password?'}
+              </button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -2579,9 +2620,14 @@ export default function SettingsPage() {
     : 'company';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
 
   const { activeCompany, setActiveCompany, user, updateUser, updateSettings } = useAppStore();
   const { settings: posSettings, updateSettings: updatePosSettings } = usePosStore();
+  const { theme, setTheme } = useTheme();
 
   const getAddressString = (addr?: string | { street?: string; city?: string; parish?: string; country?: string }) => {
     if (!addr) return '';
@@ -2670,6 +2716,13 @@ export default function SettingsPage() {
     purchaseOrders: true,
     bankSync: false,
     systemNotifications: true,
+    // Phase 1-12 Module notifications
+    budgetThreshold: true,
+    fixedAssetDepreciation: false,
+    recurringInvoice: true,
+    leaveRequest: true,
+    posSession: false,
+    withholdingTax: false,
   });
 
   const [displaySettings, setDisplaySettings] = useState({
@@ -2698,12 +2751,9 @@ export default function SettingsPage() {
           darkMode: data.theme === 'dark',
           compactMode: data.compactMode ?? false,
         });
-        // Apply dark mode and compact mode classes on load
-        if (data.theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+        // Apply dark mode via next-themes on load
+        setTheme(data.theme === 'dark' ? 'dark' : 'light');
+        // Apply compact mode classes on load
         if (data.compactMode) {
           document.documentElement.classList.add('compact');
         } else {
@@ -2745,6 +2795,12 @@ export default function SettingsPage() {
           purchaseOrders: find('po_received')?.email ?? true,
           bankSync: find('bank_sync')?.email ?? false,
           systemNotifications: find('system')?.email ?? true,
+          budgetThreshold: find('budget_threshold')?.email ?? true,
+          fixedAssetDepreciation: find('fixed_asset_depreciation')?.email ?? false,
+          recurringInvoice: find('recurring_invoice')?.email ?? true,
+          leaveRequest: find('leave_request')?.email ?? true,
+          posSession: find('pos_session')?.email ?? false,
+          withholdingTax: find('withholding_tax')?.email ?? false,
         });
       } catch {
         // Silently fall back to defaults
@@ -2782,6 +2838,13 @@ export default function SettingsPage() {
         industry: companyForm.industry || undefined,
       });
       setActiveCompany({ ...activeCompany, ...(updated as any), updatedAt: new Date() });
+      // Sync company TRN/GCT to tax (POS) settings
+      if (companyForm.trnNumber) {
+        updatePosSettings({ businessTRN: companyForm.trnNumber });
+      }
+      if (companyForm.gctNumber) {
+        updatePosSettings({ gctRegistrationNumber: companyForm.gctNumber });
+      }
       alert('Company settings saved!');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save company settings');
@@ -2915,12 +2978,8 @@ export default function SettingsPage() {
         dateFormat: displaySettings.dateFormat,
         compactMode: displaySettings.compactMode,
       });
-      // Apply dark mode immediately
-      if (displaySettings.darkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      // Apply dark mode via next-themes
+      setTheme(displaySettings.darkMode ? 'dark' : 'light');
       // Apply compact mode immediately
       if (displaySettings.compactMode) {
         document.documentElement.classList.add('compact');
@@ -2957,6 +3016,12 @@ export default function SettingsPage() {
         { key: 'po_received', label: 'New Purchase Orders', description: 'When a new customer PO is received', email: notificationSettings.purchaseOrders, push: notificationSettings.purchaseOrders, inApp: true },
         { key: 'bank_sync', label: 'Bank Sync Updates', description: 'Status of bank transaction imports', email: notificationSettings.bankSync, push: false, inApp: true },
         { key: 'system', label: 'System Notifications', description: 'Important system updates and announcements', email: notificationSettings.systemNotifications, push: false, inApp: true },
+        { key: 'budget_threshold', label: 'Budget Threshold Alerts', description: 'Spending approaching or exceeding budget limits', email: notificationSettings.budgetThreshold, push: notificationSettings.budgetThreshold, inApp: true },
+        { key: 'fixed_asset_depreciation', label: 'Fixed Asset Depreciation', description: 'Monthly depreciation reminders and fully depreciated alerts', email: notificationSettings.fixedAssetDepreciation, push: false, inApp: true },
+        { key: 'recurring_invoice', label: 'Recurring Invoice Reminders', description: 'Reminders before recurring invoices are auto-generated', email: notificationSettings.recurringInvoice, push: notificationSettings.recurringInvoice, inApp: true },
+        { key: 'leave_request', label: 'Leave Request Notifications', description: 'Leave request submissions and approvals', email: notificationSettings.leaveRequest, push: notificationSettings.leaveRequest, inApp: true },
+        { key: 'pos_session', label: 'POS Session Alerts', description: 'Unclosed sessions and session discrepancies', email: notificationSettings.posSession, push: notificationSettings.posSession, inApp: true },
+        { key: 'withholding_tax', label: 'Withholding Tax Filing', description: 'WHT filing deadlines and certificate generation', email: notificationSettings.withholdingTax, push: false, inApp: true },
       ];
       await api.put('/api/v1/notifications/settings', { settings });
       alert('Notification preferences saved!');
@@ -2968,7 +3033,23 @@ export default function SettingsPage() {
   };
 
   const [isSavingTax, setIsSavingTax] = useState(false);
+  const [taxErrors, setTaxErrors] = useState<Record<string, string>>({});
   const handleSaveTax = async () => {
+    // Validate GCT Registration Number and Business TRN
+    const errors: Record<string, string> = {};
+    const gctNum = (posSettings.gctRegistrationNumber || '').replace(/\D/g, '');
+    const trnNum = (posSettings.businessTRN || '').replace(/\D/g, '');
+    if (posSettings.gctRegistrationNumber && gctNum.length !== 9) {
+      errors.gctRegistrationNumber = 'GCT Registration Number must be exactly 9 digits';
+    }
+    if (posSettings.businessTRN && trnNum.length !== 9) {
+      errors.businessTRN = 'Business TRN must be exactly 9 digits';
+    }
+    if (Object.keys(errors).length > 0) {
+      setTaxErrors(errors);
+      return;
+    }
+    setTaxErrors({});
     setIsSavingTax(true);
     try {
       await api.put('/api/v1/pos/settings', {
@@ -2977,6 +3058,12 @@ export default function SettingsPage() {
         taxIncludedInPrice: posSettings.taxIncludedInPrice,
         businessTRN: posSettings.businessTRN || null,
       });
+      // Sync tax fields to company form
+      setCompanyForm((prev) => ({
+        ...prev,
+        trnNumber: posSettings.businessTRN || prev.trnNumber,
+        gctNumber: posSettings.gctRegistrationNumber || prev.gctNumber,
+      }));
       alert('GCT / Tax settings saved!');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save tax settings');
@@ -2985,23 +3072,48 @@ export default function SettingsPage() {
     }
   };
 
-  const handleExportData = () => {
-    const data = {
-      company: activeCompany,
-      exportedAt: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `yaadbooks-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExportData = async () => {
+    try {
+      const res = await fetch('/api/v1/export', { credentials: 'include' });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `yaadbooks-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to export data');
+    }
   };
 
-  const handleResetData = () => {
-    localStorage.clear();
-    window.location.reload();
+  const [resetConfirmName, setResetConfirmName] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const handleResetData = async () => {
+    if (!activeCompany) return;
+    if (resetConfirmName !== activeCompany.businessName) {
+      setResetError('Company name does not match. Please type it exactly.');
+      return;
+    }
+    setIsResetting(true);
+    setResetError(null);
+    try {
+      await fetch(`/api/v1/companies/${activeCompany.id}/data`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ confirmCompanyName: resetConfirmName }),
+      });
+      localStorage.clear();
+      window.location.href = '/dashboard';
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Failed to reset data');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const tabs = [
@@ -3022,15 +3134,15 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500">Manage your account and preferences</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-gray-500 dark:text-gray-400">Manage your account and preferences</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar */}
         <div className="lg:w-64 flex-shrink-0">
           <Card padding="none">
-            <nav className="divide-y divide-gray-100">
+            <nav className="divide-y divide-gray-100 dark:divide-gray-700">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -3039,8 +3151,8 @@ export default function SettingsPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       activeTab === tab.id
-                        ? 'bg-emerald-50 text-emerald-600 border-l-4 border-emerald-600'
-                        : 'text-gray-700 hover:bg-gray-50'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-l-4 border-emerald-600'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -3106,11 +3218,11 @@ export default function SettingsPage() {
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Parish</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parish</label>
                       <select
                         value={companyForm.parish}
                         onChange={(e) => setCompanyForm({ ...companyForm, parish: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                       >
                         <option value="">Select parish</option>
                         {PARISHES.map((p) => (
@@ -3218,15 +3330,15 @@ export default function SettingsPage() {
                         onClick={() => setInvoiceSettings({ ...invoiceSettings, template: template.id as 'classic' | 'modern' | 'minimal' | 'professional' })}
                         className={`p-4 rounded-lg border-2 text-left transition-colors ${
                           invoiceSettings.template === template.id
-                            ? 'border-emerald-600 bg-emerald-50'
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30'
+                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
                       >
-                        <div className="h-20 bg-gray-100 rounded mb-3 flex items-center justify-center">
+                        <div className="h-20 bg-gray-100 dark:bg-gray-700 rounded mb-3 flex items-center justify-center">
                           <DocumentTextIcon className="w-8 h-8 text-gray-400" />
                         </div>
-                        <p className="font-medium text-gray-900">{template.name}</p>
-                        <p className="text-xs text-gray-500">{template.desc}</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{template.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{template.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -3242,7 +3354,7 @@ export default function SettingsPage() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Color</label>
                         <div className="flex items-center gap-3">
                           <input
                             type="color"
@@ -3258,7 +3370,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Accent Color</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Accent Color</label>
                         <div className="flex items-center gap-3">
                           <input
                             type="color"
@@ -3275,12 +3387,12 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <label className="flex items-center justify-between py-3 border-t border-gray-100">
+                    <label className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-700">
                       <div className="flex items-center gap-3">
-                        <PhotoIcon className="w-5 h-5 text-gray-500" />
+                        <PhotoIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                         <div>
-                          <span className="text-gray-700 font-medium">Show Company Logo</span>
-                          <p className="text-sm text-gray-500">Display your logo on invoices</p>
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">Show Company Logo</span>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Display your logo on invoices</p>
                         </div>
                       </div>
                       <input
@@ -3292,8 +3404,8 @@ export default function SettingsPage() {
                     </label>
 
                     {/* Color Preview */}
-                    <div className="mt-4 p-4 rounded-lg border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-2">Preview</p>
+                    <div className="mt-4 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Preview</p>
                       <div className="flex items-center gap-4">
                         <div
                           className="w-32 h-8 rounded"
@@ -3329,7 +3441,7 @@ export default function SettingsPage() {
                       onChange={(e) => setInvoiceSettings({ ...invoiceSettings, nextNumber: parseInt(e.target.value) || 1 })}
                     />
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     Next invoice will be: <span className="font-medium">{invoiceSettings.prefix}{invoiceSettings.nextNumber}</span>
                   </p>
                 </CardContent>
@@ -3343,29 +3455,29 @@ export default function SettingsPage() {
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Terms & Conditions</label>
                       <textarea
                         value={invoiceSettings.termsAndConditions}
                         onChange={(e) => setInvoiceSettings({ ...invoiceSettings, termsAndConditions: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm min-h-[100px]"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm min-h-[100px]"
                         placeholder="Enter your default terms and conditions..."
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Footer</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice Footer</label>
                       <textarea
                         value={invoiceSettings.footer}
                         onChange={(e) => setInvoiceSettings({ ...invoiceSettings, footer: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm min-h-[80px]"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm min-h-[80px]"
                         placeholder="Thank you for your business!"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Default Notes</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Notes</label>
                       <textarea
                         value={invoiceSettings.notes}
                         onChange={(e) => setInvoiceSettings({ ...invoiceSettings, notes: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm min-h-[80px]"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm min-h-[80px]"
                         placeholder="Additional notes to appear on invoices..."
                       />
                     </div>
@@ -3373,11 +3485,46 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowInvoicePreview(true)}>
+                  <EyeIcon className="w-4 h-4 mr-2" />
+                  Preview Invoice
+                </Button>
                 <Button onClick={handleSaveInvoiceSettings} disabled={isSavingInvoice}>
                   {isSavingInvoice ? 'Saving...' : 'Save Invoice Settings'}
                 </Button>
               </div>
+
+              {/* Invoice Preview Modal */}
+              <Modal
+                isOpen={showInvoicePreview}
+                onClose={() => setShowInvoicePreview(false)}
+                title="Invoice Preview"
+              >
+                <ModalBody>
+                  <InvoicePreview
+                    template={invoiceSettings.template}
+                    primaryColor={invoiceSettings.primaryColor}
+                    accentColor={invoiceSettings.accentColor}
+                    showLogo={invoiceSettings.showLogo}
+                    logoUrl={companyLogoUrl || undefined}
+                    companyName={companyForm.businessName || activeCompany?.businessName || 'Your Business'}
+                    companyAddress={companyForm.address ? String(companyForm.address) : activeCompany?.address ? String(activeCompany.address) : undefined}
+                    companyPhone={companyForm.phone || activeCompany?.phone}
+                    companyEmail={companyForm.email || activeCompany?.email}
+                    companyTrn={companyForm.trnNumber}
+                    companyGct={companyForm.gctNumber}
+                    prefix={invoiceSettings.prefix}
+                    nextNumber={invoiceSettings.nextNumber}
+                    termsAndConditions={invoiceSettings.termsAndConditions}
+                    defaultNotes={invoiceSettings.notes}
+                    footerText={invoiceSettings.footer}
+                  />
+                </ModalBody>
+                <ModalFooter>
+                  <Button variant="outline" onClick={() => setShowInvoicePreview(false)}>Close</Button>
+                </ModalFooter>
+              </Modal>
             </div>
           )}
 
@@ -3468,8 +3615,8 @@ export default function SettingsPage() {
                 <CardContent>
                   <label className="flex items-center justify-between py-3">
                     <div>
-                      <span className="text-gray-900 font-medium">Enable Email Notifications</span>
-                      <p className="text-sm text-gray-500">Master switch for all email notifications</p>
+                      <span className="text-gray-900 dark:text-gray-100 font-medium">Enable Email Notifications</span>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Master switch for all email notifications</p>
                     </div>
                     <input
                       type="checkbox"
@@ -3493,10 +3640,10 @@ export default function SettingsPage() {
                       { key: 'invoiceOverdue', label: 'Overdue Invoice Alerts', desc: 'When invoices are past their due date' },
                       { key: 'paymentReminders', label: 'Payment Received', desc: 'When a customer payment is recorded' },
                     ] as const).map(({ key, label, desc }) => (
-                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                         <div>
-                          <span className="text-gray-700">{label}</span>
-                          <p className="text-xs text-gray-400">{desc}</p>
+                          <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{desc}</p>
                         </div>
                         <input
                           type="checkbox"
@@ -3521,10 +3668,10 @@ export default function SettingsPage() {
                       { key: 'lowStockAlerts', label: 'Low Stock Alerts', desc: 'When inventory falls below reorder level' },
                       { key: 'purchaseOrders', label: 'Purchase Order Updates', desc: 'When new purchase orders are received' },
                     ] as const).map(({ key, label, desc }) => (
-                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                         <div>
-                          <span className="text-gray-700">{label}</span>
-                          <p className="text-xs text-gray-400">{desc}</p>
+                          <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{desc}</p>
                         </div>
                         <input
                           type="checkbox"
@@ -3549,10 +3696,10 @@ export default function SettingsPage() {
                       { key: 'payrollDue', label: 'Payroll Reminders', desc: 'Reminders for upcoming payroll runs' },
                       { key: 'expenseUpdates', label: 'Expense Updates', desc: 'When expenses are approved or rejected' },
                     ] as const).map(({ key, label, desc }) => (
-                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                         <div>
-                          <span className="text-gray-700">{label}</span>
-                          <p className="text-xs text-gray-400">{desc}</p>
+                          <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{desc}</p>
                         </div>
                         <input
                           type="checkbox"
@@ -3577,10 +3724,10 @@ export default function SettingsPage() {
                       { key: 'bankSync', label: 'Bank Sync Updates', desc: 'Status of bank transaction imports' },
                       { key: 'systemNotifications', label: 'System Notifications', desc: 'Important system updates and announcements' },
                     ] as const).map(({ key, label, desc }) => (
-                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                         <div>
-                          <span className="text-gray-700">{label}</span>
-                          <p className="text-xs text-gray-400">{desc}</p>
+                          <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{desc}</p>
                         </div>
                         <input
                           type="checkbox"
@@ -3605,10 +3752,10 @@ export default function SettingsPage() {
                       { key: 'dailySummary', label: 'Daily Summary Email', desc: 'End-of-day summary of business activity' },
                       { key: 'weeklyReport', label: 'Weekly Business Report', desc: 'Weekly overview of sales, expenses, and trends' },
                     ] as const).map(({ key, label, desc }) => (
-                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                         <div>
-                          <span className="text-gray-700">{label}</span>
-                          <p className="text-xs text-gray-400">{desc}</p>
+                          <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{desc}</p>
                         </div>
                         <input
                           type="checkbox"
@@ -3619,13 +3766,46 @@ export default function SettingsPage() {
                       </label>
                     ))}
                   </div>
-                  <div className="flex justify-end pt-4">
-                    <Button onClick={handleSaveNotifications} disabled={isSavingNotifications}>
-                      {isSavingNotifications ? 'Saving...' : 'Save Preferences'}
-                    </Button>
+                </CardContent>
+              </Card>
+
+              {/* System Modules */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">System Modules</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {([
+                      { key: 'budgetThreshold', label: 'Budget Threshold Alerts', desc: 'Get notified when spending approaches or exceeds budget limits' },
+                      { key: 'fixedAssetDepreciation', label: 'Fixed Asset Depreciation', desc: 'Monthly depreciation reminders and fully depreciated asset alerts' },
+                      { key: 'recurringInvoice', label: 'Recurring Invoice Reminders', desc: 'Reminders before recurring invoices are auto-generated' },
+                      { key: 'leaveRequest', label: 'Leave Request Notifications', desc: 'Notifications for leave request submissions and approvals' },
+                      { key: 'posSession', label: 'POS Session Alerts', desc: 'Alerts for unclosed sessions and session discrepancies' },
+                      { key: 'withholdingTax', label: 'Withholding Tax Filing', desc: 'Reminders for WHT filing deadlines and certificate generation' },
+                    ] as const).map(({ key, label, desc }) => (
+                      <label key={key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                        <div>
+                          <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{desc}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings[key]}
+                          onChange={(e) => setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </label>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-end">
+                <Button onClick={handleSaveNotifications} disabled={isSavingNotifications}>
+                  {isSavingNotifications ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -3638,11 +3818,11 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
                       <select
                         value={displaySettings.currency}
                         onChange={(e) => setDisplaySettings({ ...displaySettings, currency: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                       >
                         {CURRENCIES.map((c) => (
                           <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
@@ -3650,11 +3830,11 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date Format</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Format</label>
                       <select
                         value={displaySettings.dateFormat}
                         onChange={(e) => setDisplaySettings({ ...displaySettings, dateFormat: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                       >
                         <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                         <option value="MM/DD/YYYY">MM/DD/YYYY</option>
@@ -3663,30 +3843,25 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="space-y-3 pt-4">
-                    <label className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <label className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
                       <div>
-                        <span className="text-gray-700 font-medium">Dark Mode</span>
-                        <p className="text-sm text-gray-500">Use dark theme for the interface</p>
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">Dark Mode</span>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Use dark theme for the interface</p>
                       </div>
                       <input
                         type="checkbox"
-                        checked={displaySettings.darkMode}
+                        checked={theme === 'dark'}
                         onChange={(e) => {
                           setDisplaySettings({ ...displaySettings, darkMode: e.target.checked });
-                          // Apply dark mode immediately on toggle
-                          if (e.target.checked) {
-                            document.documentElement.classList.add('dark');
-                          } else {
-                            document.documentElement.classList.remove('dark');
-                          }
+                          setTheme(e.target.checked ? 'dark' : 'light');
                         }}
                         className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       />
                     </label>
                     <label className="flex items-center justify-between py-3">
                       <div>
-                        <span className="text-gray-700 font-medium">Compact Mode</span>
-                        <p className="text-sm text-gray-500">Reduce spacing for more data density</p>
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">Compact Mode</span>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Reduce spacing for more data density</p>
                       </div>
                       <input
                         type="checkbox"
@@ -3728,30 +3903,74 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
                       <div>
-                        <p className="font-medium text-gray-900">Export Data</p>
-                        <p className="text-sm text-gray-500">Download a backup of all your data</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Export Data</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Download a backup of all your data</p>
                       </div>
                       <Button variant="outline" onClick={handleExportData}>
                         <CloudArrowDownIcon className="w-4 h-4 mr-2" />
                         Export
                       </Button>
                     </div>
-                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
                       <div>
-                        <p className="font-medium text-gray-900">Import Data</p>
-                        <p className="text-sm text-gray-500">Restore from a backup file</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Import Data</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Restore from a backup file</p>
+                        {importResult && (
+                          <p className={`text-xs mt-1 ${importResult.startsWith('Error') ? 'text-red-500' : 'text-emerald-600'}`}>
+                            {importResult}
+                          </p>
+                        )}
                       </div>
-                      <Button variant="outline">
-                        <CloudArrowUpIcon className="w-4 h-4 mr-2" />
-                        Import
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={importFileRef}
+                          type="file"
+                          accept=".json,.csv"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setIsImporting(true);
+                            setImportResult(null);
+                            try {
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              const res = await fetch('/api/v1/company/import', {
+                                method: 'POST',
+                                body: formData,
+                                credentials: 'include',
+                              });
+                              if (!res.ok) {
+                                const err = await res.json();
+                                setImportResult(`Error: ${err.error || 'Import failed'}`);
+                              } else {
+                                const data = await res.json();
+                                setImportResult(data.message || 'Data imported successfully!');
+                              }
+                            } catch (err) {
+                              setImportResult(`Error: ${err instanceof Error ? err.message : 'Import failed'}`);
+                            } finally {
+                              setIsImporting(false);
+                              if (importFileRef.current) importFileRef.current.value = '';
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={() => importFileRef.current?.click()}
+                          disabled={isImporting}
+                        >
+                          <CloudArrowUpIcon className="w-4 h-4 mr-2" />
+                          {isImporting ? 'Importing...' : 'Import'}
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between py-3">
                       <div>
-                        <p className="font-medium text-gray-900">Sync Status</p>
-                        <p className="text-sm text-gray-500">Last synced: Just now</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Sync Status</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Last synced: Just now</p>
                       </div>
                       <Button variant="outline">
                         <ArrowPathIcon className="w-4 h-4 mr-2" />
@@ -3762,15 +3981,15 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-red-200">
+              <Card className="border-red-200 dark:border-red-800">
                 <CardHeader>
-                  <CardTitle className="text-red-600">Danger Zone</CardTitle>
+                  <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">Reset All Data</p>
-                      <p className="text-sm text-gray-500">This action cannot be undone</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Reset All Data</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone</p>
                     </div>
                     <Button variant="danger" onClick={() => setShowResetModal(true)}>
                       <TrashIcon className="w-4 h-4 mr-2" />
@@ -3795,7 +4014,7 @@ export default function SettingsPage() {
                   <div className="space-y-6">
                     {/* GCT Rate */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         GCT Rate (%)
                       </label>
                       <div className="flex items-center gap-3">
@@ -3811,9 +4030,9 @@ export default function SettingsPage() {
                               updatePosSettings({ gctRate: rate });
                             }
                           }}
-                          className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-32 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
                           Current: {(posSettings.gctRate * 100).toFixed(1)}%
                         </span>
                       </div>
@@ -3824,26 +4043,35 @@ export default function SettingsPage() {
 
                     {/* GCT Registration Number */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         GCT Registration Number
                       </label>
                       <input
                         type="text"
                         value={posSettings.gctRegistrationNumber || ''}
-                        onChange={(e) => updatePosSettings({ gctRegistrationNumber: e.target.value })}
-                        placeholder="Enter your GCT registration number"
-                        className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        onChange={(e) => {
+                          updatePosSettings({ gctRegistrationNumber: e.target.value });
+                          if (taxErrors.gctRegistrationNumber) setTaxErrors((prev) => ({ ...prev, gctRegistrationNumber: '' }));
+                        }}
+                        placeholder="Enter your GCT registration number (9 digits)"
+                        maxLength={9}
+                        className={`w-full max-w-sm rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${
+                          taxErrors.gctRegistrationNumber ? 'border-red-300' : 'border-gray-300'
+                        }`}
                       />
+                      {taxErrors.gctRegistrationNumber && (
+                        <p className="text-xs text-red-500 mt-1">{taxErrors.gctRegistrationNumber}</p>
+                      )}
                       <p className="text-xs text-gray-400 mt-1">
-                        This will be displayed on receipts and invoices.
+                        This will be displayed on receipts and invoices. Must be exactly 9 digits.
                       </p>
                     </div>
 
                     {/* Tax Included In Price */}
-                    <div className="flex items-center justify-between py-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-700">
                       <div>
-                        <p className="font-medium text-gray-900">Tax Included in Prices</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Tax Included in Prices</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           When enabled, product prices already include GCT
                         </p>
                       </div>
@@ -3860,23 +4088,39 @@ export default function SettingsPage() {
 
                     {/* Business TRN */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Business TRN (Tax Registration Number)
                       </label>
                       <input
                         type="text"
                         value={posSettings.businessTRN || ''}
-                        onChange={(e) => updatePosSettings({ businessTRN: e.target.value })}
+                        onChange={(e) => {
+                          updatePosSettings({ businessTRN: e.target.value });
+                          if (taxErrors.businessTRN) setTaxErrors((prev) => ({ ...prev, businessTRN: '' }));
+                        }}
+                        onBlur={() => {
+                          // Auto-format as XXX-XXX-XXX on blur
+                          const digits = (posSettings.businessTRN || '').replace(/\D/g, '');
+                          if (digits.length === 9) {
+                            const formatted = `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 9)}`;
+                            updatePosSettings({ businessTRN: formatted });
+                          }
+                        }}
                         placeholder="000-000-000"
-                        className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className={`w-full max-w-sm rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${
+                          taxErrors.businessTRN ? 'border-red-300' : 'border-gray-300'
+                        }`}
                       />
+                      {taxErrors.businessTRN && (
+                        <p className="text-xs text-red-500 mt-1">{taxErrors.businessTRN}</p>
+                      )}
                       <p className="text-xs text-gray-400 mt-1">
-                        Your Jamaica Tax Administration TRN number.
+                        Your Jamaica Tax Administration TRN number. Must be exactly 9 digits (auto-formatted as XXX-XXX-XXX).
                       </p>
                     </div>
 
                     {/* Save Button */}
-                    <div className="flex justify-end pt-4 border-t border-gray-100">
+                    <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
                       <Button onClick={handleSaveTax} disabled={isSavingTax}>
                         {isSavingTax ? 'Saving...' : 'Save Tax Settings'}
                       </Button>
@@ -3886,9 +4130,9 @@ export default function SettingsPage() {
               </Card>
 
               {/* Info */}
-              <div className="p-4 bg-blue-50 rounded-lg flex items-start gap-3">
-                <CalculatorIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-blue-600">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-start gap-3">
+                <CalculatorIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-600 dark:text-blue-400">
                   <p className="font-medium mb-1">About GCT</p>
                   <p>
                     General Consumption Tax (GCT) is a value-added tax applied to goods and services in Jamaica.
@@ -3904,7 +4148,7 @@ export default function SettingsPage() {
       {/* Reset Modal */}
       <Modal
         isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
+        onClose={() => { setShowResetModal(false); setResetConfirmName(''); setResetError(null); }}
         title="Reset All Data"
       >
         <ModalBody>
@@ -3918,12 +4162,33 @@ export default function SettingsPage() {
             <p className="text-gray-600">
               Are you sure you want to reset all data? Consider exporting a backup first.
             </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type <span className="font-bold text-red-600">{activeCompany?.businessName}</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={resetConfirmName}
+                onChange={(e) => { setResetConfirmName(e.target.value); setResetError(null); }}
+                placeholder="Enter company name to confirm"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+              />
+            </div>
+            {resetError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                {resetError}
+              </div>
+            )}
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setShowResetModal(false)}>Cancel</Button>
-          <Button variant="danger" onClick={handleResetData}>
-            Yes, Reset Everything
+          <Button variant="outline" onClick={() => { setShowResetModal(false); setResetConfirmName(''); setResetError(null); }}>Cancel</Button>
+          <Button
+            variant="danger"
+            onClick={handleResetData}
+            disabled={isResetting || resetConfirmName !== activeCompany?.businessName}
+          >
+            {isResetting ? 'Resetting...' : 'Yes, Reset Everything'}
           </Button>
         </ModalFooter>
       </Modal>
