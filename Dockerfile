@@ -8,9 +8,11 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies (including devDependencies for build)
-# Use npm install instead of npm ci to resolve platform-specific
-# optional dependencies (lightningcss, swc) for Alpine Linux (musl)
+# Use npm install instead of npm ci for cross-platform compatibility
 RUN npm install
+# Explicitly install platform-specific native binaries for Alpine Linux (musl)
+# These are optional deps that npm may not resolve correctly cross-platform
+RUN npm install --no-save lightningcss-linux-x64-musl@1.30.2
 
 # Copy source code
 COPY . .
