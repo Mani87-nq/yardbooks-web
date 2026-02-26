@@ -1681,10 +1681,32 @@ interface WiPaySettings {
   environment: 'sandbox' | 'live';
 }
 
+interface AIProviderSettings {
+  apiKey?: string;
+  enabled: boolean;
+  addedAt?: string;
+}
+
+interface AISettingsConfig {
+  configured: boolean;
+  providers?: {
+    anthropic?: AIProviderSettings;
+    openai?: AIProviderSettings;
+    google?: AIProviderSettings;
+  };
+  defaultProvider?: 'anthropic' | 'openai' | 'google';
+  advancedFeaturesEnabled?: boolean;
+}
+
 interface IntegrationSettings {
   wipay?: WiPaySettings;
   email?: { fromAddress: string; configured: boolean };
-  ai?: { configured: boolean };
+  ai?: AISettingsConfig;
+  stripe?: { publishableKey: string; secretKey: string; webhookSecret: string; enabled: boolean };
+  quickbooks?: { connected: boolean; realmId?: string; lastSync?: string };
+  xero?: { connected: boolean; tenantId?: string; lastSync?: string };
+  mailchimp?: { apiKey: string; listId?: string; syncCustomers: boolean; enabled: boolean };
+  twilio?: { accountSid: string; authToken: string; phoneNumber: string; enabled: boolean };
 }
 
 function IntegrationsTab() {
@@ -1705,9 +1727,34 @@ function IntegrationsTab() {
     configured: false,
   });
 
-  const [aiConfig, setAiConfig] = useState<{ configured: boolean }>({
+  const [aiConfig, setAiConfig] = useState<AISettingsConfig>({
     configured: false,
+    providers: {},
+    defaultProvider: 'anthropic',
+    advancedFeaturesEnabled: false,
   });
+
+  // AI settings UI state
+  const [selectedAiProvider, setSelectedAiProvider] = useState<'anthropic' | 'openai' | 'google'>('anthropic');
+  const [aiKeyInput, setAiKeyInput] = useState('');
+  const [showAiKey, setShowAiKey] = useState(false);
+  const [aiKeyValidating, setAiKeyValidating] = useState(false);
+  const [aiKeyValid, setAiKeyValid] = useState<boolean | null>(null);
+  const [aiKeyError, setAiKeyError] = useState<string | null>(null);
+  const [savingAi, setSavingAi] = useState(false);
+
+  // Stripe settings state
+  const [stripe, setStripe] = useState({ publishableKey: '', secretKey: '', webhookSecret: '', enabled: false });
+  const [showStripeKey, setShowStripeKey] = useState(false);
+  const [savingStripe, setSavingStripe] = useState(false);
+
+  // Twilio settings state
+  const [twilio, setTwilio] = useState({ accountSid: '', authToken: '', phoneNumber: '', enabled: false });
+  const [savingTwilio, setSavingTwilio] = useState(false);
+
+  // Mailchimp settings state
+  const [mailchimp, setMailchimp] = useState({ apiKey: '', listId: '', syncCustomers: false, enabled: false });
+  const [savingMailchimp, setSavingMailchimp] = useState(false);
 
   // Determine connection status based on whether credentials are present
   const wipayConnected = !!(wipay.accountNumber && wipay.apiKey);
@@ -1734,7 +1781,44 @@ function IntegrationsTab() {
           });
         }
         if (data.ai) {
-          setAiConfig({ configured: data.ai.configured ?? false });
+          setAiConfig({
+            configured: data.ai.configured ?? false,
+            providers: data.ai.providers ?? {},
+            defaultProvider: data.ai.defaultProvider ?? 'anthropic',
+            advancedFeaturesEnabled: data.ai.advancedFeaturesEnabled ?? false,
+          });
+          // Set the current key display
+          const defaultProv = data.ai.defaultProvider || 'anthropic';
+          setSelectedAiProvider(defaultProv);
+          const providerData = data.ai.providers?.[defaultProv];
+          if (providerData?.apiKey && providerData.apiKey !== '***') {
+            setAiKeyInput(providerData.apiKey); // This is the masked key
+            setAiKeyValid(providerData.enabled || false);
+          }
+        }
+        if (data.stripe) {
+          setStripe({
+            publishableKey: data.stripe.publishableKey || '',
+            secretKey: data.stripe.secretKey || '',
+            webhookSecret: data.stripe.webhookSecret || '',
+            enabled: data.stripe.enabled ?? false,
+          });
+        }
+        if (data.twilio) {
+          setTwilio({
+            accountSid: data.twilio.accountSid || '',
+            authToken: data.twilio.authToken || '',
+            phoneNumber: data.twilio.phoneNumber || '',
+            enabled: data.twilio.enabled ?? false,
+          });
+        }
+        if (data.mailchimp) {
+          setMailchimp({
+            apiKey: data.mailchimp.apiKey || '',
+            listId: data.mailchimp.listId || '',
+            syncCustomers: data.mailchimp.syncCustomers ?? false,
+            enabled: data.mailchimp.enabled ?? false,
+          });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load integration settings');
@@ -1765,6 +1849,103 @@ function IntegrationsTab() {
     }
   };
 
+  // ── Validate AI API Key ──
+  const handleValidateAiKey = async () => {
+    if (!aiKeyInput || aiKeyInput.includes('...')) {
+      setAiKeyError('Please enter a new API key');
+      return;
+    }
+    setAiKeyValidating(true);
+    setAiKeyError(null);
+    setAiKeyValid(null);
+    try {
+      const result = await api.post<{ valid: boolean; error?: string }>('/api/v1/company/integrations/validate-key', {
+        provider: selectedAiProvider,
+        apiKey: aiKeyInput,
+      });
+      setAiKeyValid(result.valid);
+      if (!result.valid) {
+        setAiKeyError(result.error || 'Invalid API key');
+      }
+    } catch (err) {
+      setAiKeyValid(false);
+      setAiKeyError(err instanceof Error ? err.message : 'Validation failed');
+    } finally {
+      setAiKeyValidating(false);
+    }
+  };
+
+  // ── Save AI settings ──
+  const handleSaveAi = async () => {
+    setSavingAi(true);
+    try {
+      const payload: Record<string, unknown> = {
+        defaultProvider: selectedAiProvider,
+        providers: {
+          [selectedAiProvider]: {
+            apiKey: aiKeyInput.includes('...') ? undefined : aiKeyInput, // Don't send masked keys
+            enabled: true,
+          },
+        },
+      };
+      await api.patch('/api/v1/company/integrations', { ai: payload });
+      setAiConfig(prev => ({
+        ...prev,
+        configured: true,
+        defaultProvider: selectedAiProvider,
+        advancedFeaturesEnabled: true,
+        providers: {
+          ...prev.providers,
+          [selectedAiProvider]: { apiKey: aiKeyInput, enabled: true },
+        },
+      }));
+      alert('AI settings saved successfully!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save AI settings');
+    } finally {
+      setSavingAi(false);
+    }
+  };
+
+  // ── Save Stripe settings ──
+  const handleSaveStripe = async () => {
+    setSavingStripe(true);
+    try {
+      await api.patch('/api/v1/company/integrations', { stripe });
+      alert('Stripe settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save Stripe settings');
+    } finally {
+      setSavingStripe(false);
+    }
+  };
+
+  // ── Save Twilio settings ──
+  const handleSaveTwilio = async () => {
+    setSavingTwilio(true);
+    try {
+      await api.patch('/api/v1/company/integrations', { twilio });
+      alert('Twilio settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save Twilio settings');
+    } finally {
+      setSavingTwilio(false);
+    }
+  };
+
+  // ── Save Mailchimp settings ──
+  const handleSaveMailchimp = async () => {
+    setSavingMailchimp(true);
+    try {
+      await api.patch('/api/v1/company/integrations', { mailchimp });
+      alert('Mailchimp settings saved!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save Mailchimp settings');
+    } finally {
+      setSavingMailchimp(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -1792,14 +1973,6 @@ function IntegrationsTab() {
       </Card>
     );
   }
-
-  const FUTURE_INTEGRATIONS = [
-    { name: 'Stripe', description: 'International card payments', icon: CreditCardIcon },
-    { name: 'QuickBooks', description: 'Accounting data sync', icon: ArrowPathIcon },
-    { name: 'Xero', description: 'Accounting data sync', icon: ArrowPathIcon },
-    { name: 'Mailchimp', description: 'Email marketing automation', icon: EnvelopeIcon },
-    { name: 'Twilio', description: 'SMS notifications', icon: DevicePhoneMobileIcon },
-  ];
 
   return (
     <div className="space-y-6">
@@ -1979,7 +2152,7 @@ function IntegrationsTab() {
         </CardContent>
       </Card>
 
-      {/* ── AI Assistant (Anthropic Claude) ── */}
+      {/* ── AI Assistant — Multi-Provider Settings ── */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -1988,16 +2161,21 @@ function IntegrationsTab() {
                 <SparklesIcon className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <CardTitle>AI Assistant (Anthropic Claude)</CardTitle>
+                <CardTitle>AI Assistant</CardTitle>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  AI-powered business assistant for accounting queries and insights.
+                  Power your AI business assistant with your own API key. Supports Anthropic (Claude), OpenAI, and Google AI.
                 </p>
               </div>
             </div>
-            {aiConfig.configured ? (
+            {aiConfig.advancedFeaturesEnabled ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                <SparklesIcon className="w-3.5 h-3.5" />
+                Advanced AI Active
+              </span>
+            ) : aiConfig.configured ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <CheckCircleIcon className="w-3.5 h-3.5" />
-                Configured by Admin
+                System Key Active
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
@@ -2008,46 +2186,381 @@ function IntegrationsTab() {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500">
-            The AI assistant is configured at the server level. No additional setup is required.
-            Contact your system administrator for changes.
-          </p>
+          <div className="space-y-4">
+            {/* Info banner */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3">
+              <p className="text-sm text-purple-800">
+                <strong>Unlock advanced AI features</strong> by adding your own API key: receipt OCR scanning, product image recognition, document analysis, and unlimited AI usage. Your key is encrypted at rest and never shared.
+              </p>
+            </div>
+
+            {/* Provider Tabs */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">AI Provider</label>
+              <div className="flex gap-2">
+                {(['anthropic', 'openai', 'google'] as const).map(provider => {
+                  const labels = { anthropic: 'Anthropic (Claude)', openai: 'OpenAI (GPT)', google: 'Google (Gemini)' };
+                  const hasKey = !!aiConfig.providers?.[provider]?.apiKey;
+                  return (
+                    <button
+                      key={provider}
+                      onClick={() => {
+                        setSelectedAiProvider(provider);
+                        const provData = aiConfig.providers?.[provider];
+                        setAiKeyInput(provData?.apiKey || '');
+                        setAiKeyValid(provData?.enabled || null);
+                        setAiKeyError(null);
+                      }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        selectedAiProvider === provider
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {labels[provider]}
+                      {hasKey && (
+                        <CheckCircleIcon className="w-3.5 h-3.5 inline ml-1.5 -mt-0.5" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* API Key Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {selectedAiProvider === 'anthropic' ? 'Anthropic' : selectedAiProvider === 'openai' ? 'OpenAI' : 'Google AI'} API Key
+              </label>
+              <div className="flex gap-2 max-w-lg">
+                <div className="relative flex-1">
+                  <input
+                    type={showAiKey ? 'text' : 'password'}
+                    value={aiKeyInput}
+                    onChange={(e) => {
+                      setAiKeyInput(e.target.value);
+                      setAiKeyValid(null);
+                      setAiKeyError(null);
+                    }}
+                    placeholder={selectedAiProvider === 'anthropic' ? 'sk-ant-...' : selectedAiProvider === 'openai' ? 'sk-...' : 'AIza...'}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAiKey(!showAiKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                  >
+                    {showAiKey ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleValidateAiKey}
+                  disabled={aiKeyValidating || !aiKeyInput}
+                >
+                  {aiKeyValidating ? 'Validating...' : 'Validate'}
+                </Button>
+              </div>
+              {/* Validation feedback */}
+              {aiKeyValid === true && (
+                <p className="text-sm text-emerald-600 mt-1 flex items-center gap-1">
+                  <CheckCircleIcon className="w-4 h-4" /> API key is valid
+                </p>
+              )}
+              {aiKeyValid === false && aiKeyError && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <ExclamationTriangleIcon className="w-4 h-4" /> {aiKeyError}
+                </p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">
+                {selectedAiProvider === 'anthropic'
+                  ? 'Get your key from console.anthropic.com. Recommended for best agentic AI features.'
+                  : selectedAiProvider === 'openai'
+                  ? 'Get your key from platform.openai.com.'
+                  : 'Get your key from aistudio.google.com.'}
+              </p>
+            </div>
+
+            {/* Default Provider Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Default Provider
+              </label>
+              <select
+                value={aiConfig.defaultProvider || 'anthropic'}
+                onChange={(e) => setAiConfig(prev => ({ ...prev, defaultProvider: e.target.value as 'anthropic' | 'openai' | 'google' }))}
+                className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
+              >
+                <option value="anthropic">Anthropic (Claude) — Recommended</option>
+                <option value="openai">OpenAI (GPT)</option>
+                <option value="google">Google (Gemini)</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Anthropic is recommended for full tool-use and agentic capabilities.
+              </p>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <Button onClick={handleSaveAi} disabled={savingAi || (!aiKeyInput || aiKeyInput.includes('...'))}>
+                {savingAi ? 'Saving...' : 'Save AI Settings'}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* ── Future Integrations (Coming Soon) ── */}
+      {/* ── Stripe Payments ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-50 rounded-lg">
+                <CreditCardIcon className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <CardTitle>Stripe Payments</CardTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Accept international card payments. Get credentials at{' '}
+                  <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                    dashboard.stripe.com
+                  </a>
+                </p>
+              </div>
+            </div>
+            {stripe.enabled && stripe.publishableKey ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Connected
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                Not Connected
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Publishable Key</label>
+              <input
+                type="text"
+                value={stripe.publishableKey}
+                onChange={(e) => setStripe({ ...stripe, publishableKey: e.target.value })}
+                placeholder="pk_live_..."
+                className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Secret Key</label>
+              <div className="relative w-full max-w-md">
+                <input
+                  type={showStripeKey ? 'text' : 'password'}
+                  value={stripe.secretKey}
+                  onChange={(e) => setStripe({ ...stripe, secretKey: e.target.value })}
+                  placeholder="sk_live_..."
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <button type="button" onClick={() => setShowStripeKey(!showStripeKey)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
+                  {showStripeKey ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Webhook Secret</label>
+              <input
+                type="password"
+                value={stripe.webhookSecret}
+                onChange={(e) => setStripe({ ...stripe, webhookSecret: e.target.value })}
+                placeholder="whsec_..."
+                className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              />
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-gray-100">
+              <div>
+                <p className="font-medium text-gray-900">Enable Stripe</p>
+                <p className="text-sm text-gray-500">Accept Stripe payments on invoices</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={stripe.enabled}
+                  onChange={(e) => setStripe({ ...stripe, enabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+              </label>
+            </div>
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <Button onClick={handleSaveStripe} disabled={savingStripe}>
+                {savingStripe ? 'Saving...' : 'Save Stripe Settings'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Twilio SMS ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-50 rounded-lg">
+                <DevicePhoneMobileIcon className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <CardTitle>Twilio SMS Notifications</CardTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Send SMS invoice reminders and payment confirmations.
+                </p>
+              </div>
+            </div>
+            {twilio.enabled && twilio.phoneNumber ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Connected
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                Not Connected
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Account SID</label>
+              <input type="text" value={twilio.accountSid} onChange={(e) => setTwilio({ ...twilio, accountSid: e.target.value })} placeholder="ACxxxxxxxx" className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Auth Token</label>
+              <input type="password" value={twilio.authToken} onChange={(e) => setTwilio({ ...twilio, authToken: e.target.value })} placeholder="Your auth token" className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input type="text" value={twilio.phoneNumber} onChange={(e) => setTwilio({ ...twilio, phoneNumber: e.target.value })} placeholder="+1876XXXXXXX" className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-gray-100">
+              <div>
+                <p className="font-medium text-gray-900">Enable Twilio</p>
+                <p className="text-sm text-gray-500">Send SMS notifications for invoices and payments</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={twilio.enabled} onChange={(e) => setTwilio({ ...twilio, enabled: e.target.checked })} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600" />
+              </label>
+            </div>
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <Button onClick={handleSaveTwilio} disabled={savingTwilio}>{savingTwilio ? 'Saving...' : 'Save Twilio Settings'}</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Mailchimp ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-50 rounded-lg">
+                <EnvelopeIcon className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <CardTitle>Mailchimp Email Marketing</CardTitle>
+                <p className="text-sm text-gray-500 mt-0.5">Sync customers for email marketing campaigns.</p>
+              </div>
+            </div>
+            {mailchimp.enabled ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Connected
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                Not Connected
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+              <input type="password" value={mailchimp.apiKey} onChange={(e) => setMailchimp({ ...mailchimp, apiKey: e.target.value })} placeholder="xxxxxxxx-us1" className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Audience/List ID</label>
+              <input type="text" value={mailchimp.listId || ''} onChange={(e) => setMailchimp({ ...mailchimp, listId: e.target.value })} placeholder="Enter list ID" className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500" />
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-gray-100">
+              <div>
+                <p className="font-medium text-gray-900">Auto-Sync Customers</p>
+                <p className="text-sm text-gray-500">Automatically sync new customers to Mailchimp</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={mailchimp.syncCustomers} onChange={(e) => setMailchimp({ ...mailchimp, syncCustomers: e.target.checked })} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600" />
+              </label>
+            </div>
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <Button onClick={handleSaveMailchimp} disabled={savingMailchimp}>{savingMailchimp ? 'Saving...' : 'Save Mailchimp Settings'}</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── QuickBooks & Xero (OAuth Pending) ── */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <LinkIcon className="w-5 h-5 text-gray-400" />
-            More Integrations
+            Accounting Sync
           </CardTitle>
           <p className="text-sm text-gray-500 mt-1">
-            Additional integrations are on the way. Stay tuned for updates.
+            Connect to external accounting platforms. OAuth integration requires additional server configuration.
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FUTURE_INTEGRATIONS.map((integration) => {
-              const Icon = integration.icon;
-              return (
-                <div
-                  key={integration.name}
-                  className="relative border border-gray-200 rounded-lg p-4 bg-gray-50/50"
-                >
-                  <span className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                    Coming Soon
-                  </span>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-gray-100 rounded-lg">
-                      <Icon className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <h4 className="font-medium text-gray-900">{integration.name}</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-50 rounded-lg">
+                    <ArrowPathIcon className="w-5 h-5 text-green-600" />
                   </div>
-                  <p className="text-sm text-gray-500">{integration.description}</p>
+                  <h4 className="font-medium text-gray-900">QuickBooks</h4>
                 </div>
-              );
-            })}
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                  OAuth Required
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mb-3">Two-way accounting data sync with Intuit QuickBooks Online.</p>
+              <Button variant="outline" size="sm" disabled>
+                Connect QuickBooks
+              </Button>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <ArrowPathIcon className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900">Xero</h4>
+                </div>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                  OAuth Required
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mb-3">Two-way accounting data sync with Xero cloud accounting.</p>
+              <Button variant="outline" size="sm" disabled>
+                Connect Xero
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

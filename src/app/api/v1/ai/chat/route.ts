@@ -1,12 +1,19 @@
 /**
  * POST /api/v1/ai/chat — AI Business Assistant powered by Claude
- * Fetches real business data and provides contextual financial advice.
+ *
+ * Agentic AI that fetches real business data via tool_use and provides
+ * contextual financial advice. Supports user API keys and multi-turn
+ * tool execution.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
-import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { internalError, badRequest } from '@/lib/api-error';
+import { resolveAIProvider, createAnthropicClient } from '@/lib/ai/providers';
+import { AI_TOOLS } from '@/lib/ai/tools';
+import { executeTool } from '@/lib/ai/tool-handlers';
+import { buildSystemPrompt } from '@/lib/ai/system-prompt';
+
+const MAX_TOOL_ITERATIONS = 10; // Safety limit to prevent infinite loops
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,100 +27,116 @@ export async function POST(request: NextRequest) {
 
     if (!message) return badRequest('Message is required');
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    // ── Resolve AI provider (user key > system key) ──
+    const providerConfig = await resolveAIProvider(companyId!);
+    if (!providerConfig) {
       return NextResponse.json({
-        response: 'AI features require an Anthropic API key. Please add ANTHROPIC_API_KEY to your environment variables.',
+        response: 'AI features require an API key. Add your Anthropic API key in **Settings > Integrations**, or ask your administrator to configure the system API key.',
       });
     }
 
-    // Fetch business context for Claude
-    const [invoiceStats, expenseStats, customerCount, productStats, employeeCount] = await Promise.all([
-      prisma.invoice.aggregate({
-        where: { companyId: companyId!, deletedAt: null },
-        _sum: { total: true },
-        _count: true,
-      }),
-      prisma.expense.aggregate({
-        where: { companyId: companyId!, deletedAt: null },
-        _sum: { amount: true },
-        _count: true,
-      }),
-      prisma.customer.count({ where: { companyId: companyId!, deletedAt: null } }),
-      prisma.product.findMany({
-        where: { companyId: companyId!, deletedAt: null },
-        select: { name: true, quantity: true, reorderLevel: true, unitPrice: true },
-      }),
-      prisma.employee.count({ where: { companyId: companyId! } }),
-    ]);
+    // Currently only Anthropic is supported for tool_use
+    if (providerConfig.provider !== 'anthropic') {
+      return NextResponse.json({
+        response: `Tool-use features are currently only available with Anthropic (Claude). Your configured provider is "${providerConfig.provider}". Please add an Anthropic API key in Settings > Integrations for full agentic capabilities.`,
+      });
+    }
 
-    // Get this month's data
-    const thisMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const [monthlyInvoices, monthlyExpenses, overdueInvoices] = await Promise.all([
-      prisma.invoice.aggregate({
-        where: { companyId: companyId!, deletedAt: null, createdAt: { gte: thisMonth }, status: 'PAID' },
-        _sum: { total: true },
-        _count: true,
-      }),
-      prisma.expense.aggregate({
-        where: { companyId: companyId!, deletedAt: null, date: { gte: thisMonth } },
-        _sum: { amount: true },
-        _count: true,
-      }),
-      prisma.invoice.findMany({
-        where: { companyId: companyId!, deletedAt: null, status: { in: ['SENT', 'OVERDUE'] } },
-        select: { invoiceNumber: true, total: true, dueDate: true, customer: { select: { name: true } } },
-      }),
-    ]);
+    const client = createAnthropicClient(providerConfig.apiKey);
 
-    const lowStockItems = productStats.filter(p => Number(p.quantity) <= Number(p.reorderLevel || 0));
-    const totalInventoryValue = productStats.reduce((sum, p) => sum + (Number(p.unitPrice) * Number(p.quantity ?? 0)), 0);
+    // ── Build enhanced system prompt ──
+    const systemPrompt = await buildSystemPrompt(companyId!);
 
-    const systemPrompt = `You are YaadBooks AI Assistant — an intelligent financial advisor for a Jamaican business using the YaadBooks accounting platform. You speak with a warm, professional tone. Currency is JMD (Jamaican Dollars). Format currency as J$X,XXX.XX.
-
-Here is the current business data:
-
-**This Month:**
-- Revenue (paid invoices): J$${Number(monthlyInvoices._sum.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} (${monthlyInvoices._count} invoices)
-- Expenses: J$${Number(monthlyExpenses._sum.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} (${monthlyExpenses._count} expenses)
-- Net: J$${(Number(monthlyInvoices._sum.total || 0) - Number(monthlyExpenses._sum.amount || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-
-**Overall:**
-- Total invoices: ${invoiceStats._count} (J$${Number(invoiceStats._sum.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })})
-- Total expenses: ${expenseStats._count} (J$${Number(expenseStats._sum.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })})
-- Customers: ${customerCount}
-- Products: ${productStats.length} (Inventory value: J$${totalInventoryValue.toLocaleString('en-US', { minimumFractionDigits: 2 })})
-- Employees: ${employeeCount}
-- Low stock items: ${lowStockItems.length}${lowStockItems.length > 0 ? ' — ' + lowStockItems.map(p => `${p.name} (${p.quantity} left)`).join(', ') : ''}
-
-**Overdue/Outstanding Invoices:** ${overdueInvoices.length}
-${overdueInvoices.slice(0, 10).map(inv => `- ${inv.invoiceNumber}: J$${Number(inv.total).toLocaleString('en-US', { minimumFractionDigits: 2 })} (${inv.customer?.name || 'Unknown'}, due ${inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'})`).join('\n')}
-
-Provide concise, actionable advice. Use bullet points and bold text for key figures. Keep responses under 300 words unless the user asks for detail.`;
-
-    const client = new Anthropic({ apiKey });
-
-    // Build messages array from conversation history
-    const messages = [
-      ...conversationHistory.map((msg: { role: string; content: string }) => ({
+    // ── Build messages from conversation history ──
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: Array<{ role: 'user' | 'assistant'; content: any }> = [
+      ...conversationHistory.slice(-10).map((msg: { role: string; content: string }) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
       })),
-      { role: 'user' as const, content: message },
+      { role: 'user', content: message },
     ];
 
-    const completion = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages,
+    const toolResults: Array<{ tool: string; input: unknown; summary?: string }> = [];
+    let iterations = 0;
+
+    // ── Agentic tool-use loop ──
+    while (iterations < MAX_TOOL_ITERATIONS) {
+      iterations++;
+
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: systemPrompt,
+        tools: AI_TOOLS,
+        messages,
+      });
+
+      // If Claude wants to use tools, execute them and loop
+      if (response.stop_reason === 'tool_use') {
+        // Append assistant message with tool_use blocks
+        messages.push({ role: 'assistant', content: response.content });
+
+        // Execute all requested tools in parallel
+        const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
+
+        const results = await Promise.all(
+          toolUseBlocks.map(async (block) => {
+            // Extract tool_use fields safely
+            const toolBlock = block as unknown as { id: string; name: string; input: Record<string, unknown> };
+            const result = await executeTool(toolBlock.name, companyId!, toolBlock.input);
+            toolResults.push({
+              tool: toolBlock.name,
+              input: toolBlock.input,
+            });
+            return {
+              type: 'tool_result' as const,
+              tool_use_id: toolBlock.id,
+              content: result,
+            };
+          })
+        );
+
+        // Send tool results back to Claude
+        messages.push({ role: 'user', content: results });
+        continue;
+      }
+
+      // ── Final response (end_turn or max_tokens) ──
+      const responseText = response.content
+        .filter(b => b.type === 'text')
+        .map(b => (b as unknown as { text: string }).text)
+        .join('');
+
+      return NextResponse.json({
+        response: responseText || 'I could not generate a response.',
+        toolsUsed: toolResults.map(t => ({ tool: t.tool, input: t.input })),
+        apiKeySource: providerConfig.source, // 'user' or 'system'
+      });
+    }
+
+    // Hit max iterations — return what we have
+    return NextResponse.json({
+      response: 'I reached the maximum number of data lookups for this question. Please try a more specific question, or break it into smaller parts.',
+      toolsUsed: toolResults.map(t => ({ tool: t.tool, input: t.input })),
+      apiKeySource: providerConfig.source,
     });
-
-    const responseText = completion.content[0].type === 'text' ? completion.content[0].text : 'I could not generate a response.';
-
-    return NextResponse.json({ response: responseText });
   } catch (error) {
     console.error('[AI Chat] Error:', error);
+
+    // Provide more helpful error messages
+    const err = error as { status?: number; message?: string };
+    if (err.status === 401) {
+      return NextResponse.json({
+        response: 'Your AI API key appears to be invalid or expired. Please update it in **Settings > Integrations**.',
+      });
+    }
+    if (err.status === 429) {
+      return NextResponse.json({
+        response: 'AI rate limit reached. Please wait a moment and try again.',
+      });
+    }
+
     return internalError(error instanceof Error ? error.message : 'AI chat failed');
   }
 }

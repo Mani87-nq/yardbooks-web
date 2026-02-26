@@ -4,10 +4,10 @@
  * Returns structured audit findings for Jamaica tax & accounting compliance.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { internalError } from '@/lib/api-error';
+import { resolveAIProvider, createAnthropicClient } from '@/lib/ai/providers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,11 +16,11 @@ export async function POST(request: NextRequest) {
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    const providerConfig = await resolveAIProvider(companyId!);
+    if (!providerConfig) {
       return NextResponse.json({
         findings: [],
-        error: 'AI features require an Anthropic API key. Please add ANTHROPIC_API_KEY to your environment variables.',
+        error: 'AI features require an API key. Add your Anthropic API key in Settings > Integrations, or ask your admin to configure the system key.',
       });
     }
 
@@ -256,7 +256,7 @@ Rules:
 - Include 12-18 checks across all categories
 - Return ONLY the JSON array, no markdown, no explanation`;
 
-    const client = new Anthropic({ apiKey });
+    const client = createAnthropicClient(providerConfig.apiKey);
 
     const completion = await client.messages.create({
       model: 'claude-sonnet-4-20250514',

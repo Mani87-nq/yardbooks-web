@@ -1,32 +1,143 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input } from '@/components/ui';
+import { Card, Button, Input } from '@/components/ui';
 import { api } from '@/lib/api-client';
 import {
   SparklesIcon,
   PaperAirplaneIcon,
-  LightBulbIcon,
   ChartBarIcon,
   CurrencyDollarIcon,
   ExclamationTriangleIcon,
   ArrowTrendingUpIcon,
   UserIcon,
+  DocumentTextIcon,
+  CubeIcon,
+  ScaleIcon,
+  WrenchScrewdriverIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from '@heroicons/react/24/outline';
+
+// ─── Types ──────────────────────────────────────────────────────
+
+interface ToolUsed {
+  tool: string;
+  input: unknown;
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  toolsUsed?: ToolUsed[];
+  apiKeySource?: 'user' | 'system';
 }
 
+// ─── Tool Display Helpers ───────────────────────────────────────
+
+const TOOL_LABELS: Record<string, { label: string; icon: string }> = {
+  search_customers: { label: 'Searched customers', icon: '👥' },
+  get_invoice_details: { label: 'Retrieved invoice details', icon: '📄' },
+  list_invoices: { label: 'Listed invoices', icon: '📋' },
+  list_expenses: { label: 'Listed expenses', icon: '💸' },
+  get_chart_of_accounts: { label: 'Retrieved chart of accounts', icon: '📊' },
+  get_general_ledger: { label: 'Retrieved general ledger', icon: '📒' },
+  get_trial_balance: { label: 'Generated trial balance', icon: '⚖️' },
+  get_profit_loss: { label: 'Generated profit & loss', icon: '📈' },
+  get_balance_sheet: { label: 'Generated balance sheet', icon: '🏦' },
+  search_products: { label: 'Searched products/inventory', icon: '📦' },
+  list_employees: { label: 'Listed employees', icon: '👷' },
+  get_payroll_summary: { label: 'Retrieved payroll summary', icon: '💰' },
+  get_bank_accounts: { label: 'Retrieved bank accounts', icon: '🏧' },
+  get_aging_report: { label: 'Generated aging report', icon: '📅' },
+  create_draft_invoice: { label: 'Created draft invoice', icon: '✨' },
+  get_pos_daily_sales: { label: 'Retrieved POS daily sales', icon: '🛒' },
+};
+
+// ─── Quick Prompts ──────────────────────────────────────────────
+
 const QUICK_PROMPTS = [
-  { icon: ChartBarIcon, text: 'How are my sales this month?' },
-  { icon: CurrencyDollarIcon, text: 'What are my top expenses?' },
-  { icon: ExclamationTriangleIcon, text: 'Any low stock items I should reorder?' },
-  { icon: ArrowTrendingUpIcon, text: 'Give me a business health summary' },
+  { icon: ChartBarIcon, text: 'How are my sales this month?', color: 'text-blue-600' },
+  { icon: CurrencyDollarIcon, text: 'Pull my profit and loss for this quarter', color: 'text-emerald-600' },
+  { icon: ExclamationTriangleIcon, text: 'Show me overdue invoices', color: 'text-amber-600' },
+  { icon: ArrowTrendingUpIcon, text: 'What customers owe me the most?', color: 'text-purple-600' },
+  { icon: DocumentTextIcon, text: 'Get the trial balance', color: 'text-indigo-600' },
+  { icon: CubeIcon, text: 'Which products are low on stock?', color: 'text-red-600' },
+  { icon: ScaleIcon, text: 'Generate the balance sheet', color: 'text-teal-600' },
+  { icon: WrenchScrewdriverIcon, text: 'How do I create a recurring invoice?', color: 'text-orange-600' },
 ];
+
+// ─── Markdown-like rendering ────────────────────────────────────
+
+function renderContent(content: string) {
+  // Simple markdown rendering for bold, bullets, and line breaks
+  const lines = content.split('\n');
+  return lines.map((line, idx) => {
+    // Bold: **text**
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    const rendered = parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+
+    // Bullet points
+    if (line.trimStart().startsWith('- ') || line.trimStart().startsWith('• ')) {
+      return (
+        <div key={idx} className="flex gap-2 ml-2">
+          <span className="text-gray-400 mt-0.5">•</span>
+          <span>{rendered.map((r, i) => typeof r === 'string' ? r.replace(/^[-•]\s*/, '') : r)}</span>
+        </div>
+      );
+    }
+
+    // Empty line → spacing
+    if (line.trim() === '') {
+      return <div key={idx} className="h-2" />;
+    }
+
+    return <div key={idx}>{rendered}</div>;
+  });
+}
+
+// ─── Tool Results Badge ─────────────────────────────────────────
+
+function ToolsBadge({ tools }: { tools: ToolUsed[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!tools || tools.length === 0) return null;
+
+  return (
+    <div className="mt-2 border-t border-gray-200 pt-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 transition-colors"
+      >
+        <SparklesIcon className="w-3.5 h-3.5" />
+        <span>{tools.length} tool{tools.length > 1 ? 's' : ''} used</span>
+        {expanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
+      </button>
+      {expanded && (
+        <div className="mt-1.5 space-y-1">
+          {tools.map((t, i) => {
+            const info = TOOL_LABELS[t.tool] || { label: t.tool, icon: '🔧' };
+            return (
+              <div key={i} className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+                <span>{info.icon}</span>
+                <span>{info.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Page Component ────────────────────────────────────────
 
 export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,13 +153,14 @@ export default function AIAssistantPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSend = async (text?: string) => {
+    const messageText = text || input.trim();
+    if (!messageText) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: messageText,
       timestamp: new Date(),
     };
 
@@ -56,31 +168,34 @@ export default function AIAssistantPage() {
     setInput('');
     setIsLoading(true);
 
-    let aiResponse: string;
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const res = await api.post<{ response: string }>('/api/v1/ai/chat', {
-        message: input,
-        conversationHistory: history,
-      });
-      aiResponse = res.response;
-    } catch (err) {
-      aiResponse = 'Sorry, I encountered an error. Please try again.';
+      const res = await api.post<{ response: string; toolsUsed?: ToolUsed[]; apiKeySource?: string }>(
+        '/api/v1/ai/chat',
+        { message: messageText, conversationHistory: history }
+      );
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: res.response,
+        timestamp: new Date(),
+        toolsUsed: res.toolsUsed,
+        apiKeySource: res.apiKeySource as 'user' | 'system' | undefined,
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again. If this persists, check your AI API key in Settings > Integrations.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
-
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: aiResponse,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, assistantMessage]);
-    setIsLoading(false);
-  };
-
-  const handleQuickPrompt = (text: string) => {
-    setInput(text);
   };
 
   return (
@@ -93,7 +208,9 @@ export default function AIAssistantPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">AI Business Assistant</h1>
-            <p className="text-gray-500">Get insights and answers about your business</p>
+            <p className="text-gray-500">
+              Ask questions, run reports, look up data, and get actionable business insights
+            </p>
           </div>
         </div>
       </div>
@@ -108,18 +225,18 @@ export default function AIAssistantPage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">How can I help you today?</h2>
               <p className="text-gray-500 mb-6 max-w-md">
-                I can analyze your business data and provide insights on sales, expenses, inventory, and more.
+                I can query your real business data, run financial reports, look up customers and inventory, create draft invoices, and provide actionable advice.
               </p>
-              <div className="grid grid-cols-2 gap-3 max-w-lg">
+              <div className="grid grid-cols-2 gap-3 max-w-2xl">
                 {QUICK_PROMPTS.map((prompt, i) => {
                   const Icon = prompt.icon;
                   return (
                     <button
                       key={i}
-                      onClick={() => handleQuickPrompt(prompt.text)}
-                      className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-left text-sm transition-colors"
+                      onClick={() => handleSend(prompt.text)}
+                      className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-left text-sm transition-colors border border-gray-100"
                     >
-                      <Icon className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                      <Icon className={`w-5 h-5 ${prompt.color} flex-shrink-0`} />
                       <span className="text-gray-700">{prompt.text}</span>
                     </button>
                   );
@@ -134,7 +251,7 @@ export default function AIAssistantPage() {
                   className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.role === 'assistant' && (
-                    <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg h-fit">
+                    <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg h-fit flex-shrink-0">
                       <SparklesIcon className="w-4 h-4 text-white" />
                     </div>
                   )}
@@ -145,10 +262,18 @@ export default function AIAssistantPage() {
                         : 'bg-gray-100 text-gray-900'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                    <div className="text-sm leading-relaxed">
+                      {message.role === 'assistant'
+                        ? renderContent(message.content)
+                        : <div className="whitespace-pre-wrap">{message.content}</div>
+                      }
+                    </div>
+                    {message.role === 'assistant' && message.toolsUsed && message.toolsUsed.length > 0 && (
+                      <ToolsBadge tools={message.toolsUsed} />
+                    )}
                   </div>
                   {message.role === 'user' && (
-                    <div className="p-2 bg-emerald-600 rounded-lg h-fit">
+                    <div className="p-2 bg-emerald-600 rounded-lg h-fit flex-shrink-0">
                       <UserIcon className="w-4 h-4 text-white" />
                     </div>
                   )}
@@ -160,10 +285,13 @@ export default function AIAssistantPage() {
                     <SparklesIcon className="w-4 h-4 text-white" />
                   </div>
                   <div className="bg-gray-100 rounded-lg p-4">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                      <span className="text-xs text-gray-500 ml-2">Analyzing your data...</span>
                     </div>
                   </div>
                 </div>
@@ -179,16 +307,16 @@ export default function AIAssistantPage() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your business..."
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask about your business, run a report, or look up data..."
+              onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
               className="flex-1"
             />
-            <Button onClick={handleSend} disabled={!input.trim() || isLoading}>
+            <Button onClick={() => handleSend()} disabled={!input.trim() || isLoading}>
               <PaperAirplaneIcon className="w-5 h-5" />
             </Button>
           </div>
           <p className="text-xs text-gray-400 mt-2 text-center">
-            AI responses are based on your actual business data
+            Powered by Claude AI with real-time access to your business data
           </p>
         </div>
       </Card>
