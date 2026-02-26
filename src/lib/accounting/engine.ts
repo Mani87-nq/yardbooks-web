@@ -139,6 +139,25 @@ export async function postJournalEntry(params: {
   const tx = params.tx ?? prisma;
 
   try {
+    // ── Check if the target date falls in a LOCKED or CLOSED period ──
+    const targetDate = new Date(date);
+    const lockedPeriod = await tx.accountingPeriod.findFirst({
+      where: {
+        companyId,
+        startDate: { lte: targetDate },
+        endDate: { gte: targetDate },
+        status: { in: ['LOCKED', 'CLOSED'] },
+      },
+      select: { id: true, periodNumber: true, fiscalYear: true, status: true },
+    });
+
+    if (lockedPeriod) {
+      return {
+        success: false,
+        error: `Cannot post to ${lockedPeriod.status.toLowerCase()} period (FY${lockedPeriod.fiscalYear} P${lockedPeriod.periodNumber}). Reopen the period first.`,
+      };
+    }
+
     // Validate debits = credits
     const totalDebits = lines.reduce((sum, l) => sum + l.debitAmount, 0);
     const totalCredits = lines.reduce((sum, l) => sum + l.creditAmount, 0);
