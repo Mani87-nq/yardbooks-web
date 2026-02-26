@@ -909,3 +909,109 @@ export async function seedDefaultAccounts(companyId: string, tx: any = prisma): 
 
   return created;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// ASSET DISPOSAL POSTING
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * POST: Asset Disposal
+ *
+ * When a fixed asset is disposed (sold, scrapped, etc.):
+ *   DR  Cash/Bank              (disposal proceeds, if any)
+ *   DR  Accumulated Depr.      (remove accumulated depreciation)
+ *   CR  Fixed Asset             (remove original cost)
+ *   DR/CR Gain/Loss on Disposal (difference)
+ *
+ * Gain = proceeds + accum depr - cost (positive = gain, negative = loss)
+ */
+export async function postAssetDisposal(params: {
+  companyId: string;
+  userId: string;
+  assetId: string;
+  assetName: string;
+  date: Date;
+  originalCost: number;
+  accumulatedDepreciation: number;
+  disposalProceeds: number;
+  assetAccountCode?: string;
+  accumDeprAccountCode?: string;
+  bankAccountCode?: string;
+  tx?: any;
+}): Promise<PostResult> {
+  const {
+    companyId, userId, assetId, assetName, date,
+    originalCost, accumulatedDepreciation, disposalProceeds,
+    assetAccountCode = SYSTEM_ACCOUNTS.FIXED_ASSETS,
+    accumDeprAccountCode = SYSTEM_ACCOUNTS.ACCUMULATED_DEPRECIATION,
+    bankAccountCode = SYSTEM_ACCOUNTS.BANK_ACCOUNT,
+  } = params;
+
+  // Net book value = cost - accumulated depreciation
+  const netBookValue = originalCost - accumulatedDepreciation;
+
+  // Gain/Loss = proceeds - net book value
+  const gainLoss = disposalProceeds - netBookValue;
+
+  const lines: JournalLineDraft[] = [];
+
+  // DR Cash/Bank (proceeds)
+  if (disposalProceeds > 0) {
+    lines.push({
+      accountNumber: bankAccountCode,
+      description: `Disposal proceeds for ${assetName}`,
+      debitAmount: disposalProceeds,
+      creditAmount: 0,
+    });
+  }
+
+  // DR Accumulated Depreciation (remove)
+  if (accumulatedDepreciation > 0) {
+    lines.push({
+      accountNumber: accumDeprAccountCode,
+      description: `Remove accumulated depreciation for ${assetName}`,
+      debitAmount: accumulatedDepreciation,
+      creditAmount: 0,
+    });
+  }
+
+  // CR Fixed Asset (remove original cost)
+  lines.push({
+    accountNumber: assetAccountCode,
+    description: `Remove ${assetName} from fixed assets`,
+    debitAmount: 0,
+    creditAmount: originalCost,
+  });
+
+  // DR/CR Gain or Loss
+  if (gainLoss > 0) {
+    // Gain on disposal (credit)
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.GAIN_ON_DISPOSAL,
+      description: `Gain on disposal of ${assetName}`,
+      debitAmount: 0,
+      creditAmount: gainLoss,
+    });
+  } else if (gainLoss < 0) {
+    // Loss on disposal (debit)
+    lines.push({
+      accountNumber: SYSTEM_ACCOUNTS.LOSS_ON_DISPOSAL,
+      description: `Loss on disposal of ${assetName}`,
+      debitAmount: Math.abs(gainLoss),
+      creditAmount: 0,
+    });
+  }
+
+  return postJournalEntry({
+    companyId,
+    userId,
+    date,
+    description: `Disposal of fixed asset: ${assetName}`,
+    reference: `DISP-${assetId.slice(-6)}`,
+    sourceModule: 'FIXED_ASSET',
+    sourceDocumentId: assetId,
+    sourceDocumentType: 'DISPOSAL',
+    lines,
+    tx: params.tx,
+  });
+}
