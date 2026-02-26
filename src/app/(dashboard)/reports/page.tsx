@@ -82,7 +82,7 @@ const REPORTS = [
     name: 'Balance Sheet',
     description: 'Assets, liabilities, and equity',
     icon: BuildingLibraryIcon,
-    color: 'bg-gray-100 text-gray-600',
+    color: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
   },
   {
     id: 'trial_balance',
@@ -818,25 +818,25 @@ export default function ReportsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total Revenue</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
                   <p className="text-2xl font-bold text-emerald-600">{fc(data.totalRevenue)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total Invoices</p>
-                  <p className="text-2xl font-bold text-gray-900">{data.totalInvoices}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Invoices</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.totalInvoices}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Paid Invoices</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Paid Invoices</p>
                   <p className="text-2xl font-bold text-blue-600">{data.paidInvoices}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Pending Amount</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Pending Amount</p>
                   <p className="text-2xl font-bold text-orange-600">{fc(data.pendingAmount)}</p>
                 </CardContent>
               </Card>
@@ -852,25 +852,25 @@ export default function ReportsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total Sales</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Sales</p>
                   <p className="text-2xl font-bold text-emerald-600">{fc(data.totalSales)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{data.totalOrders}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Orders</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.totalOrders}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Avg Order Value</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Avg Order Value</p>
                   <p className="text-2xl font-bold text-blue-600">{fc(data.avgOrderValue)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Items Sold</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Items Sold</p>
                   <p className="text-2xl font-bold text-purple-600">{data.totalItems}</p>
                 </CardContent>
               </Card>
@@ -886,33 +886,33 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Invoice GCT</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Invoice GCT</p>
                   <p className="text-2xl font-bold text-purple-600">{fc(data.invoiceGCT)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">POS GCT</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">POS GCT</p>
                   <p className="text-2xl font-bold text-blue-600">{fc(data.posGCT)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total GCT Collected</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total GCT Collected</p>
                   <p className="text-2xl font-bold text-emerald-600">{fc(data.totalGCT)}</p>
                 </CardContent>
               </Card>
             </div>
             <Card>
               <CardContent className="p-4">
-                <p className="text-sm text-gray-500 mb-2">GCT Rate: 15% (Standard)</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">GCT Rate: 15% (Standard)</p>
                 {activeCompany?.trnNumber && (
-                  <p className="text-xs text-gray-500">TRN: {formatTRN(activeCompany.trnNumber)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">TRN: {formatTRN(activeCompany.trnNumber)}</p>
                 )}
                 {activeCompany?.gctRegistered && activeCompany?.gctNumber && (
-                  <p className="text-xs text-gray-500">GCT Reg: {activeCompany.gctNumber}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">GCT Reg: {activeCompany.gctNumber}</p>
                 )}
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   Report period: {formatDate(new Date(dateRange.start))} - {formatDate(new Date(dateRange.end))}
                 </p>
               </CardContent>
@@ -927,7 +927,7 @@ export default function ReportsPage() {
           <div className="space-y-6">
             <Card>
               <CardContent className="p-4">
-                <p className="text-sm text-gray-500">Total Expenses</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Expenses</p>
                 <p className="text-2xl font-bold text-red-600">{fc(data.totalExpenses)}</p>
               </CardContent>
             </Card>
@@ -939,7 +939,7 @@ export default function ReportsPage() {
                 <div className="space-y-3">
                   {data.categories.map((cat) => (
                     <div key={cat.name} className="flex items-center justify-between">
-                      <span className="text-gray-700">{cat.name}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{cat.name}</span>
                       <div className="flex items-center gap-4">
                         <div className="w-32 bg-gray-200 rounded-full h-2">
                           <div
@@ -965,13 +965,13 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">With Outstanding Balance</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">With Outstanding Balance</p>
                   <p className="text-2xl font-bold text-orange-600">{data.withBalance}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total Receivables</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Receivables</p>
                   <p className="text-2xl font-bold text-blue-600">{fc(data.totalReceivables)}</p>
                 </CardContent>
               </Card>
@@ -986,7 +986,7 @@ export default function ReportsPage() {
                     <div key={customer.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                       <div>
                         <p className="font-medium">{customer.name}</p>
-                        <p className="text-sm text-gray-500">{customer.email || customer.phone}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{customer.email || customer.phone}</p>
                       </div>
                       <span className="font-medium text-orange-600">{fc(customer.balance)}</span>
                     </div>
@@ -1005,25 +1005,25 @@ export default function ReportsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total Items</p>
-                  <p className="text-2xl font-bold text-gray-900">{data.totalItems}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Items</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.totalItems}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Total Value</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Value</p>
                   <p className="text-2xl font-bold text-emerald-600">{fc(data.totalValue)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Low Stock</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Low Stock</p>
                   <p className="text-2xl font-bold text-orange-600">{data.lowStock}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-500">Out of Stock</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Out of Stock</p>
                   <p className="text-2xl font-bold text-red-600">{data.outOfStock}</p>
                 </CardContent>
               </Card>
@@ -1036,8 +1036,8 @@ export default function ReportsPage() {
         if (plLoading) {
           return (
             <div className="flex items-center justify-center py-12">
-              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-500">Loading Profit & Loss report...</span>
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-gray-500 dark:text-gray-400">Loading Profit & Loss report...</span>
             </div>
           );
         }
@@ -1046,7 +1046,7 @@ export default function ReportsPage() {
         if (!sections) {
           return (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
                 No financial data available for this period. Create invoices and expenses to see your P&L report.
               </CardContent>
             </Card>
@@ -1056,7 +1056,7 @@ export default function ReportsPage() {
         const renderAccountRows = (accounts: any[]) =>
           accounts?.map((a: any) => (
             <div key={a.accountNumber} className="flex justify-between py-1.5 pl-6">
-              <span className="text-sm text-gray-600">{a.accountNumber} — {a.name}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{a.accountNumber} — {a.name}</span>
               <span className="text-sm font-medium">{fc(a.balance)}</span>
             </div>
           ));
@@ -1070,9 +1070,9 @@ export default function ReportsPage() {
               <CardContent>
                 <div className="space-y-1">
                   {/* Revenue */}
-                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-2">Revenue</h3>
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide pt-2">Revenue</h3>
                   {renderAccountRows(sections.revenue?.accounts)}
-                  <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-emerald-600">
+                  <div className="flex justify-between py-2 border-t border-gray-200 dark:border-gray-700 font-semibold text-emerald-600">
                     <span>Total Revenue</span>
                     <span>{fc(sections.revenue?.total || 0)}</span>
                   </div>
@@ -1080,9 +1080,9 @@ export default function ReportsPage() {
                   {/* COGS */}
                   {sections.costOfGoodsSold?.accounts?.length > 0 && (
                     <>
-                      <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Cost of Goods Sold</h3>
+                      <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide pt-4">Cost of Goods Sold</h3>
                       {renderAccountRows(sections.costOfGoodsSold?.accounts)}
-                      <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-red-600">
+                      <div className="flex justify-between py-2 border-t border-gray-200 dark:border-gray-700 font-semibold text-red-600">
                         <span>Total COGS</span>
                         <span>{fc(sections.costOfGoodsSold?.total || 0)}</span>
                       </div>
@@ -1090,21 +1090,21 @@ export default function ReportsPage() {
                   )}
 
                   {/* Gross Profit */}
-                  <div className="flex justify-between py-3 bg-emerald-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-emerald-50 dark:bg-emerald-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Gross Profit</span>
                     <span className="text-emerald-700">{fc(sections.grossProfit?.total || 0)}</span>
                   </div>
 
                   {/* Operating Expenses */}
-                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Operating Expenses</h3>
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide pt-4">Operating Expenses</h3>
                   {renderAccountRows(sections.operatingExpenses?.accounts)}
-                  <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-red-600">
+                  <div className="flex justify-between py-2 border-t border-gray-200 dark:border-gray-700 font-semibold text-red-600">
                     <span>Total Operating Expenses</span>
                     <span>{fc(sections.operatingExpenses?.total || 0)}</span>
                   </div>
 
                   {/* Operating Income */}
-                  <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-blue-50 dark:bg-blue-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Operating Income</span>
                     <span className={sections.operatingIncome?.total >= 0 ? 'text-blue-700' : 'text-red-600'}>
                       {fc(sections.operatingIncome?.total || 0)}
@@ -1114,9 +1114,9 @@ export default function ReportsPage() {
                   {/* Other Expenses */}
                   {sections.otherExpenses?.accounts?.length > 0 && (
                     <>
-                      <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Other Expenses</h3>
+                      <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide pt-4">Other Expenses</h3>
                       {renderAccountRows(sections.otherExpenses?.accounts)}
-                      <div className="flex justify-between py-2 border-t border-gray-200 font-semibold text-orange-600">
+                      <div className="flex justify-between py-2 border-t border-gray-200 dark:border-gray-700 font-semibold text-orange-600">
                         <span>Total Other Expenses</span>
                         <span>{fc(sections.otherExpenses?.total || 0)}</span>
                       </div>
@@ -1124,7 +1124,7 @@ export default function ReportsPage() {
                   )}
 
                   {/* Net Income */}
-                  <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
+                  <div className="flex justify-between py-4 bg-gray-100 dark:bg-gray-700 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
                     <span>Net Income</span>
                     <span className={sections.netIncome?.total >= 0 ? 'text-emerald-600' : 'text-red-600'}>
                       {fc(sections.netIncome?.total || 0)}
@@ -1141,8 +1141,8 @@ export default function ReportsPage() {
         if (bsLoading) {
           return (
             <div className="flex items-center justify-center py-12">
-              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-500">Loading Balance Sheet...</span>
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-gray-500 dark:text-gray-400">Loading Balance Sheet...</span>
             </div>
           );
         }
@@ -1151,7 +1151,7 @@ export default function ReportsPage() {
         if (!bsSections) {
           return (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
                 No financial data available. Create transactions to see your Balance Sheet.
               </CardContent>
             </Card>
@@ -1161,7 +1161,7 @@ export default function ReportsPage() {
         const renderBsAccounts = (accounts: any[]) =>
           accounts?.map((a: any) => (
             <div key={a.accountNumber} className="flex justify-between py-1.5 pl-6">
-              <span className="text-sm text-gray-600">{a.accountNumber} — {a.name}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{a.accountNumber} — {a.name}</span>
               <span className="text-sm font-medium">{fc(a.balance)}</span>
             </div>
           ));
@@ -1174,8 +1174,8 @@ export default function ReportsPage() {
             {balanceCheck && (
               <div className={`p-3 rounded-lg text-sm font-medium ${
                 balanceCheck.isBalanced
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-red-50 text-red-700 border border-red-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-red-50 dark:bg-red-900/30 text-red-700 border border-red-200 dark:border-red-800'
               }`}>
                 {balanceCheck.isBalanced
                   ? '✓ Balance Sheet is balanced — Assets equal Liabilities + Equity'
@@ -1195,9 +1195,9 @@ export default function ReportsPage() {
 
                   {bsSections.assets?.current?.accounts?.length > 0 && (
                     <>
-                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Current Assets</h4>
+                      <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase pl-3 pt-2">Current Assets</h4>
                       {renderBsAccounts(bsSections.assets.current.accounts)}
-                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700">
                         <span>Total Current Assets</span>
                         <span>{fc(bsSections.assets.current.total || 0)}</span>
                       </div>
@@ -1206,16 +1206,16 @@ export default function ReportsPage() {
 
                   {bsSections.assets?.nonCurrent?.accounts?.length > 0 && (
                     <>
-                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Non-Current Assets</h4>
+                      <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase pl-3 pt-2">Non-Current Assets</h4>
                       {renderBsAccounts(bsSections.assets.nonCurrent.accounts)}
-                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700">
                         <span>Total Non-Current Assets</span>
                         <span>{fc(bsSections.assets.nonCurrent.total || 0)}</span>
                       </div>
                     </>
                   )}
 
-                  <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-blue-50 dark:bg-blue-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Total Assets</span>
                     <span className="text-blue-700">{fc(bsSections.assets?.totalAssets || 0)}</span>
                   </div>
@@ -1225,9 +1225,9 @@ export default function ReportsPage() {
 
                   {bsSections.liabilities?.current?.accounts?.length > 0 && (
                     <>
-                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Current Liabilities</h4>
+                      <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase pl-3 pt-2">Current Liabilities</h4>
                       {renderBsAccounts(bsSections.liabilities.current.accounts)}
-                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700">
                         <span>Total Current Liabilities</span>
                         <span>{fc(bsSections.liabilities.current.total || 0)}</span>
                       </div>
@@ -1236,16 +1236,16 @@ export default function ReportsPage() {
 
                   {bsSections.liabilities?.nonCurrent?.accounts?.length > 0 && (
                     <>
-                      <h4 className="text-xs font-medium text-gray-500 uppercase pl-3 pt-2">Non-Current Liabilities</h4>
+                      <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase pl-3 pt-2">Non-Current Liabilities</h4>
                       {renderBsAccounts(bsSections.liabilities.nonCurrent.accounts)}
-                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 border-t border-gray-100">
+                      <div className="flex justify-between py-1.5 pl-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700">
                         <span>Total Non-Current Liabilities</span>
                         <span>{fc(bsSections.liabilities.nonCurrent.total || 0)}</span>
                       </div>
                     </>
                   )}
 
-                  <div className="flex justify-between py-3 bg-red-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-red-50 dark:bg-red-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Total Liabilities</span>
                     <span className="text-red-700">{fc(bsSections.liabilities?.totalLiabilities || 0)}</span>
                   </div>
@@ -1255,19 +1255,19 @@ export default function ReportsPage() {
                   {renderBsAccounts(bsSections.equity?.accounts)}
                   {bsSections.equity?.retainedEarnings !== undefined && bsSections.equity.retainedEarnings !== 0 && (
                     <div className="flex justify-between py-1.5 pl-6">
-                      <span className="text-sm text-gray-600 italic">Retained Earnings (Current Period)</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400 italic">Retained Earnings (Current Period)</span>
                       <span className="text-sm font-medium">{fc(bsSections.equity.retainedEarnings)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between py-3 bg-purple-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-purple-50 dark:bg-purple-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Total Equity</span>
                     <span className="text-purple-700">{fc(bsSections.equity?.totalEquity || 0)}</span>
                   </div>
 
                   {/* Total L&E */}
-                  <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
+                  <div className="flex justify-between py-4 bg-gray-100 dark:bg-gray-700 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
                     <span>Total Liabilities & Equity</span>
-                    <span className="text-gray-900">{fc(bsSections.totalLiabilitiesAndEquity || 0)}</span>
+                    <span className="text-gray-900 dark:text-white">{fc(bsSections.totalLiabilitiesAndEquity || 0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -1280,8 +1280,8 @@ export default function ReportsPage() {
         if (tbLoading) {
           return (
             <div className="flex items-center justify-center py-12">
-              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-500">Loading Trial Balance...</span>
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-gray-500 dark:text-gray-400">Loading Trial Balance...</span>
             </div>
           );
         }
@@ -1290,7 +1290,7 @@ export default function ReportsPage() {
         if (!tbData?.grouped) {
           return (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
                 No financial data available. Create transactions to see your Trial Balance.
               </CardContent>
             </Card>
@@ -1312,8 +1312,8 @@ export default function ReportsPage() {
             {tbData.totals && (
               <div className={`p-3 rounded-lg text-sm font-medium ${
                 tbData.totals.isBalanced
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-red-50 text-red-700 border border-red-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-red-50 dark:bg-red-900/30 text-red-700 border border-red-200 dark:border-red-800'
               }`}>
                 {tbData.totals.isBalanced
                   ? '✓ Trial Balance is balanced — Total Debits equal Total Credits'
@@ -1329,7 +1329,7 @@ export default function ReportsPage() {
               <CardContent>
                 <div className="space-y-1">
                   {/* Table Header */}
-                  <div className="flex justify-between py-2 border-b-2 border-gray-300 font-semibold text-sm text-gray-700">
+                  <div className="flex justify-between py-2 border-b-2 border-gray-300 dark:border-gray-600 font-semibold text-sm text-gray-700 dark:text-gray-300">
                     <span className="flex-1">Account</span>
                     <span className="w-32 text-right">Debit</span>
                     <span className="w-32 text-right">Credit</span>
@@ -1341,12 +1341,12 @@ export default function ReportsPage() {
 
                     return (
                       <div key={type}>
-                        <h3 className={`font-semibold text-sm uppercase tracking-wide pt-4 pb-1 ${typeColors[type] || 'text-gray-700'}`}>
+                        <h3 className={`font-semibold text-sm uppercase tracking-wide pt-4 pb-1 ${typeColors[type] || 'text-gray-700 dark:text-gray-300'}`}>
                           {type}
                         </h3>
                         {group.accounts.map((a: any) => (
                           <div key={a.accountNumber} className="flex justify-between py-1.5 pl-4">
-                            <span className="text-sm text-gray-600 flex-1">{a.accountNumber} — {a.accountName}</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400 flex-1">{a.accountNumber} — {a.accountName}</span>
                             <span className="text-sm font-medium w-32 text-right">
                               {a.debitBalance > 0 ? fc(a.debitBalance) : '-'}
                             </span>
@@ -1355,7 +1355,7 @@ export default function ReportsPage() {
                             </span>
                           </div>
                         ))}
-                        <div className="flex justify-between py-1.5 pl-4 border-t border-gray-100 font-semibold text-sm">
+                        <div className="flex justify-between py-1.5 pl-4 border-t border-gray-100 dark:border-gray-700 font-semibold text-sm">
                           <span className="flex-1">Total {type}</span>
                           <span className="w-32 text-right">{fc(group.totalDebits)}</span>
                           <span className="w-32 text-right">{fc(group.totalCredits)}</span>
@@ -1365,7 +1365,7 @@ export default function ReportsPage() {
                   })}
 
                   {/* Grand Total */}
-                  <div className="flex justify-between py-4 bg-gray-100 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
+                  <div className="flex justify-between py-4 bg-gray-100 dark:bg-gray-700 -mx-4 px-4 rounded-lg font-bold text-lg mt-4">
                     <span className="flex-1">Grand Total</span>
                     <span className="w-32 text-right">{fc(tbData.totals?.totalDebits || 0)}</span>
                     <span className="w-32 text-right">{fc(tbData.totals?.totalCredits || 0)}</span>
@@ -1381,8 +1381,8 @@ export default function ReportsPage() {
         if (glLoading) {
           return (
             <div className="flex items-center justify-center py-12">
-              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-500">Loading General Ledger...</span>
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-gray-500 dark:text-gray-400">Loading General Ledger...</span>
             </div>
           );
         }
@@ -1391,7 +1391,7 @@ export default function ReportsPage() {
         if (!glData?.accounts?.length) {
           return (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
                 No transactions found for this period. Create journal entries to see the General Ledger.
               </CardContent>
             </Card>
@@ -1405,7 +1405,7 @@ export default function ReportsPage() {
                 <CardTitle>General Ledger</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   {glData.accounts.length} account{glData.accounts.length !== 1 ? 's' : ''} with activity. Click an account to expand transactions.
                 </p>
                 <div className="space-y-1">
@@ -1414,34 +1414,34 @@ export default function ReportsPage() {
                     const isExpanded = expandedAccounts.has(acctKey);
 
                     return (
-                      <div key={acctKey} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div key={acctKey} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                         {/* Account Summary Row */}
                         <button
                           onClick={() => toggleAccountExpanded(acctKey)}
-                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors text-left"
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                         >
                           <div className="flex items-center gap-3">
                             {isExpanded ? (
-                              <ChevronDownIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <ChevronDownIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                             ) : (
-                              <ChevronRightIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                             )}
                             <div>
-                              <span className="font-semibold text-sm text-gray-900">{acct.accountNumber} — {acct.accountName}</span>
-                              <span className="ml-2 text-xs text-gray-400">({acct.accountType})</span>
+                              <span className="font-semibold text-sm text-gray-900 dark:text-white">{acct.accountNumber} — {acct.accountName}</span>
+                              <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">({acct.accountType})</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-6 text-sm">
                             <div className="text-right">
-                              <span className="text-gray-500">Debits: </span>
+                              <span className="text-gray-500 dark:text-gray-400">Debits: </span>
                               <span className="font-medium">{fc(acct.periodDebits)}</span>
                             </div>
                             <div className="text-right">
-                              <span className="text-gray-500">Credits: </span>
+                              <span className="text-gray-500 dark:text-gray-400">Credits: </span>
                               <span className="font-medium">{fc(acct.periodCredits)}</span>
                             </div>
                             <div className="text-right">
-                              <span className="text-gray-500">Balance: </span>
+                              <span className="text-gray-500 dark:text-gray-400">Balance: </span>
                               <span className="font-bold">{fc(acct.closingBalance)}</span>
                             </div>
                             <Badge variant="outline" className="text-xs">
@@ -1452,16 +1452,16 @@ export default function ReportsPage() {
 
                         {/* Expanded Transaction Table */}
                         {isExpanded && (
-                          <div className="border-t border-gray-200 bg-gray-50 p-3">
-                            <div className="flex justify-between text-xs text-gray-500 mb-2 px-2">
-                              <span>Opening Balance: <strong className="text-gray-700">{fc(acct.openingBalance)}</strong></span>
-                              <span>Closing Balance: <strong className="text-gray-700">{fc(acct.closingBalance)}</strong></span>
+                          <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
+                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-2 px-2">
+                              <span>Opening Balance: <strong className="text-gray-700 dark:text-gray-300">{fc(acct.openingBalance)}</strong></span>
+                              <span>Closing Balance: <strong className="text-gray-700 dark:text-gray-300">{fc(acct.closingBalance)}</strong></span>
                             </div>
                             {acct.transactions?.length > 0 ? (
-                              <div className="bg-white rounded border border-gray-200 overflow-hidden">
+                              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                 <table className="w-full text-sm">
                                   <thead>
-                                    <tr className="bg-gray-100 text-gray-600">
+                                    <tr className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                                       <th className="text-left py-2 px-3 font-medium">Date</th>
                                       <th className="text-left py-2 px-3 font-medium">Entry #</th>
                                       <th className="text-left py-2 px-3 font-medium">Description</th>
@@ -1472,10 +1472,10 @@ export default function ReportsPage() {
                                   </thead>
                                   <tbody>
                                     {acct.transactions.map((txn: any, idx: number) => (
-                                      <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                                        <td className="py-1.5 px-3 text-gray-600">{txn.date}</td>
-                                        <td className="py-1.5 px-3 text-gray-600">{txn.entryNumber || '-'}</td>
-                                        <td className="py-1.5 px-3 text-gray-700">{txn.description || '-'}</td>
+                                      <tr key={idx} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        <td className="py-1.5 px-3 text-gray-600 dark:text-gray-400">{txn.date}</td>
+                                        <td className="py-1.5 px-3 text-gray-600 dark:text-gray-400">{txn.entryNumber || '-'}</td>
+                                        <td className="py-1.5 px-3 text-gray-700 dark:text-gray-300">{txn.description || '-'}</td>
                                         <td className="py-1.5 px-3 text-right font-medium">
                                           {txn.debit > 0 ? fc(txn.debit) : '-'}
                                         </td>
@@ -1489,7 +1489,7 @@ export default function ReportsPage() {
                                 </table>
                               </div>
                             ) : (
-                              <p className="text-sm text-gray-400 text-center py-4">No transactions in this period.</p>
+                              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No transactions in this period.</p>
                             )}
                           </div>
                         )}
@@ -1507,8 +1507,8 @@ export default function ReportsPage() {
         if (cfLoading) {
           return (
             <div className="flex items-center justify-center py-12">
-              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-500">Loading Cash Flow Statement...</span>
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-gray-500 dark:text-gray-400">Loading Cash Flow Statement...</span>
             </div>
           );
         }
@@ -1517,7 +1517,7 @@ export default function ReportsPage() {
         if (!cfData) {
           return (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
                 No cash flow data available for this period.
               </CardContent>
             </Card>
@@ -1526,7 +1526,7 @@ export default function ReportsPage() {
 
         const renderCfItem = (description: string, amount: number) => (
           <div key={description} className="flex justify-between py-1.5 pl-6">
-            <span className="text-sm text-gray-600">{description}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{description}</span>
             <span className={`text-sm font-medium ${amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {amount < 0 ? `(${fc(Math.abs(amount))})` : fc(amount)}
             </span>
@@ -1542,10 +1542,10 @@ export default function ReportsPage() {
               <CardContent>
                 <div className="space-y-1">
                   {/* Operating Activities */}
-                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-2">Operating Activities</h3>
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide pt-2">Operating Activities</h3>
                   {cfData.operating?.netIncome !== undefined && renderCfItem('Net Income', cfData.operating.netIncome)}
                   {cfData.operating?.adjustments?.map((adj: any) => renderCfItem(adj.description, adj.amount))}
-                  <div className="flex justify-between py-3 bg-blue-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-blue-50 dark:bg-blue-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Net Cash from Operations</span>
                     <span className={cfData.operating?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
                       {cfData.operating?.total < 0
@@ -1555,9 +1555,9 @@ export default function ReportsPage() {
                   </div>
 
                   {/* Investing Activities */}
-                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Investing Activities</h3>
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide pt-4">Investing Activities</h3>
                   {cfData.investing?.items?.map((item: any) => renderCfItem(item.description, item.amount))}
-                  <div className="flex justify-between py-3 bg-amber-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-amber-50 dark:bg-amber-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Net Cash from Investing</span>
                     <span className={cfData.investing?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
                       {cfData.investing?.total < 0
@@ -1567,9 +1567,9 @@ export default function ReportsPage() {
                   </div>
 
                   {/* Financing Activities */}
-                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide pt-4">Financing Activities</h3>
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide pt-4">Financing Activities</h3>
                   {cfData.financing?.items?.map((item: any) => renderCfItem(item.description, item.amount))}
-                  <div className="flex justify-between py-3 bg-purple-50 -mx-4 px-4 rounded-lg font-bold mt-2">
+                  <div className="flex justify-between py-3 bg-purple-50 dark:bg-purple-900/30 -mx-4 px-4 rounded-lg font-bold mt-2">
                     <span>Net Cash from Financing</span>
                     <span className={cfData.financing?.total >= 0 ? 'text-emerald-700' : 'text-red-600'}>
                       {cfData.financing?.total < 0
@@ -1580,7 +1580,7 @@ export default function ReportsPage() {
 
                   {/* Summary */}
                   <div className="mt-6 space-y-2">
-                    <div className="flex justify-between py-3 bg-gray-100 -mx-4 px-4 rounded-lg font-bold">
+                    <div className="flex justify-between py-3 bg-gray-100 dark:bg-gray-700 -mx-4 px-4 rounded-lg font-bold">
                       <span>Net Cash Change</span>
                       <span className={cfData.summary?.netCashChange >= 0 ? 'text-emerald-600' : 'text-red-600'}>
                         {cfData.summary?.netCashChange < 0
@@ -1589,10 +1589,10 @@ export default function ReportsPage() {
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-4 -mx-4">
-                      <span className="text-sm text-gray-600">Opening Cash Balance</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Opening Cash Balance</span>
                       <span className="text-sm font-medium">{fc(cfData.summary?.openingCash || 0)}</span>
                     </div>
-                    <div className="flex justify-between py-4 bg-emerald-50 -mx-4 px-4 rounded-lg font-bold text-lg">
+                    <div className="flex justify-between py-4 bg-emerald-50 dark:bg-emerald-900/30 -mx-4 px-4 rounded-lg font-bold text-lg">
                       <span>Closing Cash Balance</span>
                       <span className="text-emerald-700">{fc(cfData.summary?.closingCash || 0)}</span>
                     </div>
@@ -1608,8 +1608,8 @@ export default function ReportsPage() {
         if (arLoading) {
           return (
             <div className="flex items-center justify-center py-12">
-              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-500">Loading AR Aging Report...</span>
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-gray-500 dark:text-gray-400">Loading AR Aging Report...</span>
             </div>
           );
         }
@@ -1618,7 +1618,7 @@ export default function ReportsPage() {
         if (!arData) {
           return (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
                 No accounts receivable data available.
               </CardContent>
             </Card>
@@ -1631,7 +1631,7 @@ export default function ReportsPage() {
           'bg-orange-100 text-orange-600',
           'bg-red-100 text-red-600',
           'bg-red-200 text-red-800',
-          'bg-gray-100 text-gray-700',
+          'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
         ];
 
         return (
@@ -1648,7 +1648,7 @@ export default function ReportsPage() {
               ].map((bucket) => (
                 <Card key={bucket.label}>
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-500">{bucket.label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{bucket.label}</p>
                     <p className={`text-lg font-bold ${bucketColors[bucket.colorIdx].split(' ')[1]}`}>
                       {fc(bucket.value)}
                     </p>
@@ -1657,7 +1657,7 @@ export default function ReportsPage() {
               ))}
             </div>
 
-            <div className="flex gap-4 text-sm text-gray-500">
+            <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
               <span>{arData.customerCount || 0} customer{(arData.customerCount || 0) !== 1 ? 's' : ''}</span>
               <span>{arData.invoiceCount || 0} invoice{(arData.invoiceCount || 0) !== 1 ? 's' : ''}</span>
             </div>
@@ -1672,36 +1672,36 @@ export default function ReportsPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b-2 border-gray-200 text-gray-600">
+                        <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
                           <th className="text-left py-2 px-3 font-semibold">Customer</th>
                           <th className="text-right py-2 px-3 font-semibold">Current</th>
-                          <th className="text-right py-2 px-3 font-semibold bg-yellow-50">1-30</th>
-                          <th className="text-right py-2 px-3 font-semibold bg-orange-50">31-60</th>
-                          <th className="text-right py-2 px-3 font-semibold bg-red-50">61-90</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-yellow-50 dark:bg-yellow-900/30">1-30</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-orange-50 dark:bg-orange-900/30">31-60</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-red-50 dark:bg-red-900/30">61-90</th>
                           <th className="text-right py-2 px-3 font-semibold bg-red-100">90+</th>
                           <th className="text-right py-2 px-3 font-semibold">Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {arData.customers.map((c: any, idx: number) => (
-                          <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-2 px-3 font-medium text-gray-900">{c.customerName}</td>
+                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="py-2 px-3 font-medium text-gray-900 dark:text-white">{c.customerName}</td>
                             <td className="py-2 px-3 text-right">{c.current > 0 ? fc(c.current) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-yellow-50">{c.days1to30 > 0 ? fc(c.days1to30) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-orange-50">{c.days31to60 > 0 ? fc(c.days31to60) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-red-50">{c.days61to90 > 0 ? fc(c.days61to90) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-yellow-50 dark:bg-yellow-900/30">{c.days1to30 > 0 ? fc(c.days1to30) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-orange-50 dark:bg-orange-900/30">{c.days31to60 > 0 ? fc(c.days31to60) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-50 dark:bg-red-900/30">{c.days61to90 > 0 ? fc(c.days61to90) : '-'}</td>
                             <td className="py-2 px-3 text-right bg-red-100">{c.days90plus > 0 ? fc(c.days90plus) : '-'}</td>
                             <td className="py-2 px-3 text-right font-bold">{fc(c.total)}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                        <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 font-bold">
                           <td className="py-2 px-3">Total</td>
                           <td className="py-2 px-3 text-right">{fc(arData.totals?.current || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-yellow-50">{fc(arData.totals?.days1to30 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-orange-50">{fc(arData.totals?.days31to60 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-red-50">{fc(arData.totals?.days61to90 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-yellow-50 dark:bg-yellow-900/30">{fc(arData.totals?.days1to30 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-orange-50 dark:bg-orange-900/30">{fc(arData.totals?.days31to60 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-50 dark:bg-red-900/30">{fc(arData.totals?.days61to90 || 0)}</td>
                           <td className="py-2 px-3 text-right bg-red-100">{fc(arData.totals?.days90plus || 0)}</td>
                           <td className="py-2 px-3 text-right">{fc(arData.totals?.total || 0)}</td>
                         </tr>
@@ -1709,7 +1709,7 @@ export default function ReportsPage() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-center text-gray-400 py-6">No outstanding receivables.</p>
+                  <p className="text-center text-gray-400 dark:text-gray-500 py-6">No outstanding receivables.</p>
                 )}
               </CardContent>
             </Card>
@@ -1721,8 +1721,8 @@ export default function ReportsPage() {
         if (apLoading) {
           return (
             <div className="flex items-center justify-center py-12">
-              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-500">Loading AP Aging Report...</span>
+              <ArrowDownTrayIcon className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-gray-500 dark:text-gray-400">Loading AP Aging Report...</span>
             </div>
           );
         }
@@ -1731,7 +1731,7 @@ export default function ReportsPage() {
         if (!apData) {
           return (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
                 No accounts payable data available.
               </CardContent>
             </Card>
@@ -1744,7 +1744,7 @@ export default function ReportsPage() {
           'bg-orange-100 text-orange-600',
           'bg-red-100 text-red-600',
           'bg-red-200 text-red-800',
-          'bg-gray-100 text-gray-700',
+          'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
         ];
 
         return (
@@ -1761,7 +1761,7 @@ export default function ReportsPage() {
               ].map((bucket) => (
                 <Card key={bucket.label}>
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-500">{bucket.label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{bucket.label}</p>
                     <p className={`text-lg font-bold ${apBucketColors[bucket.colorIdx].split(' ')[1]}`}>
                       {fc(bucket.value)}
                     </p>
@@ -1770,7 +1770,7 @@ export default function ReportsPage() {
               ))}
             </div>
 
-            <div className="flex gap-4 text-sm text-gray-500">
+            <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
               <span>{apData.vendorCount || 0} vendor{(apData.vendorCount || 0) !== 1 ? 's' : ''}</span>
               <span>{apData.expenseCount || 0} expense{(apData.expenseCount || 0) !== 1 ? 's' : ''}</span>
             </div>
@@ -1785,36 +1785,36 @@ export default function ReportsPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b-2 border-gray-200 text-gray-600">
+                        <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
                           <th className="text-left py-2 px-3 font-semibold">Vendor</th>
                           <th className="text-right py-2 px-3 font-semibold">Current</th>
-                          <th className="text-right py-2 px-3 font-semibold bg-yellow-50">1-30</th>
-                          <th className="text-right py-2 px-3 font-semibold bg-orange-50">31-60</th>
-                          <th className="text-right py-2 px-3 font-semibold bg-red-50">61-90</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-yellow-50 dark:bg-yellow-900/30">1-30</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-orange-50 dark:bg-orange-900/30">31-60</th>
+                          <th className="text-right py-2 px-3 font-semibold bg-red-50 dark:bg-red-900/30">61-90</th>
                           <th className="text-right py-2 px-3 font-semibold bg-red-100">90+</th>
                           <th className="text-right py-2 px-3 font-semibold">Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {apData.vendors.map((v: any, idx: number) => (
-                          <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-2 px-3 font-medium text-gray-900">{v.vendorName}</td>
+                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="py-2 px-3 font-medium text-gray-900 dark:text-white">{v.vendorName}</td>
                             <td className="py-2 px-3 text-right">{v.current > 0 ? fc(v.current) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-yellow-50">{v.days1to30 > 0 ? fc(v.days1to30) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-orange-50">{v.days31to60 > 0 ? fc(v.days31to60) : '-'}</td>
-                            <td className="py-2 px-3 text-right bg-red-50">{v.days61to90 > 0 ? fc(v.days61to90) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-yellow-50 dark:bg-yellow-900/30">{v.days1to30 > 0 ? fc(v.days1to30) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-orange-50 dark:bg-orange-900/30">{v.days31to60 > 0 ? fc(v.days31to60) : '-'}</td>
+                            <td className="py-2 px-3 text-right bg-red-50 dark:bg-red-900/30">{v.days61to90 > 0 ? fc(v.days61to90) : '-'}</td>
                             <td className="py-2 px-3 text-right bg-red-100">{v.days90plus > 0 ? fc(v.days90plus) : '-'}</td>
                             <td className="py-2 px-3 text-right font-bold">{fc(v.total)}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                        <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 font-bold">
                           <td className="py-2 px-3">Total</td>
                           <td className="py-2 px-3 text-right">{fc(apData.totals?.current || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-yellow-50">{fc(apData.totals?.days1to30 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-orange-50">{fc(apData.totals?.days31to60 || 0)}</td>
-                          <td className="py-2 px-3 text-right bg-red-50">{fc(apData.totals?.days61to90 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-yellow-50 dark:bg-yellow-900/30">{fc(apData.totals?.days1to30 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-orange-50 dark:bg-orange-900/30">{fc(apData.totals?.days31to60 || 0)}</td>
+                          <td className="py-2 px-3 text-right bg-red-50 dark:bg-red-900/30">{fc(apData.totals?.days61to90 || 0)}</td>
                           <td className="py-2 px-3 text-right bg-red-100">{fc(apData.totals?.days90plus || 0)}</td>
                           <td className="py-2 px-3 text-right">{fc(apData.totals?.total || 0)}</td>
                         </tr>
@@ -1822,7 +1822,7 @@ export default function ReportsPage() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-center text-gray-400 py-6">No outstanding payables.</p>
+                  <p className="text-center text-gray-400 dark:text-gray-500 py-6">No outstanding payables.</p>
                 )}
               </CardContent>
             </Card>
@@ -1840,8 +1840,8 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-500">Business insights and financial reports</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
+          <p className="text-gray-500 dark:text-gray-400">Business insights and financial reports</p>
         </div>
       </div>
 
@@ -1850,8 +1850,8 @@ export default function ReportsPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-600">Date Range:</span>
+              <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">Date Range:</span>
             </div>
             <Input
               type="date"
@@ -1859,7 +1859,7 @@ export default function ReportsPage() {
               onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
               className="w-40"
             />
-            <span className="text-gray-400">to</span>
+            <span className="text-gray-400 dark:text-gray-500">to</span>
             <Input
               type="date"
               value={dateRange.end}
@@ -1906,7 +1906,7 @@ export default function ReportsPage() {
             <Button variant="outline" onClick={() => setSelectedReport(null)}>
               Back to Reports
             </Button>
-            <h2 className="text-xl font-bold text-gray-900 flex-1">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex-1">
               {REPORTS.find(r => r.id === selectedReport)?.name}
             </h2>
             <div className="flex gap-2">
@@ -1936,8 +1936,8 @@ export default function ReportsPage() {
                   <div className={`inline-flex p-3 rounded-lg ${report.color} mb-4`}>
                     <Icon className="w-6 h-6" />
                   </div>
-                  <h3 className="font-medium text-gray-900 mb-1">{report.name}</h3>
-                  <p className="text-sm text-gray-500">{report.description}</p>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-1">{report.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{report.description}</p>
                 </CardContent>
               </Card>
             );

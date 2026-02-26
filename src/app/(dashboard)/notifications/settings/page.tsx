@@ -149,49 +149,49 @@ export default function NotificationSettingsPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/notifications"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
-          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notification Settings</h1>
-          <p className="text-gray-500">Manage how you receive notifications</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notification Settings</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage how you receive notifications</p>
         </div>
       </div>
 
       {/* Channel Legend */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex flex-wrap gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center">
               <EnvelopeIcon className="w-4 h-4 text-blue-600" />
             </div>
-            <span className="text-sm text-gray-700">Email</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Email</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/40 rounded-lg flex items-center justify-center">
               <DevicePhoneMobileIcon className="w-4 h-4 text-purple-600" />
             </div>
-            <span className="text-sm text-gray-700">Push</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Push</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg flex items-center justify-center">
               <BellIcon className="w-4 h-4 text-emerald-600" />
             </div>
-            <span className="text-sm text-gray-700">In-App</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">In-App</span>
           </div>
         </div>
       </div>
 
       {/* Settings List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="divide-y divide-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {settings.map((setting) => (
             <div key={setting.key} className="p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{setting.label}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{setting.description}</p>
+                  <h3 className="font-medium text-gray-900 dark:text-white">{setting.label}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{setting.description}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   {/* Email Toggle */}
@@ -199,8 +199,8 @@ export default function NotificationSettingsPage() {
                     onClick={() => toggleSetting(setting.key, 'email')}
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                       setting.email
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-gray-100 text-gray-400'
+                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}
                     title="Email notifications"
                   >
@@ -212,8 +212,8 @@ export default function NotificationSettingsPage() {
                     onClick={() => toggleSetting(setting.key, 'push')}
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                       setting.push
-                        ? 'bg-purple-100 text-purple-600'
-                        : 'bg-gray-100 text-gray-400'
+                        ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-600'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}
                     title="Push notifications"
                   >
@@ -225,8 +225,8 @@ export default function NotificationSettingsPage() {
                     onClick={() => toggleSetting(setting.key, 'inApp')}
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                       setting.inApp
-                        ? 'bg-emerald-100 text-emerald-600'
-                        : 'bg-gray-100 text-gray-400'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}
                     title="In-app notifications"
                   >

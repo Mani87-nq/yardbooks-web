@@ -281,21 +281,21 @@ export default function LoginContent() {
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
           YB
         </div>
-        <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+        <span className="text-2xl font-bold text-gray-900 dark:text-white">YaadBooks</span>
       </div>
 
       <div className="flex items-center gap-3 mb-2">
         <ShieldCheckIcon className="h-7 w-7 text-emerald-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Two-Factor Authentication</h2>
       </div>
-      <p className="text-gray-500 mb-8">
+      <p className="text-gray-500 dark:text-gray-400 mb-8">
         {useBackupCode
           ? 'Enter one of your backup codes'
           : 'Enter the 6-digit code from your authenticator app'}
       </p>
 
       {error && (
-        <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
           {error}
         </div>
       )}
@@ -304,18 +304,18 @@ export default function LoginContent() {
         /* Backup code form */
         <form onSubmit={handleBackupCode} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Backup Code
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                <LockClosedIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </div>
               <input
                 type="text"
                 value={backupCode}
                 onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono tracking-wider"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono tracking-wider"
                 placeholder="XXXX-XXXX"
                 autoFocus
                 autoComplete="off"
@@ -342,7 +342,7 @@ export default function LoginContent() {
             <button
               type="button"
               onClick={resetTo2FALogin}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             >
               Back to login
             </button>
@@ -352,12 +352,12 @@ export default function LoginContent() {
         /* TOTP code form */
         <form onSubmit={handleVerify2FA} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Authentication Code
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <ShieldCheckIcon className="h-5 w-5 text-gray-400" />
+                <ShieldCheckIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </div>
               <input
                 type="text"
@@ -369,7 +369,7 @@ export default function LoginContent() {
                 pattern="[0-9]{6}"
                 inputMode="numeric"
                 maxLength={6}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-2xl tracking-[0.5em]"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-2xl tracking-[0.5em]"
                 placeholder="000000"
                 autoFocus
                 autoComplete="one-time-code"
@@ -396,7 +396,7 @@ export default function LoginContent() {
             <button
               type="button"
               onClick={resetTo2FALogin}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             >
               Back to login
             </button>
@@ -413,50 +413,50 @@ export default function LoginContent() {
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
           YB
         </div>
-        <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+        <span className="text-2xl font-bold text-gray-900 dark:text-white">YaadBooks</span>
       </div>
 
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
-      <p className="text-gray-500 mb-8">Sign in to your account to continue</p>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome back</h2>
+      <p className="text-gray-500 dark:text-gray-400 mb-8">Sign in to your account to continue</p>
 
       {error && (
-        <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
           {error}
         </div>
       )}
 
       <form onSubmit={handleLogin} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Email Address
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+              <EnvelopeIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="you@example.com"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Password
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <LockClosedIcon className="h-5 w-5 text-gray-400" />
+              <LockClosedIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Enter your password"
             />
             <button
@@ -465,9 +465,9 @@ export default function LoginContent() {
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
               {showPassword ? (
-                <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                <EyeSlashIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               ) : (
-                <EyeIcon className="h-5 w-5 text-gray-400" />
+                <EyeIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               )}
             </button>
           </div>
@@ -475,8 +475,8 @@ export default function LoginContent() {
 
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2">
-            <input type="checkbox" className="rounded border-gray-300 text-emerald-600" />
-            <span className="text-sm text-gray-600">Remember me</span>
+            <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 dark:bg-gray-800" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
           </label>
           <Link href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700">
             Forgot password?
@@ -496,10 +496,10 @@ export default function LoginContent() {
       <div className="mt-6">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+            <div className="w-full border-t border-gray-200 dark:border-gray-700" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">Or continue with</span>
           </div>
         </div>
 
@@ -507,14 +507,14 @@ export default function LoginContent() {
           type="button"
           onClick={() => window.location.href = '/api/auth/oauth/google'}
           disabled={isLoading}
-          className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+          className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors disabled:opacity-50"
         >
           <GoogleIcon className="w-5 h-5" />
           Sign in with Google
         </button>
       </div>
 
-      <p className="mt-8 text-center text-sm text-gray-500">
+      <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
         Don&apos;t have an account?{' '}
         <Link href="/signup" className="text-emerald-600 hover:text-emerald-700 font-medium">
           Sign up for free
@@ -551,7 +551,7 @@ export default function LoginContent() {
       </div>
 
       {/* Right Panel - Login or 2FA Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
         {requires2FA ? render2FAForm() : renderLoginForm()}
       </div>
     </div>

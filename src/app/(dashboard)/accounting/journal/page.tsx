@@ -275,8 +275,8 @@ export default function JournalEntriesPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Journal Entries</h1>
-            <p className="text-gray-500">Record and manage journal entries</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Journal Entries</h1>
+            <p className="text-gray-500 dark:text-gray-400">Record and manage journal entries</p>
           </div>
         </div>
         <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
@@ -288,13 +288,13 @@ export default function JournalEntriesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Entries</p>
-            <p className="text-2xl font-bold text-gray-900">{journalEntries.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Entries</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{journalEntries.length}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Draft</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Draft</p>
             <p className="text-2xl font-bold text-orange-600">
               {journalEntries.filter(e => e.status === 'draft').length}
             </p>
@@ -302,7 +302,7 @@ export default function JournalEntriesPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Posted</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Posted</p>
             <p className="text-2xl font-bold text-emerald-600">
               {journalEntries.filter(e => e.status === 'posted').length}
             </p>
@@ -310,7 +310,7 @@ export default function JournalEntriesPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">This Month</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">This Month</p>
             <p className="text-2xl font-bold text-blue-600">
               {journalEntries.filter(e => {
                 const d = new Date(e.date);
@@ -331,7 +331,7 @@ export default function JournalEntriesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -345,7 +345,7 @@ export default function JournalEntriesPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 statusFilter === status
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -383,7 +383,7 @@ export default function JournalEntriesPage() {
           <TableBody>
             {filteredEntries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <p className="mb-4">No journal entries found</p>
                   <Button onClick={() => handleOpenModal()}>Create your first entry</Button>
                 </TableCell>
@@ -391,15 +391,15 @@ export default function JournalEntriesPage() {
             ) : (
               filteredEntries.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="font-mono text-gray-600">
+                  <TableCell className="font-mono text-gray-600 dark:text-gray-400">
                     {entry.entryNumber}
                   </TableCell>
-                  <TableCell className="text-gray-500">{formatDate(entry.date)}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{formatDate(entry.date)}</TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-gray-900">{entry.description}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{entry.description}</p>
                       {entry.reference && (
-                        <p className="text-sm text-gray-500">Ref: {entry.reference}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Ref: {entry.reference}</p>
                       )}
                     </div>
                   </TableCell>
@@ -478,31 +478,31 @@ export default function JournalEntriesPage() {
             {/* Entry Lines */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">Entry Lines</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Entry Lines</label>
                 <Button variant="outline" size="sm" onClick={handleAddLine}>
                   <PlusIcon className="w-4 h-4 mr-1" />
                   Add Line
                 </Button>
               </div>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="border dark:border-gray-600 rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Account</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-32">Debit</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-32">Credit</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Memo</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Account</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 w-32">Debit</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 w-32">Credit</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Memo</th>
                       <th className="px-3 py-2 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {lines.map((line, index) => (
                       <tr key={index}>
                         <td className="px-3 py-2">
                           <select
                             value={line.accountId || ''}
                             onChange={(e) => handleLineChange(index, 'accountId', e.target.value)}
-                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                            className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm"
                           >
                             <option value="">Select account</option>
                             {glAccounts.filter(a => a.isActive).map((a) => (
@@ -517,7 +517,7 @@ export default function JournalEntriesPage() {
                             type="number"
                             value={line.debit || ''}
                             onChange={(e) => handleLineChange(index, 'debit', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                            className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm text-right"
                             placeholder="0.00"
                           />
                         </td>
@@ -526,7 +526,7 @@ export default function JournalEntriesPage() {
                             type="number"
                             value={line.credit || ''}
                             onChange={(e) => handleLineChange(index, 'credit', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                            className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm text-right"
                             placeholder="0.00"
                           />
                         </td>
@@ -535,7 +535,7 @@ export default function JournalEntriesPage() {
                             type="text"
                             value={line.description || ''}
                             onChange={(e) => handleLineChange(index, 'description', e.target.value)}
-                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                            className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm"
                             placeholder="Optional memo"
                           />
                         </td>
@@ -549,7 +549,7 @@ export default function JournalEntriesPage() {
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-gray-50 font-medium">
+                    <tr className="bg-gray-50 dark:bg-gray-900 font-medium">
                       <td className="px-3 py-2 text-right">Totals:</td>
                       <td className="px-3 py-2 text-right">{fc(totalDebits)}</td>
                       <td className="px-3 py-2 text-right">{fc(totalCredits)}</td>
@@ -569,11 +569,11 @@ export default function JournalEntriesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm resize-none"
                 rows={2}
               />
             </div>

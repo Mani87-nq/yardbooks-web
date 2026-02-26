@@ -58,32 +58,32 @@ const ACCOUNT_TYPE_CONFIG: Record<
   asset: {
     label: 'Assets',
     color: 'text-blue-700',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/30',
+    borderColor: 'border-blue-200 dark:border-blue-800',
   },
   liability: {
     label: 'Liabilities',
     color: 'text-red-700',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
+    bgColor: 'bg-red-50 dark:bg-red-900/30',
+    borderColor: 'border-red-200 dark:border-red-800',
   },
   equity: {
     label: 'Equity',
     color: 'text-purple-700',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+    borderColor: 'border-purple-200 dark:border-purple-800',
   },
   income: {
     label: 'Income',
     color: 'text-emerald-700',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-200',
+    bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
+    borderColor: 'border-emerald-200 dark:border-emerald-800',
   },
   expense: {
     label: 'Expenses',
     color: 'text-orange-700',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200',
+    bgColor: 'bg-orange-50 dark:bg-orange-900/30',
+    borderColor: 'border-orange-200 dark:border-orange-800',
   },
 };
 
@@ -314,8 +314,8 @@ export default function TrialBalancePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trial Balance</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Trial Balance</h1>
+          <p className="text-gray-500 dark:text-gray-400">
             Account balances from posted journal entries
           </p>
         </div>
@@ -337,8 +337,8 @@ export default function TrialBalancePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium text-gray-600">
+              <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 As of Date
               </span>
             </div>
@@ -353,7 +353,7 @@ export default function TrialBalancePage() {
         {/* Total Debits */}
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Debits</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Debits</p>
             <p className="text-2xl font-bold text-blue-600">
               {fc(totalDebits)}
             </p>
@@ -363,7 +363,7 @@ export default function TrialBalancePage() {
         {/* Total Credits */}
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Credits</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Credits</p>
             <p className="text-2xl font-bold text-emerald-600">
               {fc(totalCredits)}
             </p>
@@ -373,7 +373,7 @@ export default function TrialBalancePage() {
         {/* Balance status */}
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Status</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
             {isBalanced ? (
               <div className="flex items-center gap-2 mt-1">
                 <CheckCircleIcon className="w-6 h-6 text-emerald-500" />
@@ -427,7 +427,7 @@ export default function TrialBalancePage() {
         </CardHeader>
         <CardContent className="p-0">
           {groups.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">
+            <div className="p-12 text-center text-gray-400 dark:text-gray-500">
               <p className="text-lg font-medium">No trial balance data</p>
               <p className="text-sm mt-1">
                 Post journal entries to see account balances here.
@@ -438,17 +438,17 @@ export default function TrialBalancePage() {
               {/* Table header */}
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">
+                  <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-36">
                       Account #
                     </th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Account Name
                     </th>
-                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-44">
+                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-44">
                       Debit
                     </th>
-                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-44">
+                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-44">
                       Credit
                     </th>
                   </tr>
@@ -508,32 +508,32 @@ export default function TrialBalancePage() {
                           group.accounts.map((account, idx) => (
                             <tr
                               key={account.accountId}
-                              className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                                idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                              className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                                idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50'
                               }`}
                             >
-                              <td className="px-6 py-3 text-sm text-gray-500 font-mono">
+                              <td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">
                                 {account.accountNumber}
                               </td>
-                              <td className="px-6 py-3 text-sm text-gray-800">
+                              <td className="px-6 py-3 text-sm text-gray-800 dark:text-gray-100">
                                 {account.accountName}
                               </td>
                               <td className="text-right px-6 py-3 text-sm font-medium tabular-nums">
                                 {account.debit > 0 ? (
-                                  <span className="text-gray-900">
+                                  <span className="text-gray-900 dark:text-white">
                                     {fc(account.debit)}
                                   </span>
                                 ) : (
-                                  <span className="text-gray-300">-</span>
+                                  <span className="text-gray-300 dark:text-gray-600">-</span>
                                 )}
                               </td>
                               <td className="text-right px-6 py-3 text-sm font-medium tabular-nums">
                                 {account.credit > 0 ? (
-                                  <span className="text-gray-900">
+                                  <span className="text-gray-900 dark:text-white">
                                     {fc(account.credit)}
                                   </span>
                                 ) : (
-                                  <span className="text-gray-300">-</span>
+                                  <span className="text-gray-300 dark:text-gray-600">-</span>
                                 )}
                               </td>
                             </tr>
@@ -549,13 +549,13 @@ export default function TrialBalancePage() {
                     }`}
                   >
                     <td className="px-6 py-4" />
-                    <td className="px-6 py-4 font-bold text-gray-900 text-sm">
+                    <td className="px-6 py-4 font-bold text-gray-900 dark:text-white text-sm">
                       Total
                     </td>
-                    <td className="text-right px-6 py-4 font-bold text-gray-900 text-sm tabular-nums">
+                    <td className="text-right px-6 py-4 font-bold text-gray-900 dark:text-white text-sm tabular-nums">
                       {fc(totalDebits)}
                     </td>
-                    <td className="text-right px-6 py-4 font-bold text-gray-900 text-sm tabular-nums">
+                    <td className="text-right px-6 py-4 font-bold text-gray-900 dark:text-white text-sm tabular-nums">
                       {fc(totalCredits)}
                     </td>
                   </tr>
@@ -564,8 +564,8 @@ export default function TrialBalancePage() {
                   <tr
                     className={
                       isBalanced
-                        ? 'bg-emerald-50'
-                        : 'bg-amber-50'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/30'
+                        : 'bg-amber-50 dark:bg-amber-900/30'
                     }
                   >
                     <td colSpan={4} className="px-6 py-3">
@@ -599,7 +599,7 @@ export default function TrialBalancePage() {
       {/* Report notes */}
       <Card>
         <CardContent className="p-4">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             This trial balance includes only posted journal entries on or before{' '}
             {formatDate(new Date(asOfDate))}. Draft and void entries are
             excluded. Assets and expenses normally carry debit balances;

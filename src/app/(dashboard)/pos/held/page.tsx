@@ -59,8 +59,8 @@ export default function POSHeldOrdersPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Held Orders</h1>
-            <p className="text-gray-500">Resume or clear parked orders</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Held Orders</h1>
+            <p className="text-gray-500 dark:text-gray-400">Resume or clear parked orders</p>
           </div>
         </div>
         <div className="flex items-center justify-center py-16">
@@ -81,16 +81,16 @@ export default function POSHeldOrdersPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Held Orders</h1>
-            <p className="text-gray-500">Resume or clear parked orders</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Held Orders</h1>
+            <p className="text-gray-500 dark:text-gray-400">Resume or clear parked orders</p>
           </div>
         </div>
         <Card>
           <CardContent>
             <div className="text-center py-12">
               <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
-              <p className="text-gray-700 font-medium mb-2">Failed to load held orders</p>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Failed to load held orders</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                 {error instanceof Error ? error.message : 'Please try again.'}
               </p>
               <Button onClick={() => refetch()}>Retry</Button>
@@ -119,8 +119,8 @@ export default function POSHeldOrdersPage() {
 
       {/* Mutation error */}
       {voidOrderMutation.error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">
+        <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-700 dark:text-red-400">
             {voidOrderMutation.error instanceof Error
               ? voidOrderMutation.error.message
               : 'Failed to void order. Please try again.'}
@@ -133,8 +133,8 @@ export default function POSHeldOrdersPage() {
         <Card>
           <CardContent>
             <div className="text-center py-12">
-              <ClockIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-500 mb-4">No held orders</p>
+              <ClockIcon className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <p className="text-gray-500 dark:text-gray-400 mb-4">No held orders</p>
               <Link href="/pos">
                 <Button>Back to POS</Button>
               </Link>
@@ -154,28 +154,28 @@ export default function POSHeldOrdersPage() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Customer</span>
+                    <span className="text-gray-500 dark:text-gray-400">Customer</span>
                     <span className="font-medium">{order.customerName}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Items</span>
+                    <span className="text-gray-500 dark:text-gray-400">Items</span>
                     <span className="font-medium">{order.itemCount} items</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Total</span>
+                    <span className="text-gray-500 dark:text-gray-400">Total</span>
                     <span className="font-bold text-emerald-600">{fc(Number(order.total))}</span>
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
                     Held: {formatDateTime(order.updatedAt)}
                   </div>
                   {order.heldReason && (
-                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 rounded">
                       {order.heldReason}
                     </div>
                   )}
                 </div>
 
-                <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                   <Button
                     variant="outline"
                     size="sm"

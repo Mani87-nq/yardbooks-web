@@ -262,7 +262,7 @@ export default function CreditNotesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500">Loading credit notes...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading credit notes...</p>
         </div>
       </div>
     );
@@ -293,10 +293,10 @@ export default function CreditNotesPage() {
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{cn.creditNoteNumber}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{cn.creditNoteNumber}</h1>
               {getStatusBadge(cn.status)}
             </div>
-            <p className="text-gray-500">Credit note for {cn.customerName}</p>
+            <p className="text-gray-500 dark:text-gray-400">Credit note for {cn.customerName}</p>
           </div>
           <div className="flex gap-2">
             {cn.status === 'draft' && (
@@ -340,29 +340,29 @@ export default function CreditNotesPage() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-500">Credit Note Number</p>
-                    <p className="text-sm font-medium text-gray-900">{cn.creditNoteNumber}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Credit Note Number</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{cn.creditNoteNumber}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Customer</p>
-                    <p className="text-sm font-medium text-gray-900">{cn.customerName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Customer</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{cn.customerName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Invoice Reference</p>
-                    <p className="text-sm font-medium text-gray-900">{cn.invoiceRef}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Invoice Reference</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{cn.invoiceRef}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Amount</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
                     <p className="text-lg font-bold text-emerald-600">{fc(cn.amount)}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-sm text-gray-500">Reason</p>
-                    <p className="text-sm font-medium text-gray-900">{cn.reason}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Reason</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{cn.reason}</p>
                   </div>
                   {cn.notes && (
                     <div className="col-span-2">
-                      <p className="text-sm text-gray-500">Notes</p>
-                      <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mt-1">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Notes</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 mt-1">
                         {cn.notes}
                       </p>
                     </div>
@@ -383,16 +383,16 @@ export default function CreditNotesPage() {
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Created</p>
-                      <p className="text-xs text-gray-500">{formatDate(cn.createdAt)}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Created</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(cn.createdAt)}</p>
                     </div>
                   </div>
                   {cn.approvedAt && (
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">Approved</p>
-                        <p className="text-xs text-gray-500">{formatDate(cn.approvedAt)}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Approved</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(cn.approvedAt)}</p>
                       </div>
                     </div>
                   )}
@@ -400,8 +400,8 @@ export default function CreditNotesPage() {
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2 shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">Applied to {cn.invoiceRef}</p>
-                        <p className="text-xs text-gray-500">{formatDate(cn.appliedAt)}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Applied to {cn.invoiceRef}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(cn.appliedAt)}</p>
                       </div>
                     </div>
                   )}
@@ -409,8 +409,8 @@ export default function CreditNotesPage() {
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-red-500 rounded-full mt-2 shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">Voided</p>
-                        <p className="text-xs text-gray-500">{formatDate(cn.voidedAt)}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Voided</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(cn.voidedAt)}</p>
                       </div>
                     </div>
                   )}
@@ -432,8 +432,8 @@ export default function CreditNotesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Credit Notes</h1>
-          <p className="text-gray-500">Manage credit notes and refund adjustments</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Credit Notes</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage credit notes and refund adjustments</p>
         </div>
         <Button icon={<PlusIcon className="w-4 h-4" />} onClick={handleOpenCreateModal}>
           New Credit Note
@@ -445,12 +445,12 @@ export default function CreditNotesPage() {
         <Card>
           <div className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <DocumentTextIcon className="w-5 h-5 text-gray-600" />
+              <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <DocumentTextIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Credit Notes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Credit Notes</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
               </div>
             </div>
           </div>
@@ -458,11 +458,11 @@ export default function CreditNotesPage() {
         <Card>
           <div className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
+              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
                 <ClockIcon className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Pending Approval</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Pending Approval</p>
                 <p className="text-2xl font-bold text-yellow-600">{stats.pendingApproval}</p>
               </div>
             </div>
@@ -471,11 +471,11 @@ export default function CreditNotesPage() {
         <Card>
           <div className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 rounded-lg">
+              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                 <CheckCircleIcon className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Applied</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Applied</p>
                 <p className="text-2xl font-bold text-emerald-600">{stats.applied}</p>
               </div>
             </div>
@@ -484,11 +484,11 @@ export default function CreditNotesPage() {
         <Card>
           <div className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                 <CurrencyDollarIcon className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Value</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Value</p>
                 <p className="text-2xl font-bold text-blue-600">{fc(stats.totalValue)}</p>
               </div>
             </div>
@@ -505,7 +505,7 @@ export default function CreditNotesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -519,7 +519,7 @@ export default function CreditNotesPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 statusFilter === status
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -546,9 +546,9 @@ export default function CreditNotesPage() {
           <TableBody>
             {filteredCreditNotes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={8} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <div className="flex flex-col items-center gap-3">
-                    <ReceiptRefundIcon className="w-12 h-12 text-gray-300" />
+                    <ReceiptRefundIcon className="w-12 h-12 text-gray-300 dark:text-gray-600" />
                     <p>No credit notes found</p>
                     <Button onClick={handleOpenCreateModal}>Create your first credit note</Button>
                   </div>
@@ -561,12 +561,12 @@ export default function CreditNotesPage() {
                     {cn.creditNoteNumber}
                   </TableCell>
                   <TableCell>{cn.customerName}</TableCell>
-                  <TableCell className="text-gray-500">{cn.invoiceRef}</TableCell>
-                  <TableCell className="max-w-[200px] truncate text-gray-600">
+                  <TableCell className="text-gray-500 dark:text-gray-400">{cn.invoiceRef}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-gray-600 dark:text-gray-400">
                     {cn.reason}
                   </TableCell>
                   <TableCell className="font-medium">{fc(cn.amount)}</TableCell>
-                  <TableCell className="text-gray-500">{formatDate(cn.createdAt)}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{formatDate(cn.createdAt)}</TableCell>
                   <TableCell>{getStatusBadge(cn.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">

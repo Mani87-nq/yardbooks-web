@@ -272,7 +272,7 @@ export default function RecurringInvoicesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500">Loading recurring invoices...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading recurring invoices...</p>
         </div>
       </div>
     );
@@ -292,8 +292,8 @@ export default function RecurringInvoicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Recurring Invoices</h1>
-          <p className="text-gray-500">Manage automated invoice templates</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recurring Invoices</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage automated invoice templates</p>
         </div>
         <Button icon={<PlusIcon className="w-4 h-4" />} onClick={handleOpenCreate}>
           New Recurring Invoice
@@ -304,33 +304,33 @@ export default function RecurringInvoicesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <div className="p-4 flex items-center gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
               <ArrowPathIcon className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Total Active</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalActive}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Active</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalActive}</p>
             </div>
           </div>
         </Card>
         <Card>
           <div className="p-4 flex items-center gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
               <CalendarDaysIcon className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Due This Week</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Due This Week</p>
               <p className="text-2xl font-bold text-blue-600">{stats.dueThisWeek}</p>
             </div>
           </div>
         </Card>
         <Card>
           <div className="p-4 flex items-center gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center">
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center">
               <BanknotesIcon className="w-6 h-6 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Monthly Revenue</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
               <p className="text-2xl font-bold text-orange-600">{fc(stats.monthlyRevenue)}</p>
             </div>
           </div>
@@ -346,7 +346,7 @@ export default function RecurringInvoicesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -360,7 +360,7 @@ export default function RecurringInvoicesPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 statusFilter === status
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -373,9 +373,9 @@ export default function RecurringInvoicesPage() {
       {filteredInvoices.length === 0 ? (
         <Card>
           <div className="p-12 text-center">
-            <ArrowPathIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No recurring invoices found</h3>
-            <p className="text-gray-500 mb-6">
+            <ArrowPathIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No recurring invoices found</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
               {searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your search or filters.'
                 : 'Create your first recurring invoice to automate your billing.'}
@@ -400,38 +400,38 @@ export default function RecurringInvoicesPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-base font-semibold text-gray-900 truncate">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">
                           {invoice.customerName}
                         </h3>
                         <Badge variant={badgeConfig.variant}>{badgeConfig.label}</Badge>
                       </div>
-                      <p className="text-sm text-gray-500 truncate">{invoice.description}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{invoice.description}</p>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
-                      <p className="text-lg font-bold text-gray-900">{fc(invoice.amount)}</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">{fc(invoice.amount)}</p>
                       <p className="text-xs text-gray-400">/{FREQUENCY_LABELS[invoice.frequency].toLowerCase()}</p>
                     </div>
                   </div>
 
                   {/* Details */}
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
                       <p className="text-xs text-gray-400 mb-0.5">Frequency</p>
-                      <p className="text-sm font-medium text-gray-700">{FREQUENCY_LABELS[invoice.frequency]}</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{FREQUENCY_LABELS[invoice.frequency]}</p>
                     </div>
-                    <div className={`rounded-lg p-3 ${isDueThisWeek ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                    <div className={`rounded-lg p-3 ${isDueThisWeek ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-gray-50 dark:bg-gray-900'}`}>
                       <p className="text-xs text-gray-400 mb-0.5">Next Invoice</p>
-                      <p className={`text-sm font-medium ${isDueThisWeek ? 'text-blue-700' : 'text-gray-700'}`}>
+                      <p className={`text-sm font-medium ${isDueThisWeek ? 'text-blue-700' : 'text-gray-700 dark:text-gray-300'}`}>
                         {formatDate(invoice.nextInvoiceDate)}
                       </p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
                       <p className="text-xs text-gray-400 mb-0.5">Start Date</p>
-                      <p className="text-sm font-medium text-gray-700">{formatDate(invoice.startDate)}</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{formatDate(invoice.startDate)}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
                       <p className="text-xs text-gray-400 mb-0.5">Invoices Sent</p>
-                      <p className="text-sm font-medium text-gray-700">{invoice.invoicesGenerated}</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{invoice.invoicesGenerated}</p>
                     </div>
                   </div>
 
@@ -444,7 +444,7 @@ export default function RecurringInvoicesPage() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
                     {invoice.status !== 'expired' && (
                       <Button
                         variant="outline"
@@ -473,7 +473,7 @@ export default function RecurringInvoicesPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30"
                       onClick={() => setShowDeleteConfirm(invoice.id)}
                     >
                       <TrashIcon className="w-4 h-4" />
@@ -550,7 +550,7 @@ export default function RecurringInvoicesPage() {
             </div>
 
             {formAmount && formFrequency && (
-              <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+              <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 rounded-lg p-4">
                 <p className="text-sm text-emerald-700">
                   <span className="font-medium">Monthly equivalent: </span>
                   {fc(getMonthlyEquivalent(parseFloat(formAmount) || 0, formFrequency))}
@@ -587,7 +587,7 @@ export default function RecurringInvoicesPage() {
         size="sm"
       >
         <ModalBody>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Are you sure you want to delete this recurring invoice? This action cannot be undone.
             Previously generated invoices will not be affected.
           </p>

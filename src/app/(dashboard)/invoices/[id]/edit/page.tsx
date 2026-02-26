@@ -73,7 +73,7 @@ export default function EditInvoicePage({ params }: PageProps) {
   if (isFetchingInvoice) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       </div>
     );
   }
@@ -81,7 +81,7 @@ export default function EditInvoicePage({ params }: PageProps) {
   if (!invoice) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Invoice Not Found</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Invoice Not Found</h2>
         <Link href="/invoices" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
           Back to Invoices
         </Link>
@@ -92,7 +92,7 @@ export default function EditInvoicePage({ params }: PageProps) {
   if (!isFormReady) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       </div>
     );
   }
@@ -221,8 +221,8 @@ export default function EditInvoicePage({ params }: PageProps) {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Invoice</h1>
-          <p className="text-gray-500">{invoice.invoiceNumber}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Invoice</h1>
+          <p className="text-gray-500 dark:text-gray-400">{invoice.invoiceNumber}</p>
         </div>
       </div>
 
@@ -293,7 +293,7 @@ export default function EditInvoicePage({ params }: PageProps) {
         <CardContent>
           <div className="space-y-4">
             {/* Header */}
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 uppercase">
+            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
               <div className="col-span-4">Description</div>
               <div className="col-span-2">Qty</div>
               <div className="col-span-2">Price</div>
@@ -451,27 +451,27 @@ export default function EditInvoicePage({ params }: PageProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-500">Subtotal</span>
+              <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
               <span className="font-medium">{fc(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">GCT</span>
+              <span className="text-gray-500 dark:text-gray-400">GCT</span>
               <span className="font-medium">{fc(gctAmount)}</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Discount</span>
+                <span className="text-gray-500 dark:text-gray-400">Discount</span>
                 <span className="font-medium text-red-600">-{fc(discountAmount)}</span>
               </div>
             )}
-            <div className="flex justify-between pt-3 border-t border-gray-100">
+            <div className="flex justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
               <span className="font-semibold">Total</span>
               <span className="text-xl font-bold text-emerald-600">{fc(total)}</span>
             </div>
             {Number(invoice.amountPaid) > 0 && (
               <>
                 <div className="flex justify-between pt-2">
-                  <span className="text-gray-500">Amount Paid</span>
+                  <span className="text-gray-500 dark:text-gray-400">Amount Paid</span>
                   <span className="font-medium text-emerald-600">-{fc(Number(invoice.amountPaid))}</span>
                 </div>
                 <div className="flex justify-between">

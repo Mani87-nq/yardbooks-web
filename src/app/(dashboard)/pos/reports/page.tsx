@@ -217,13 +217,13 @@ export default function POSReportsPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">POS Reports</h1>
-          <p className="text-gray-500">Sales analytics, product performance, and session reports</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">POS Reports</h1>
+          <p className="text-gray-500 dark:text-gray-400">Sales analytics, product performance, and session reports</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -236,7 +236,7 @@ export default function POSReportsPage() {
                   'group inline-flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors',
                   isActive
                     ? 'border-emerald-500 text-emerald-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 )}
               >
                 <Icon className={cn('w-5 h-5', isActive ? 'text-emerald-500' : 'text-gray-400 group-hover:text-gray-500')} />
@@ -298,43 +298,43 @@ export default function POSReportsPage() {
             </div>
           ) : xReportData ? (
             <div className="space-y-6">
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-700">
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-700 dark:text-blue-400">
                   This is a mid-day snapshot report. The session remains open for more transactions.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500">Transactions</p>
-                  <p className="text-2xl font-bold text-gray-900">{xReportData.transactionCount}</p>
+                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Transactions</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{xReportData.transactionCount}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500">Gross Sales</p>
+                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Gross Sales</p>
                   <p className="text-2xl font-bold text-emerald-600">{fc(xReportData.grossSales)}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500">Discounts</p>
+                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Discounts</p>
                   <p className="text-2xl font-bold text-red-600">{fc(xReportData.discounts)}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500">Net Sales</p>
-                  <p className="text-2xl font-bold text-gray-900">{fc(xReportData.netSales)}</p>
+                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Net Sales</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{fc(xReportData.netSales)}</p>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">Payment Breakdown</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Payment Breakdown</h3>
                 {xReportData.paymentBreakdown.length > 0 ? (
                   <table className="w-full">
                     <thead>
-                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                      <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                         <th className="px-3 py-2">Method</th>
                         <th className="px-3 py-2 text-right">Count</th>
                         <th className="px-3 py-2 text-right">Total</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {xReportData.paymentBreakdown.map((p, idx) => (
                         <tr key={idx}>
                           <td className="px-3 py-2">{p.method}</td>
@@ -345,23 +345,23 @@ export default function POSReportsPage() {
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-gray-500">No payments recorded yet</p>
+                  <p className="text-gray-500 dark:text-gray-400">No payments recorded yet</p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-                  <p className="text-sm text-emerald-700">GCT Collected</p>
-                  <p className="text-xl font-bold text-emerald-800">{fc(xReportData.gctCollected)}</p>
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400">GCT Collected</p>
+                  <p className="text-xl font-bold text-emerald-800 dark:text-emerald-300">{fc(xReportData.gctCollected)}</p>
                 </div>
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-700">Expected Cash on Hand</p>
-                  <p className="text-xl font-bold text-blue-800">{fc(xReportData.cashOnHand)}</p>
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-700 dark:text-blue-400">Expected Cash on Hand</p>
+                  <p className="text-xl font-bold text-blue-800 dark:text-blue-300">{fc(xReportData.cashOnHand)}</p>
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No data available</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No data available</p>
           )}
         </ModalBody>
         <ModalFooter>
@@ -410,8 +410,8 @@ function SessionsTab({
         <CardContent>
           <div className="text-center py-12">
             <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
-            <p className="text-gray-700 font-medium mb-2">Failed to load session data</p>
-            <p className="text-gray-500 text-sm">Please try refreshing the page.</p>
+            <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Failed to load session data</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Please try refreshing the page.</p>
           </div>
         </CardContent>
       </Card>
@@ -430,14 +430,14 @@ function SessionsTab({
         </CardHeader>
         <CardContent>
           {openSessions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No active sessions</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No active sessions</p>
           ) : (
             <div className="space-y-3">
               {openSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div key={session.id} className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div>
-                    <p className="font-medium text-gray-900">{session.terminalName}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-medium text-gray-900 dark:text-white">{session.terminalName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       Opened: {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} | Cashier: {session.cashierName}
                     </p>
                   </div>
@@ -462,17 +462,17 @@ function SessionsTab({
         </CardHeader>
         <CardContent>
           {closedSessions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No closed sessions</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No closed sessions</p>
           ) : (
             <div className="space-y-3">
               {closedSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div>
-                    <p className="font-medium text-gray-900">{session.terminalName}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-medium text-gray-900 dark:text-white">{session.terminalName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {format(new Date(session.openedAt), 'MMM dd, yyyy HH:mm')} - {session.closedAt ? format(new Date(session.closedAt), 'HH:mm') : ''}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       Sales: {fc(Number(session.netSales))} | Orders: {session._count?.orders ?? 0}
                     </p>
                     {session.cashVariance !== null && session.cashVariance !== undefined && (
@@ -530,7 +530,7 @@ function DailySalesTab({
         <CardContent>
           <div className="flex items-center gap-4 py-2">
             <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
-            <label className="text-sm font-medium text-gray-700">Report Date:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Report Date:</label>
             <Input
               type="date"
               value={date}
@@ -552,8 +552,8 @@ function DailySalesTab({
           <CardContent>
             <div className="text-center py-12">
               <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
-              <p className="text-gray-700 font-medium mb-2">Failed to load daily sales data</p>
-              <p className="text-gray-500 text-sm">Please try a different date or refresh the page.</p>
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Failed to load daily sales data</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Please try a different date or refresh the page.</p>
             </div>
           </CardContent>
         </Card>
@@ -611,7 +611,7 @@ function DailySalesTab({
             </CardHeader>
             <CardContent>
               {data.summary.orderCount === 0 ? (
-                <p className="text-gray-500 text-center py-8">No sales recorded for this date</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No sales recorded for this date</p>
               ) : (
                 <div className="space-y-1">
                   {data.salesByHour
@@ -644,24 +644,24 @@ function DailySalesTab({
               </CardHeader>
               <CardContent>
                 {data.topProductsByQty.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No products sold</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">No products sold</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                        <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                           <th className="px-3 py-2 w-8">#</th>
                           <th className="px-3 py-2">Product</th>
                           <th className="px-3 py-2 text-right">Qty</th>
                           <th className="px-3 py-2 text-right">Revenue</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {data.topProductsByQty.map((p) => (
-                          <tr key={p.rank} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 text-gray-400 font-medium">{p.rank}</td>
-                            <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[200px]">{p.name}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">{p.quantity}</td>
+                          <tr key={p.rank} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-3 py-2 text-gray-400 dark:text-gray-500 font-medium">{p.rank}</td>
+                            <td className="px-3 py-2 font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{p.name}</td>
+                            <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{p.quantity}</td>
                             <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.revenue)}</td>
                           </tr>
                         ))}
@@ -682,25 +682,25 @@ function DailySalesTab({
               </CardHeader>
               <CardContent>
                 {data.topProductsByRev.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No products sold</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">No products sold</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                        <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                           <th className="px-3 py-2 w-8">#</th>
                           <th className="px-3 py-2">Product</th>
                           <th className="px-3 py-2 text-right">Revenue</th>
                           <th className="px-3 py-2 text-right">Qty</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {data.topProductsByRev.map((p) => (
-                          <tr key={p.rank} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 text-gray-400 font-medium">{p.rank}</td>
-                            <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[200px]">{p.name}</td>
+                          <tr key={p.rank} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-3 py-2 text-gray-400 dark:text-gray-500 font-medium">{p.rank}</td>
+                            <td className="px-3 py-2 font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{p.name}</td>
                             <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.revenue)}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">{p.quantity}</td>
+                            <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{p.quantity}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -721,43 +721,43 @@ function DailySalesTab({
             </CardHeader>
             <CardContent>
               {data.paymentBreakdown.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No payments recorded</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No payments recorded</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                      <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                         <th className="px-3 py-2">Method</th>
                         <th className="px-3 py-2 text-right">Transactions</th>
                         <th className="px-3 py-2 text-right">Total</th>
                         <th className="px-3 py-2 text-right">% of Sales</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {data.paymentBreakdown.map((p) => {
                         const pct = data.summary.netSales > 0
                           ? ((p.total / data.summary.netSales) * 100).toFixed(1)
                           : '0.0';
                         return (
-                          <tr key={p.method} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 font-medium text-gray-900">{p.methodLabel}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">{p.count}</td>
+                          <tr key={p.method} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{p.methodLabel}</td>
+                            <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{p.count}</td>
                             <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.total)}</td>
-                            <td className="px-3 py-2 text-right text-gray-500">{pct}%</td>
+                            <td className="px-3 py-2 text-right text-gray-500 dark:text-gray-400">{pct}%</td>
                           </tr>
                         );
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-gray-50 font-semibold">
-                        <td className="px-3 py-2 text-gray-900">Total</td>
-                        <td className="px-3 py-2 text-right text-gray-700">
+                      <tr className="bg-gray-50 dark:bg-gray-900 font-semibold">
+                        <td className="px-3 py-2 text-gray-900 dark:text-white">Total</td>
+                        <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">
                           {data.paymentBreakdown.reduce((s, p) => s + p.count, 0)}
                         </td>
                         <td className="px-3 py-2 text-right text-emerald-700">
                           {fc(data.paymentBreakdown.reduce((s, p) => s + p.total, 0))}
                         </td>
-                        <td className="px-3 py-2 text-right text-gray-500">100%</td>
+                        <td className="px-3 py-2 text-right text-gray-500 dark:text-gray-400">100%</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -802,14 +802,14 @@ function ProductPerformanceTab({
         <CardContent>
           <div className="flex flex-wrap items-center gap-4 py-2">
             <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
-            <label className="text-sm font-medium text-gray-700">From:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">From:</label>
             <Input
               type="date"
               value={from}
               onChange={(e) => onFromChange(e.target.value)}
               className="w-48"
             />
-            <label className="text-sm font-medium text-gray-700">To:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">To:</label>
             <Input
               type="date"
               value={to}
@@ -831,8 +831,8 @@ function ProductPerformanceTab({
           <CardContent>
             <div className="text-center py-12">
               <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
-              <p className="text-gray-700 font-medium mb-2">Failed to load product performance data</p>
-              <p className="text-gray-500 text-sm">Please try adjusting the date range or refreshing.</p>
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Failed to load product performance data</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Please try adjusting the date range or refreshing.</p>
             </div>
           </CardContent>
         </Card>
@@ -853,12 +853,12 @@ function ProductPerformanceTab({
             </CardHeader>
             <CardContent>
               {data.products.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No product sales in this period</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No product sales in this period</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                      <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                         <th className="px-3 py-2 w-8">#</th>
                         <th className="px-3 py-2">Product</th>
                         <th className="px-3 py-2 text-right">Qty Sold</th>
@@ -867,14 +867,14 @@ function ProductPerformanceTab({
                         <th className="px-3 py-2 text-right">Margin</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {data.products.map((p, idx) => (
-                        <tr key={p.productId ?? p.name} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 text-gray-400 font-medium">{idx + 1}</td>
-                          <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[250px]">{p.name}</td>
-                          <td className="px-3 py-2 text-right text-gray-700">{p.quantitySold}</td>
+                        <tr key={p.productId ?? p.name} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-3 py-2 text-gray-400 dark:text-gray-500 font-medium">{idx + 1}</td>
+                          <td className="px-3 py-2 font-medium text-gray-900 dark:text-white truncate max-w-[250px]">{p.name}</td>
+                          <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{p.quantitySold}</td>
                           <td className="px-3 py-2 text-right font-medium text-emerald-600">{fc(p.revenue)}</td>
-                          <td className="px-3 py-2 text-right text-gray-500">
+                          <td className="px-3 py-2 text-right text-gray-500 dark:text-gray-400">
                             {p.totalCost > 0 ? fc(p.totalCost) : '--'}
                           </td>
                           <td className="px-3 py-2 text-right">
@@ -917,14 +917,14 @@ function ProductPerformanceTab({
               {data.lowStockAlerts.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircleIcon className="w-12 h-12 mx-auto mb-3 text-emerald-400" />
-                  <p className="text-gray-700 font-medium">All products are above reorder levels</p>
-                  <p className="text-gray-500 text-sm">No restocking action needed at this time.</p>
+                  <p className="text-gray-700 dark:text-gray-300 font-medium">All products are above reorder levels</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No restocking action needed at this time.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                      <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                         <th className="px-3 py-2">Product</th>
                         <th className="px-3 py-2">SKU</th>
                         <th className="px-3 py-2">Category</th>
@@ -934,20 +934,20 @@ function ProductPerformanceTab({
                         <th className="px-3 py-2 text-right">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {data.lowStockAlerts.map((p) => {
                         const isOutOfStock = p.currentStock <= 0;
                         return (
-                          <tr key={p.id} className={cn('hover:bg-gray-50', isOutOfStock && 'bg-red-50')}>
-                            <td className="px-3 py-2 font-medium text-gray-900">{p.name}</td>
-                            <td className="px-3 py-2 text-gray-500 font-mono text-xs">{p.sku}</td>
-                            <td className="px-3 py-2 text-gray-500">{p.category ?? '--'}</td>
+                          <tr key={p.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-700', isOutOfStock && 'bg-red-50 dark:bg-red-900/30')}>
+                            <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{p.name}</td>
+                            <td className="px-3 py-2 text-gray-500 dark:text-gray-400 font-mono text-xs">{p.sku}</td>
+                            <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{p.category ?? '--'}</td>
                             <td className="px-3 py-2 text-right font-medium">
                               <span className={isOutOfStock ? 'text-red-600' : 'text-amber-600'}>
                                 {p.currentStock}
                               </span>
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-500">{p.reorderLevel}</td>
+                            <td className="px-3 py-2 text-right text-gray-500 dark:text-gray-400">{p.reorderLevel}</td>
                             <td className="px-3 py-2 text-right text-red-600 font-medium">{p.deficit}</td>
                             <td className="px-3 py-2 text-right">
                               {isOutOfStock ? (
@@ -988,10 +988,10 @@ function SummaryCard({
   color: 'emerald' | 'red' | 'blue' | 'gray';
 }) {
   const colorClasses = {
-    emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-    red: 'bg-red-50 border-red-200 text-red-700',
-    blue: 'bg-blue-50 border-blue-200 text-blue-700',
-    gray: 'bg-gray-50 border-gray-200 text-gray-700',
+    emerald: 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400',
+    red: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400',
+    blue: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400',
+    gray: 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300',
   };
 
   const iconColors = {
@@ -1025,14 +1025,14 @@ function HourlyBar({
 
   return (
     <div className="flex items-center gap-3 py-1">
-      <span className="text-xs font-mono text-gray-500 w-12 flex-shrink-0">{hour.label}</span>
-      <div className="flex-1 h-7 bg-gray-100 rounded overflow-hidden relative">
+      <span className="text-xs font-mono text-gray-500 dark:text-gray-400 w-12 flex-shrink-0">{hour.label}</span>
+      <div className="flex-1 h-7 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden relative">
         <div
           className="h-full bg-emerald-500 rounded transition-all duration-300"
           style={{ width: `${pct}%` }}
         />
         {hour.orderCount > 0 && (
-          <span className="absolute inset-0 flex items-center px-2 text-xs font-medium text-gray-700">
+          <span className="absolute inset-0 flex items-center px-2 text-xs font-medium text-gray-700 dark:text-gray-300">
             {hour.orderCount} order{hour.orderCount !== 1 ? 's' : ''} &middot; {fc(hour.total)}
           </span>
         )}

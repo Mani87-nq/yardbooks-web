@@ -79,12 +79,12 @@ export default function CustomerPOPage() {
 
   const getStatusColor = (status: CustomerPOStatus) => {
     const colors: Record<CustomerPOStatus, string> = {
-      draft: 'bg-gray-100 text-gray-700',
-      open: 'bg-blue-100 text-blue-700',
-      partially_invoiced: 'bg-orange-100 text-orange-700',
-      fully_invoiced: 'bg-green-100 text-green-700',
-      closed: 'bg-slate-100 text-slate-700',
-      cancelled: 'bg-red-100 text-red-700',
+      draft: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+      open: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
+      partially_invoiced: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300',
+      fully_invoiced: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
+      closed: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
+      cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
     };
     return colors[status];
   };
@@ -94,7 +94,7 @@ export default function CustomerPOPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500">Loading purchase orders...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading purchase orders...</p>
         </div>
       </div>
     );
@@ -119,8 +119,8 @@ export default function CustomerPOPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Customer Purchase Orders</h1>
-          <p className="text-gray-500 mt-1">Track and manage customer orders</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Customer Purchase Orders</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Track and manage customer orders</p>
         </div>
         <Link
           href="/customer-po/new"
@@ -132,7 +132,7 @@ export default function CustomerPOPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -141,7 +141,7 @@ export default function CustomerPOPage() {
               placeholder="Search by PO number, customer..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function CustomerPOPage() {
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 activeFilter === option.value
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               {option.label}
@@ -165,12 +165,12 @@ export default function CustomerPOPage() {
       </div>
 
       {/* PO List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
         {filteredPOs.length === 0 ? (
           <div className="p-12 text-center">
-            <DocumentTextIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No purchase orders found</h3>
-            <p className="text-gray-500 mb-4">
+            <DocumentTextIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No purchase orders found</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
               {activeFilter !== 'all'
                 ? `No ${CUSTOMER_PO_STATUS_LABELS[activeFilter as CustomerPOStatus]} purchase orders`
                 : 'Create your first customer PO to track orders'}
@@ -184,22 +184,22 @@ export default function CustomerPOPage() {
             </Link>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredPOs.map((po) => {
               const progress = calculatePOProgress(po.totalOrderedQuantity, po.totalInvoicedQuantity);
               return (
                 <Link
                   key={po.id}
                   href={`/customer-po/${po.id}`}
-                  className="block p-4 hover:bg-gray-50 transition-colors"
+                  className="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <DocumentTextIcon className="w-5 h-5 text-emerald-600" />
-                        <span className="font-semibold text-gray-900">{po.poNumber}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{po.poNumber}</span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {po.customer?.name || 'Unknown Customer'}
                       </p>
                     </div>
@@ -208,43 +208,43 @@ export default function CustomerPOPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 text-sm border-y border-gray-100 py-3 mb-3">
+                  <div className="grid grid-cols-3 gap-4 text-sm border-y border-gray-100 dark:border-gray-700 py-3 mb-3">
                     <div>
-                      <span className="text-gray-500 text-xs uppercase">Order Date</span>
-                      <p className="font-medium text-gray-900">
+                      <span className="text-gray-500 dark:text-gray-400 text-xs uppercase">Order Date</span>
+                      <p className="font-medium text-gray-900 dark:text-white">
                         {format(new Date(po.orderDate), 'dd MMM yyyy')}
                       </p>
                     </div>
                     {po.requestedDeliveryDate && (
                       <div>
-                        <span className="text-gray-500 text-xs uppercase">Delivery</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs uppercase">Delivery</span>
+                        <p className="font-medium text-gray-900 dark:text-white">
                           {format(new Date(po.requestedDeliveryDate), 'dd MMM yyyy')}
                         </p>
                       </div>
                     )}
                     <div>
-                      <span className="text-gray-500 text-xs uppercase">Items</span>
-                      <p className="font-medium text-gray-900">{po.items.length}</p>
+                      <span className="text-gray-500 dark:text-gray-400 text-xs uppercase">Items</span>
+                      <p className="font-medium text-gray-900 dark:text-white">{po.items.length}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex gap-4 text-sm">
-                      <span className="text-gray-500">
-                        Ordered: <span className="font-medium text-gray-900">{po.totalOrderedQuantity}</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Ordered: <span className="font-medium text-gray-900 dark:text-white">{po.totalOrderedQuantity}</span>
                       </span>
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 dark:text-gray-400">
                         Invoiced: <span className="font-medium text-green-600">{po.totalInvoicedQuantity}</span>
                       </span>
                       {po.totalRemainingQuantity > 0 && (
-                        <span className="text-gray-500">
+                        <span className="text-gray-500 dark:text-gray-400">
                           Remaining: <span className="font-medium text-orange-600">{po.totalRemainingQuantity}</span>
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
                             progress === 100 ? 'bg-green-500' : progress > 0 ? 'bg-orange-500' : 'bg-gray-300'
@@ -252,7 +252,7 @@ export default function CustomerPOPage() {
                           style={{ width: `${progress}%` }}
                         />
                       </div>
-                      <span className="text-xs text-gray-500 w-8">{progress}%</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 w-8">{progress}%</span>
                     </div>
                   </div>
                 </Link>

@@ -260,7 +260,7 @@ export default function QuotationsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500">Loading quotations...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading quotations...</p>
         </div>
       </div>
     );
@@ -280,8 +280,8 @@ export default function QuotationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
-          <p className="text-gray-500">Create and manage customer quotes</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quotations</h1>
+          <p className="text-gray-500 dark:text-gray-400">Create and manage customer quotes</p>
         </div>
         <PermissionGate permission="quotations:create">
           <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => handleOpenModal()}>
@@ -294,31 +294,31 @@ export default function QuotationsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Quotes</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Quotes</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Draft</p>
-            <p className="text-2xl font-bold text-gray-600">{stats.draft}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Draft</p>
+            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{stats.draft}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Sent</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Sent</p>
             <p className="text-2xl font-bold text-blue-600">{stats.sent}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Accepted</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Accepted</p>
             <p className="text-2xl font-bold text-emerald-600">{stats.accepted}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Accepted Value</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Accepted Value</p>
             <p className="text-2xl font-bold text-emerald-600">{fc(stats.totalValue)}</p>
           </div>
         </Card>
@@ -333,7 +333,7 @@ export default function QuotationsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -347,7 +347,7 @@ export default function QuotationsPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 statusFilter === status
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -373,7 +373,7 @@ export default function QuotationsPage() {
           <TableBody>
             {filteredQuotations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <p className="mb-4">No quotations found</p>
                   <Button onClick={() => handleOpenModal()}>Create your first quotation</Button>
                 </TableCell>
@@ -381,10 +381,10 @@ export default function QuotationsPage() {
             ) : (
               filteredQuotations.map((quote) => (
                 <TableRow key={quote.id}>
-                  <TableCell className="font-mono text-gray-600">{quote.quotationNumber}</TableCell>
+                  <TableCell className="font-mono text-gray-600 dark:text-gray-400">{quote.quotationNumber}</TableCell>
                   <TableCell className="font-medium">{quote.customerName}</TableCell>
-                  <TableCell className="text-gray-500">{formatDate(quote.createdAt)}</TableCell>
-                  <TableCell className="text-gray-500">{formatDate(quote.validUntil)}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{formatDate(quote.createdAt)}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{formatDate(quote.validUntil)}</TableCell>
                   <TableCell className="font-medium">{fc(quote.total)}</TableCell>
                   <TableCell>
                     <Badge
@@ -461,11 +461,11 @@ export default function QuotationsPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer *</label>
                 <select
                   value={formData.customerId}
                   onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm dark:text-gray-200"
                 >
                   <option value="">Select customer</option>
                   {customers.filter((c: any) => c.type === 'customer' || c.type === 'both').map((c: any) => (
@@ -484,17 +484,17 @@ export default function QuotationsPage() {
             {/* Line Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">Items</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Items</label>
                 <Button variant="outline" size="sm" onClick={handleAddItem}>
                   <PlusIcon className="w-4 h-4 mr-1" />
                   Add Item
                 </Button>
               </div>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Product</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Product</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-20">Qty</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-28">Price</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-20">Disc %</th>
@@ -502,7 +502,7 @@ export default function QuotationsPage() {
                       <th className="px-3 py-2 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {items.map((item, index) => {
                       const lineTotal = (item.quantity || 0) * (item.unitPrice || 0);
                       const discount = (lineTotal * (item.discount || 0)) / 100;
@@ -514,7 +514,7 @@ export default function QuotationsPage() {
                             <select
                               value={item.productId || ''}
                               onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm"
                             >
                               <option value="">Select product</option>
                               {products.filter((p: any) => p.isActive).map((p: any) => (
@@ -528,7 +528,7 @@ export default function QuotationsPage() {
                               min="1"
                               value={item.quantity || ''}
                               onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm text-right"
                             />
                           </td>
                           <td className="px-3 py-2">
@@ -536,7 +536,7 @@ export default function QuotationsPage() {
                               type="number"
                               value={item.unitPrice || ''}
                               onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm text-right"
                             />
                           </td>
                           <td className="px-3 py-2">
@@ -546,7 +546,7 @@ export default function QuotationsPage() {
                               max="100"
                               value={item.discount || ''}
                               onChange={(e) => handleItemChange(index, 'discount', parseFloat(e.target.value) || 0)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm text-right"
                             />
                           </td>
                           <td className="px-3 py-2 text-right font-medium">
@@ -571,21 +571,21 @@ export default function QuotationsPage() {
               <div className="mt-4 flex justify-end">
                 <div className="w-64 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Subtotal:</span>
+                    <span className="text-gray-500 dark:text-gray-400">Subtotal:</span>
                     <span className="font-medium">{fc(subtotal)}</span>
                   </div>
                   {activeCompany?.gctRegistered && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">GCT (15%):</span>
+                      <span className="text-gray-500 dark:text-gray-400">GCT (15%):</span>
                       <span className="font-medium">{fc(taxAmount)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <div className="flex justify-between text-lg font-bold border-t dark:border-gray-700 pt-2">
                     <span>Total:</span>
                     <span className="text-emerald-600">{fc(activeCompany?.gctRegistered ? total : subtotal)}</span>
                   </div>
                   {activeCompany?.trnNumber && (
-                    <div className="text-xs text-gray-400 pt-1">
+                    <div className="text-xs text-gray-400 dark:text-gray-500 pt-1">
                       TRN: {formatTRN(activeCompany.trnNumber)}
                       {activeCompany.gctRegistered && activeCompany.gctNumber && (
                         <> | GCT Reg: {activeCompany.gctNumber}</>
@@ -598,21 +598,21 @@ export default function QuotationsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm dark:text-gray-200 resize-none"
                   rows={3}
                   placeholder="Additional notes for the customer"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Terms & Conditions</label>
                 <textarea
                   value={formData.terms}
                   onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm dark:text-gray-200 resize-none"
                   rows={3}
                 />
               </div>

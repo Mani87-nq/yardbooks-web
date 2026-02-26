@@ -48,11 +48,11 @@ function todayISO() {
 }
 
 const statusColors: Record<string, string> = {
-  OPEN: 'bg-emerald-100 text-emerald-700',
-  SCHEDULED: 'bg-blue-100 text-blue-700',
-  CLOSING_SOON: 'bg-yellow-100 text-yellow-700',
-  CLOSED: 'bg-gray-100 text-gray-700',
-  FORCE_CLOSED: 'bg-red-100 text-red-700',
+  OPEN: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  SCHEDULED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  CLOSING_SOON: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  CLOSED: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  FORCE_CLOSED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 export default function DayManagementPage() {
@@ -148,8 +148,8 @@ export default function DayManagementPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Day Management</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Day Management</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {formatDate(todayISO())} &middot; Manage store hours, daily open/close, and cash reconciliation
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function DayManagementPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-2">
             <div className={cn(
               'w-14 h-14 rounded-2xl flex items-center justify-center',
-              isStoreOpen ? 'bg-emerald-100' : 'bg-gray-100'
+              isStoreOpen ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-gray-100 dark:bg-gray-700'
             )}>
               {isStoreOpen ? (
                 <SunIcon className="w-7 h-7 text-emerald-600" />
@@ -184,16 +184,16 @@ export default function DayManagementPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {isStoreOpen ? 'Store is Open' : 'Store is Closed'}
                 </h2>
                 {currentDay && (
-                  <Badge className={statusColors[currentDay.status] ?? 'bg-gray-100 text-gray-700'}>
+                  <Badge className={statusColors[currentDay.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}>
                     {currentDay.status.replace('_', ' ')}
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                 {isStoreOpen
                   ? `Opened at ${formatTime(currentDay!.actualOpenTime)} · ${currentDay!.activeSessionCount} active session(s)`
                   : 'No business day is currently open.'}
@@ -239,14 +239,14 @@ export default function DayManagementPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
             { label: 'Net Sales', value: fc(currentDay.netSales), color: 'text-emerald-600' },
-            { label: 'Transactions', value: String(currentDay.totalTransactions), color: 'text-gray-900' },
+            { label: 'Transactions', value: String(currentDay.totalTransactions), color: 'text-gray-900 dark:text-white' },
             { label: 'Active Sessions', value: String(currentDay.activeSessionCount), color: 'text-blue-600' },
             { label: 'Refunds', value: fc(currentDay.totalRefunds), color: 'text-red-600' },
             { label: 'Cash Variance', value: fc(currentDay.totalCashVariance), color: currentDay.hasVariance ? 'text-red-600' : 'text-emerald-600' },
           ].map((stat) => (
             <Card key={stat.label}>
               <CardContent>
-                <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>
                 <p className={cn('text-xl font-bold', stat.color)}>{stat.value}</p>
               </CardContent>
             </Card>
@@ -265,22 +265,22 @@ export default function DayManagementPage() {
               {openSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <div>
-                      <p className="font-medium text-gray-900 text-sm">
+                      <p className="font-medium text-gray-900 dark:text-white text-sm">
                         {session.terminalName}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {session.cashierName} &middot; Since {formatTime(session.openedAt)}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-emerald-600 text-sm">{fc(session.totalSales)}</p>
-                    <p className="text-xs text-gray-500">{session._count?.orders ?? 0} orders</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{session._count?.orders ?? 0} orders</p>
                   </div>
                 </div>
               ))}
@@ -301,8 +301,8 @@ export default function DayManagementPage() {
         </CardHeader>
         <CardContent>
           {days.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <CalendarDaysIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <CalendarDaysIcon className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
               <p>No business days recorded yet.</p>
               <p className="text-sm mt-1">Open the store to start tracking.</p>
             </div>
@@ -310,30 +310,30 @@ export default function DayManagementPage() {
             <div className="overflow-x-auto -mx-6">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left font-medium text-gray-500 px-6 py-2">Date</th>
-                    <th className="text-left font-medium text-gray-500 px-3 py-2">Status</th>
-                    <th className="text-left font-medium text-gray-500 px-3 py-2">Hours</th>
-                    <th className="text-right font-medium text-gray-500 px-3 py-2">Net Sales</th>
-                    <th className="text-right font-medium text-gray-500 px-3 py-2">Txns</th>
-                    <th className="text-right font-medium text-gray-500 px-3 py-2">Variance</th>
-                    <th className="text-right font-medium text-gray-500 px-6 py-2">EOD</th>
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <th className="text-left font-medium text-gray-500 dark:text-gray-400 px-6 py-2">Date</th>
+                    <th className="text-left font-medium text-gray-500 dark:text-gray-400 px-3 py-2">Status</th>
+                    <th className="text-left font-medium text-gray-500 dark:text-gray-400 px-3 py-2">Hours</th>
+                    <th className="text-right font-medium text-gray-500 dark:text-gray-400 px-3 py-2">Net Sales</th>
+                    <th className="text-right font-medium text-gray-500 dark:text-gray-400 px-3 py-2">Txns</th>
+                    <th className="text-right font-medium text-gray-500 dark:text-gray-400 px-3 py-2">Variance</th>
+                    <th className="text-right font-medium text-gray-500 dark:text-gray-400 px-6 py-2">EOD</th>
                   </tr>
                 </thead>
                 <tbody>
                   {days.map((day) => (
-                    <tr key={day.id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="px-6 py-3 font-medium text-gray-900">{formatDate(day.date)}</td>
+                    <tr key={day.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{formatDate(day.date)}</td>
                       <td className="px-3 py-3">
-                        <Badge className={cn('text-xs', statusColors[day.status] ?? 'bg-gray-100 text-gray-700')}>
+                        <Badge className={cn('text-xs', statusColors[day.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300')}>
                           {day.status.replace('_', ' ')}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3 text-gray-600">
+                      <td className="px-3 py-3 text-gray-600 dark:text-gray-400">
                         {formatTime(day.actualOpenTime)} – {formatTime(day.actualCloseTime)}
                       </td>
-                      <td className="px-3 py-3 text-right font-medium text-gray-900">{fc(day.netSales)}</td>
-                      <td className="px-3 py-3 text-right text-gray-600">{day.totalTransactions}</td>
+                      <td className="px-3 py-3 text-right font-medium text-gray-900 dark:text-white">{fc(day.netSales)}</td>
+                      <td className="px-3 py-3 text-right text-gray-600 dark:text-gray-400">{day.totalTransactions}</td>
                       <td className={cn('px-3 py-3 text-right font-medium', day.hasVariance ? 'text-red-600' : 'text-emerald-600')}>
                         {fc(day.totalCashVariance)}
                       </td>
@@ -365,15 +365,15 @@ export default function DayManagementPage() {
         <ModalBody>
           <div className="space-y-4">
             <div className="text-center py-4">
-              <div className="w-16 h-16 mx-auto mb-3 bg-emerald-100 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
                 <SunIcon className="w-8 h-8 text-emerald-600" />
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Open the store for <span className="font-semibold">{formatDate(todayISO())}</span>
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Opening Notes (optional)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opening Notes (optional)</label>
               <Input
                 placeholder="e.g. Early opening for sale"
                 value={openingNotes}
@@ -381,7 +381,7 @@ export default function DayManagementPage() {
               />
             </div>
             {openDay.error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
                 <p className="text-sm text-red-700">
                   {openDay.error instanceof Error ? openDay.error.message : 'Failed to open store'}
                 </p>
@@ -406,10 +406,10 @@ export default function DayManagementPage() {
         <ModalBody>
           <div className="space-y-4">
             <div className="text-center py-4">
-              <div className="w-16 h-16 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-3 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                 <MoonIcon className="w-8 h-8 text-gray-500" />
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Close the store for <span className="font-semibold">{currentDay ? formatDate(currentDay.date) : 'today'}</span>
               </p>
             </div>
@@ -417,20 +417,20 @@ export default function DayManagementPage() {
             {/* Quick summary */}
             {currentDay && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Net Sales</p>
-                  <p className="font-semibold text-gray-900">{fc(currentDay.netSales)}</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Net Sales</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{fc(currentDay.netSales)}</p>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Transactions</p>
-                  <p className="font-semibold text-gray-900">{currentDay.totalTransactions}</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Transactions</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{currentDay.totalTransactions}</p>
                 </div>
               </div>
             )}
 
             {/* Warning about open sessions */}
             {openSessions.length > 0 && (
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <div className="flex items-start gap-2">
                   <ExclamationCircleIcon className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                   <div>
@@ -455,7 +455,7 @@ export default function DayManagementPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Closing Notes (optional)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Closing Notes (optional)</label>
               <Input
                 placeholder="e.g. Normal close, no issues"
                 value={closingNotes}
@@ -464,7 +464,7 @@ export default function DayManagementPage() {
             </div>
 
             {closeDay.error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
                 <p className="text-sm text-red-700">
                   {closeDay.error instanceof Error ? closeDay.error.message : 'Failed to close store'}
                 </p>
@@ -500,13 +500,13 @@ export default function DayManagementPage() {
       >
         <ModalBody>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {showCashOpModal === 'drop' && 'Remove cash from the drawer for safe deposit.'}
               {showCashOpModal === 'payout' && 'Record a cash payout from the drawer (e.g. supplier payment, petty cash).'}
               {showCashOpModal === 'float' && 'Add additional cash to the drawer.'}
             </p>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount</label>
               <Input
                 type="number"
                 placeholder="0.00"
@@ -516,7 +516,7 @@ export default function DayManagementPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
               <Input
                 placeholder="e.g. Safe deposit, Supplier payment"
                 value={cashOpReason}
@@ -524,7 +524,7 @@ export default function DayManagementPage() {
               />
             </div>
             {addCashMovement.error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
                 <p className="text-sm text-red-700">
                   {addCashMovement.error instanceof Error ? addCashMovement.error.message : 'Operation failed'}
                 </p>
@@ -563,8 +563,8 @@ export default function DayManagementPage() {
                 {/* Report Header */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Report #{showEodModal.reportNumber}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Report #{showEodModal.reportNumber}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {formatTime(showEodModal.openTime)} – {formatTime(showEodModal.closeTime)} &middot; {showEodModal.sessionCount} session(s)
                     </p>
                   </div>
@@ -577,7 +577,7 @@ export default function DayManagementPage() {
 
                 {/* Sales Summary */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Sales Summary</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Sales Summary</h3>
                   <div className="space-y-2">
                     {[
                       { label: 'Gross Sales', value: fc(showEodModal.grossSales) },
@@ -586,11 +586,11 @@ export default function DayManagementPage() {
                       { label: 'Voids', value: `-${fc(showEodModal.totalVoids)}`, color: 'text-red-600' },
                     ].map((row) => (
                       <div key={row.label} className="flex justify-between text-sm">
-                        <span className="text-gray-500">{row.label}</span>
-                        <span className={row.color ?? 'text-gray-900'}>{row.value}</span>
+                        <span className="text-gray-500 dark:text-gray-400">{row.label}</span>
+                        <span className={row.color ?? 'text-gray-900 dark:text-white'}>{row.value}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-sm font-semibold pt-2 border-t border-gray-100">
+                    <div className="flex justify-between text-sm font-semibold pt-2 border-t border-gray-100 dark:border-gray-700">
                       <span>Net Sales</span>
                       <span className="text-emerald-600">{fc(showEodModal.netSales)}</span>
                     </div>
@@ -599,17 +599,17 @@ export default function DayManagementPage() {
 
                 {/* GCT Summary */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">GCT Summary</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">GCT Summary</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Taxable Amount</span>
+                      <span className="text-gray-500 dark:text-gray-400">Taxable Amount</span>
                       <span>{fc(showEodModal.taxableAmount)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">GCT Rate</span>
+                      <span className="text-gray-500 dark:text-gray-400">GCT Rate</span>
                       <span>{Math.round(Number(showEodModal.gctRate) * 100)}%</span>
                     </div>
-                    <div className="flex justify-between text-sm font-medium pt-2 border-t border-gray-100">
+                    <div className="flex justify-between text-sm font-medium pt-2 border-t border-gray-100 dark:border-gray-700">
                       <span>GCT Collected</span>
                       <span>{fc(showEodModal.gctCollected)}</span>
                     </div>
@@ -618,7 +618,7 @@ export default function DayManagementPage() {
 
                 {/* Cash Reconciliation */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Cash Reconciliation</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Cash Reconciliation</h3>
                   <div className="space-y-2">
                     {[
                       { label: 'Opening Cash', value: fc(showEodModal.totalOpeningCash) },
@@ -628,20 +628,20 @@ export default function DayManagementPage() {
                       { label: '- Drops', value: fc(showEodModal.totalDrops), color: 'text-red-600' },
                     ].map((row) => (
                       <div key={row.label} className="flex justify-between text-sm">
-                        <span className="text-gray-500">{row.label}</span>
-                        <span className={row.color ?? 'text-gray-900'}>{row.value}</span>
+                        <span className="text-gray-500 dark:text-gray-400">{row.label}</span>
+                        <span className={row.color ?? 'text-gray-900 dark:text-white'}>{row.value}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                      <span className="text-gray-500">Expected Cash</span>
+                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-gray-500 dark:text-gray-400">Expected Cash</span>
                       <span className="font-medium">{fc(showEodModal.expectedCash)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Actual Cash</span>
+                      <span className="text-gray-500 dark:text-gray-400">Actual Cash</span>
                       <span className="font-medium">{fc(showEodModal.actualCash)}</span>
                     </div>
                     <div className={cn(
-                      'flex justify-between text-sm font-semibold pt-2 border-t border-gray-100',
+                      'flex justify-between text-sm font-semibold pt-2 border-t border-gray-100 dark:border-gray-700',
                       showEodModal.cashStatus === 'balanced' ? 'text-emerald-600' :
                       showEodModal.cashStatus === 'over' ? 'text-blue-600' : 'text-red-600'
                     )}>
@@ -654,12 +654,12 @@ export default function DayManagementPage() {
                 {/* Payment Breakdown */}
                 {Object.keys(showEodModal.paymentBreakdown).length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Payment Breakdown</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Payment Breakdown</h3>
                     <div className="space-y-2">
                       {Object.entries(showEodModal.paymentBreakdown).map(([method, data]) => (
                         <div key={method} className="flex justify-between text-sm">
-                          <span className="text-gray-500">{method.replace(/_/g, ' ')}</span>
-                          <span>{fc(data.amount)} <span className="text-gray-400">({data.count} txns)</span></span>
+                          <span className="text-gray-500 dark:text-gray-400">{method.replace(/_/g, ' ')}</span>
+                          <span>{fc(data.amount)} <span className="text-gray-400 dark:text-gray-500">({data.count} txns)</span></span>
                         </div>
                       ))}
                     </div>

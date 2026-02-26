@@ -194,12 +194,12 @@ export default function BankReconciliationPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/banking" className="p-2 hover:bg-gray-100 rounded-lg">
-          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+        <Link href="/banking" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+          <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Bank Reconciliation</h1>
-          <p className="text-gray-500">Match bank statement items with book entries to reconcile your accounts</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bank Reconciliation</h1>
+          <p className="text-gray-500 dark:text-gray-400">Match bank statement items with book entries to reconcile your accounts</p>
         </div>
       </div>
 
@@ -209,11 +209,11 @@ export default function BankReconciliationPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Bank Account Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bank Account</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bank Account</label>
               <select
                 value={selectedAccountId}
                 onChange={(e) => handleAccountChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               >
                 <option value="">Select an account...</option>
                 {bankAccounts.filter((a) => a.isActive).map((account) => (
@@ -247,18 +247,18 @@ export default function BankReconciliationPage() {
             <div className="mt-4 flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <BuildingLibraryIcon className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-500">Book Balance:</span>
-                <span className="font-semibold text-gray-900">{fc(bookBalance)}</span>
+                <span className="text-gray-500 dark:text-gray-400">Book Balance:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{fc(bookBalance)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-500">Last Synced:</span>
-                <span className="text-gray-700">
+                <span className="text-gray-500 dark:text-gray-400">Last Synced:</span>
+                <span className="text-gray-700 dark:text-gray-300">
                   {selectedAccount.lastSyncedAt ? formatDate(selectedAccount.lastSyncedAt) : 'Never'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-gray-500">Uncleared:</span>
+                <span className="text-gray-500 dark:text-gray-400">Uncleared:</span>
                 <Badge variant="warning">
                   {statementTransactions.filter((t) => !t.isReconciled).length} items
                 </Badge>
@@ -273,7 +273,7 @@ export default function BankReconciliationPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Bank Statement Items */}
           <Card padding="none">
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BanknotesIcon className="w-5 h-5 text-blue-600" />
@@ -281,18 +281,18 @@ export default function BankReconciliationPage() {
                 </div>
                 <Badge variant="info">{statementTransactions.length} items</Badge>
               </div>
-              <p className="text-sm text-gray-500 mt-1">Transactions from your bank statement</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Transactions from your bank statement</p>
             </div>
 
             <div className="max-h-[500px] overflow-y-auto">
               {statementTransactions.length === 0 ? (
                 <div className="p-8 text-center">
                   <BanknotesIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="text-gray-500">No bank transactions found for this account</p>
-                  <p className="text-sm text-gray-400 mt-1">Import transactions or add them manually</p>
+                  <p className="text-gray-500 dark:text-gray-400">No bank transactions found for this account</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Import transactions or add them manually</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {statementTransactions.map((txn) => {
                     const isDeposit = txn.amount >= 0;
                     const isChecked = checkedStatementItems.has(txn.id);
@@ -301,7 +301,7 @@ export default function BankReconciliationPage() {
                       <label
                         key={txn.id}
                         className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                          isChecked ? 'bg-emerald-50' : 'hover:bg-gray-50'
+                          isChecked ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                         } ${txn.isReconciled ? 'opacity-50' : ''}`}
                       >
                         <input
@@ -313,7 +313,7 @@ export default function BankReconciliationPage() {
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                               {txn.description}
                             </p>
                             <span className={`text-sm font-semibold whitespace-nowrap ml-2 ${
@@ -323,7 +323,7 @@ export default function BankReconciliationPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-gray-500">{formatDate(txn.transactionDate)}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(txn.transactionDate)}</span>
                             {txn.reference && (
                               <span className="text-xs text-gray-400">Ref: {txn.reference}</span>
                             )}
@@ -339,12 +339,12 @@ export default function BankReconciliationPage() {
               )}
             </div>
 
-            <div className="p-3 border-t border-gray-200 bg-gray-50">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">
+                <span className="text-gray-500 dark:text-gray-400">
                   {checkedStatementItems.size} of {statementTransactions.filter((t) => !t.isReconciled).length} selected
                 </span>
-                <span className="font-medium text-gray-700">
+                <span className="font-medium text-gray-700 dark:text-gray-300">
                   Selected Total: {fc(
                     statementTransactions
                       .filter((t) => checkedStatementItems.has(t.id))
@@ -357,7 +357,7 @@ export default function BankReconciliationPage() {
 
           {/* Right: Book Entries */}
           <Card padding="none">
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <DocumentCheckIcon className="w-5 h-5 text-purple-600" />
@@ -365,18 +365,18 @@ export default function BankReconciliationPage() {
                 </div>
                 <Badge variant="info">{bookEntries.length} entries</Badge>
               </div>
-              <p className="text-sm text-gray-500 mt-1">Journal entries related to bank accounts</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Journal entries related to bank accounts</p>
             </div>
 
             <div className="max-h-[500px] overflow-y-auto">
               {bookEntries.length === 0 ? (
                 <div className="p-8 text-center">
                   <DocumentCheckIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="text-gray-500">No book entries found</p>
-                  <p className="text-sm text-gray-400 mt-1">Journal entries with bank account lines will appear here</p>
+                  <p className="text-gray-500 dark:text-gray-400">No book entries found</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Journal entries with bank account lines will appear here</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {bookEntries.map((je) => {
                     const bankLine = je.lines.find((l) => bankGLAccountIds.has(l.accountId));
                     const isDebit = bankLine ? bankLine.debit > 0 : false;
@@ -387,7 +387,7 @@ export default function BankReconciliationPage() {
                       <label
                         key={je.id}
                         className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                          isChecked ? 'bg-purple-50' : 'hover:bg-gray-50'
+                          isChecked ? 'bg-purple-50 dark:bg-purple-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
                         <input
@@ -399,7 +399,7 @@ export default function BankReconciliationPage() {
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                               {je.description}
                             </p>
                             <span className={`text-sm font-semibold whitespace-nowrap ml-2 ${
@@ -409,7 +409,7 @@ export default function BankReconciliationPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-gray-500">{formatDate(je.date)}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(je.date)}</span>
                             <span className="text-xs text-gray-400">#{je.entryNumber}</span>
                             {je.reference && (
                               <span className="text-xs text-gray-400">Ref: {je.reference}</span>
@@ -423,12 +423,12 @@ export default function BankReconciliationPage() {
               )}
             </div>
 
-            <div className="p-3 border-t border-gray-200 bg-gray-50">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">
+                <span className="text-gray-500 dark:text-gray-400">
                   {checkedBookItems.size} of {bookEntries.length} selected
                 </span>
-                <span className="font-medium text-gray-700">
+                <span className="font-medium text-gray-700 dark:text-gray-300">
                   Selected Total: {fc(
                     bookEntries
                       .filter((je) => checkedBookItems.has(je.id))
@@ -475,45 +475,45 @@ export default function BankReconciliationPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Bank Side */}
               <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Adjusted Bank Balance</h4>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Adjusted Bank Balance</h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm text-gray-600">Bank Statement Balance</span>
-                    <span className="text-sm font-semibold text-gray-900">{fc(parsedStatementBalance)}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Bank Statement Balance</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{fc(parsedStatementBalance)}</span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-t border-gray-100">
-                    <span className="text-sm text-gray-600">
+                  <div className="flex items-center justify-between py-2 border-t border-gray-100 dark:border-gray-700">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
                       Add: Outstanding Deposits
                       <span className="text-xs text-gray-400 ml-1">(in books, not on statement)</span>
                     </span>
                     <span className="text-sm font-semibold text-emerald-600">+{fc(outstandingDeposits)}</span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-t border-gray-100">
-                    <span className="text-sm text-gray-600">
+                  <div className="flex items-center justify-between py-2 border-t border-gray-100 dark:border-gray-700">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
                       Less: Outstanding Checks
                       <span className="text-xs text-gray-400 ml-1">(in books, not on statement)</span>
                     </span>
                     <span className="text-sm font-semibold text-red-600">-{fc(outstandingChecks)}</span>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-t-2 border-gray-300 bg-gray-50 rounded-lg px-3 -mx-3">
-                    <span className="text-sm font-bold text-gray-900">Adjusted Bank Balance</span>
-                    <span className="text-lg font-bold text-gray-900">{fc(adjustedBankBalance)}</span>
+                  <div className="flex items-center justify-between py-3 border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 rounded-lg px-3 -mx-3">
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">Adjusted Bank Balance</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">{fc(adjustedBankBalance)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Book Side */}
               <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Book Balance</h4>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Book Balance</h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm text-gray-600">Book Balance (from GL)</span>
-                    <span className="text-sm font-semibold text-gray-900">{fc(bookBalance)}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Book Balance (from GL)</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{fc(bookBalance)}</span>
                   </div>
-                  <div className="py-2 border-t border-gray-100">
+                  <div className="py-2 border-t border-gray-100 dark:border-gray-700">
                     {/* Spacer to align with bank side */}
                   </div>
-                  <div className="py-2 border-t border-gray-100">
+                  <div className="py-2 border-t border-gray-100 dark:border-gray-700">
                     {/* Spacer */}
                   </div>
                   <div className={`flex items-center justify-between py-3 border-t-2 rounded-lg px-3 -mx-3 ${
@@ -523,7 +523,7 @@ export default function BankReconciliationPage() {
                         ? 'border-red-300 bg-red-50'
                         : 'border-gray-300 bg-gray-50'
                   }`}>
-                    <span className="text-sm font-bold text-gray-900">Difference</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">Difference</span>
                     <span className={`text-lg font-bold ${
                       isReconciled
                         ? 'text-emerald-600'
@@ -540,13 +540,13 @@ export default function BankReconciliationPage() {
 
             {/* Error */}
             {reconcileError && (
-              <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+              <div className="mt-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-400">
                 {reconcileError}
               </div>
             )}
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
               {isCompleted ? (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 text-emerald-600">
@@ -581,8 +581,8 @@ export default function BankReconciliationPage() {
         <Card>
           <CardContent className="text-center py-16">
             <ScaleIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Bank Account</h3>
-            <p className="text-gray-500 max-w-md mx-auto">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Select a Bank Account</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
               Choose a bank account above to begin reconciling your bank statement with your book entries.
             </p>
           </CardContent>

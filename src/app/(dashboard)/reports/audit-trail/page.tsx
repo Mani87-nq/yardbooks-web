@@ -81,7 +81,7 @@ const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; bgColor
   APPROVE: { label: 'Approve', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   SEND: { label: 'Send', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
   PAYMENT: { label: 'Payment', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
-  EXPORT: { label: 'Export', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  EXPORT: { label: 'Export', color: 'text-gray-700 dark:text-gray-300', bgColor: 'bg-gray-100 dark:bg-gray-700' },
 };
 
 const ALL_ACTIONS: AuditAction[] = [
@@ -316,18 +316,18 @@ function getEntityIcon(entityType: EntityType): string {
 
 function getEntityColor(entityType: EntityType): string {
   const colors: Record<EntityType, string> = {
-    Invoice: 'bg-blue-50 text-blue-600 border-blue-200',
-    Customer: 'bg-amber-50 text-amber-600 border-amber-200',
-    Product: 'bg-violet-50 text-violet-600 border-violet-200',
-    Expense: 'bg-rose-50 text-rose-600 border-rose-200',
-    'Journal Entry': 'bg-teal-50 text-teal-600 border-teal-200',
-    Quotation: 'bg-sky-50 text-sky-600 border-sky-200',
-    'Bank Account': 'bg-emerald-50 text-emerald-600 border-emerald-200',
-    Employee: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-    'Payroll Run': 'bg-pink-50 text-pink-600 border-pink-200',
-    'Fixed Asset': 'bg-gray-50 text-gray-600 border-gray-200',
+    Invoice: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 border-blue-200 dark:border-blue-800',
+    Customer: 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 border-amber-200 dark:border-amber-800',
+    Product: 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 border-violet-200 dark:border-violet-800',
+    Expense: 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-rose-200 dark:border-rose-800',
+    'Journal Entry': 'bg-teal-50 dark:bg-teal-900/30 text-teal-600 border-teal-200 dark:border-teal-800',
+    Quotation: 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 border-sky-200 dark:border-sky-800',
+    'Bank Account': 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-emerald-200 dark:border-emerald-800',
+    Employee: 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-indigo-200 dark:border-indigo-800',
+    'Payroll Run': 'bg-pink-50 dark:bg-pink-900/30 text-pink-600 border-pink-200 dark:border-pink-800',
+    'Fixed Asset': 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700',
   };
-  return colors[entityType] || 'bg-gray-50 text-gray-600 border-gray-200';
+  return colors[entityType] || 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700';
 }
 
 // ---------------------------------------------------------------------------
@@ -583,8 +583,8 @@ export default function AuditTrailPage() {
               <ShieldCheckIcon className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Audit Trail</h1>
-              <p className="text-gray-500">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Audit Trail</h1>
+              <p className="text-gray-500 dark:text-gray-400">
                 Track all changes and actions across your business
               </p>
             </div>
@@ -607,14 +607,14 @@ export default function AuditTrailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
+              <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                 <DocumentTextIcon className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   Total Events
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stats.totalEvents}
                 </p>
               </div>
@@ -625,14 +625,14 @@ export default function AuditTrailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-50 rounded-lg">
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
                 <ClockIcon className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   Events Today
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stats.eventsToday}
                 </p>
               </div>
@@ -643,17 +643,17 @@ export default function AuditTrailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-50 rounded-lg">
+              <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
                 <UserCircleIcon className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   Most Active User
                 </p>
-                <p className="text-lg font-bold text-gray-900 truncate">
+                <p className="text-lg font-bold text-gray-900 dark:text-white truncate">
                   {stats.mostActiveUser}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
                   {stats.mostActiveUserCount} actions
                 </p>
               </div>
@@ -664,22 +664,22 @@ export default function AuditTrailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-50 rounded-lg">
+              <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
                 <FunnelIcon className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   Most Common Action
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      ACTION_CONFIG[stats.mostCommonAction as AuditAction]?.bgColor ?? 'bg-gray-100'
-                    } ${ACTION_CONFIG[stats.mostCommonAction as AuditAction]?.color ?? 'text-gray-700'}`}
+                      ACTION_CONFIG[stats.mostCommonAction as AuditAction]?.bgColor ?? 'bg-gray-100 dark:bg-gray-700'
+                    } ${ACTION_CONFIG[stats.mostCommonAction as AuditAction]?.color ?? 'text-gray-700 dark:text-gray-300'}`}
                   >
                     {stats.mostCommonAction}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
                     {stats.mostCommonActionCount}x
                   </span>
                 </div>
@@ -695,7 +695,7 @@ export default function AuditTrailPage() {
           <div className="flex flex-wrap items-end gap-4">
             {/* Search */}
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs text-gray-500 mb-1">Search</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Search</label>
               <Input
                 type="text"
                 placeholder="Search events..."
@@ -703,7 +703,7 @@ export default function AuditTrailPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={<MagnifyingGlassIcon className="w-4 h-4" />}
                 rightIcon={searchQuery ? (
-                  <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                  <button onClick={() => setSearchQuery('')} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400">
                     <XMarkIcon className="w-4 h-4" />
                   </button>
                 ) : undefined}
@@ -713,7 +713,7 @@ export default function AuditTrailPage() {
             {/* Date range */}
             <div className="flex items-center gap-2">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">From</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">From</label>
                 <Input
                   type="date"
                   value={dateRange.start}
@@ -723,9 +723,9 @@ export default function AuditTrailPage() {
                   className="w-40"
                 />
               </div>
-              <span className="text-gray-400 mt-5">to</span>
+              <span className="text-gray-400 dark:text-gray-500 mt-5">to</span>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">To</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">To</label>
                 <Input
                   type="date"
                   value={dateRange.end}
@@ -739,11 +739,11 @@ export default function AuditTrailPage() {
 
             {/* User filter */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">User</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">User</label>
               <select
                 value={selectedUser}
                 onChange={(e) => setSelectedUser(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white min-w-[160px]"
+                className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800 min-w-[160px]"
               >
                 <option value="all">All Users</option>
                 {uniqueUsers.map((u) => (
@@ -756,11 +756,11 @@ export default function AuditTrailPage() {
 
             {/* Entity type filter */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Entity</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Entity</label>
               <select
                 value={selectedEntityType}
                 onChange={(e) => setSelectedEntityType(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white min-w-[160px]"
+                className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800 min-w-[160px]"
               >
                 <option value="all">All Entities</option>
                 {ALL_ENTITY_TYPES.map((et) => (
@@ -773,11 +773,11 @@ export default function AuditTrailPage() {
 
             {/* Action filter */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Action</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Action</label>
               <select
                 value={selectedAction}
                 onChange={(e) => setSelectedAction(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white min-w-[140px]"
+                className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800 min-w-[140px]"
               >
                 <option value="all">All Actions</option>
                 {ALL_ACTIONS.map((a) => (
@@ -790,7 +790,7 @@ export default function AuditTrailPage() {
           </div>
 
           {/* Quick date presets */}
-          <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+          <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <Button
               variant="outline"
               size="sm"
@@ -884,9 +884,9 @@ export default function AuditTrailPage() {
 
       {/* Results count */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          Showing <span className="font-semibold text-gray-700">{filteredEntries.length}</span> of{' '}
-          <span className="font-semibold text-gray-700">{allEntries.length}</span> events
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{filteredEntries.length}</span> of{' '}
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{allEntries.length}</span> events
         </p>
       </div>
 
@@ -894,19 +894,19 @@ export default function AuditTrailPage() {
       {isLoadingAudit ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full mx-auto mb-4" />
-            <p className="text-gray-500 text-sm">Loading audit trail...</p>
+            <div className="animate-spin w-8 h-8 border-4 border-emerald-200 dark:border-emerald-800 border-t-emerald-600 rounded-full mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Loading audit trail...</p>
           </CardContent>
         </Card>
       ) : /* Activity Timeline */
       filteredEntries.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <ShieldCheckIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg font-medium">
+            <ShieldCheckIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">
               No audit events found
             </p>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
               {allEntries.length === 0
                 ? 'No audit events have been recorded yet.'
                 : 'Try adjusting your filters or date range.'}
@@ -934,14 +934,14 @@ export default function AuditTrailPage() {
               <div key={group.dateKey}>
                 {/* Date header */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
-                    <CalendarIcon className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-semibold text-gray-700">
+                  <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-full">
+                    <CalendarIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       {dateLabel}
                     </span>
                   </div>
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
                     {group.entries.length} event{group.entries.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -961,7 +961,7 @@ export default function AuditTrailPage() {
                         <div key={entry.id} className="relative pl-14">
                           {/* Timeline dot */}
                           <div
-                            className={`absolute left-[20px] top-4 w-[15px] h-[15px] rounded-full border-2 border-white shadow-sm ${actionCfg.bgColor}`}
+                            className={`absolute left-[20px] top-4 w-[15px] h-[15px] rounded-full border-2 border-white shadow-sm dark:shadow-gray-900/20 ${actionCfg.bgColor}`}
                           />
 
                           {/* Entry card */}
@@ -990,23 +990,23 @@ export default function AuditTrailPage() {
                                   </span>
 
                                   {/* Entity reference */}
-                                  <span className="text-xs font-mono text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                                  <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 px-1.5 py-0.5 rounded">
                                     {entry.entityLabel}
                                   </span>
                                 </div>
 
                                 {/* Timestamp */}
-                                <div className="flex items-center gap-1.5 text-xs text-gray-400 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                                   <ClockIcon className="w-3.5 h-3.5" />
                                   <span>{formatTimeOnly(entry.timestamp)}</span>
-                                  <span className="hidden sm:inline text-gray-300">
+                                  <span className="hidden sm:inline text-gray-300 dark:text-gray-600">
                                     ({getRelativeTime(entry.timestamp)})
                                   </span>
                                 </div>
                               </div>
 
                               {/* Description */}
-                              <p className="text-sm text-gray-800 mb-2">
+                              <p className="text-sm text-gray-800 dark:text-gray-100 mb-2">
                                 {entry.description}
                               </p>
 
@@ -1022,10 +1022,10 @@ export default function AuditTrailPage() {
                                     </span>
                                   </div>
                                   <div>
-                                    <span className="text-xs font-medium text-gray-700">
+                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                                       {entry.userName}
                                     </span>
-                                    <span className="text-xs text-gray-400 ml-1.5">
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-1.5">
                                       {entry.userEmail}
                                     </span>
                                   </div>
@@ -1053,21 +1053,21 @@ export default function AuditTrailPage() {
 
                               {/* Expanded changes detail */}
                               {isExpanded && hasChanges && (
-                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                                   <div className="space-y-2">
                                     {entry.changes!.map((change, cIdx) => (
                                       <div
                                         key={cIdx}
-                                        className="flex items-center gap-3 text-xs bg-gray-50 rounded-lg px-3 py-2"
+                                        className="flex items-center gap-3 text-xs bg-gray-50 dark:bg-gray-900 rounded-lg px-3 py-2"
                                       >
-                                        <span className="font-medium text-gray-600 min-w-[120px]">
+                                        <span className="font-medium text-gray-600 dark:text-gray-400 min-w-[120px]">
                                           {change.field}
                                         </span>
-                                        <span className="text-red-500 bg-red-50 px-2 py-0.5 rounded line-through">
+                                        <span className="text-red-500 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded line-through">
                                           {change.oldValue}
                                         </span>
-                                        <span className="text-gray-400">&rarr;</span>
-                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium">
+                                        <span className="text-gray-400 dark:text-gray-500">&rarr;</span>
+                                        <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded font-medium">
                                           {change.newValue}
                                         </span>
                                       </div>
@@ -1091,7 +1091,7 @@ export default function AuditTrailPage() {
       {/* Footer note */}
       <Card>
         <CardContent className="p-4">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             The audit trail records all changes made to your business data. Events
             are logged automatically and cannot be altered or deleted. This report
             covers actions from {formatDate(new Date(dateRange.start))} to{' '}

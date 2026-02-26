@@ -47,7 +47,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
   if (isFetchingInvoice) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">Loading invoice...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading invoice...</p>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
   if (!invoice) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Invoice Not Found</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Invoice Not Found</h2>
         <Link href="/invoices" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
           Back to Invoices
         </Link>
@@ -272,12 +272,12 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{invoice.invoiceNumber}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{invoice.invoiceNumber}</h1>
               <Badge variant={getStatusColor(invoice.status)}>
                 {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1).toLowerCase()}
               </Badge>
             </div>
-            <p className="text-gray-500">{customer?.name || 'Unknown Customer'}</p>
+            <p className="text-gray-500 dark:text-gray-400">{customer?.name || 'Unknown Customer'}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -317,19 +317,19 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total</p>
-            <p className="text-2xl font-bold text-gray-900">{fc(invoice.total)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{fc(invoice.total)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Paid</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Paid</p>
             <p className="text-2xl font-bold text-emerald-600">{fc(invoice.amountPaid)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Balance</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Balance</p>
             <p className={`text-2xl font-bold ${invoice.balance > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
               {fc(invoice.balance)}
             </p>
@@ -337,8 +337,8 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Due Date</p>
-            <p className={`text-lg font-semibold ${invoice.status.toUpperCase() === 'OVERDUE' ? 'text-red-600' : 'text-gray-900'}`}>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Due Date</p>
+            <p className={`text-lg font-semibold ${invoice.status.toUpperCase() === 'OVERDUE' ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
               {format(new Date(invoice.dueDate), 'MMM dd, yyyy')}
             </p>
           </div>
@@ -354,11 +354,11 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <p className="font-semibold text-gray-900">{customer?.name || 'N/A'}</p>
-              {customer?.email && <p className="text-sm text-gray-600">{customer.email}</p>}
-              {customer?.phone && <p className="text-sm text-gray-600">{customer.phone}</p>}
+              <p className="font-semibold text-gray-900 dark:text-white">{customer?.name || 'N/A'}</p>
+              {customer?.email && <p className="text-sm text-gray-600 dark:text-gray-400">{customer.email}</p>}
+              {customer?.phone && <p className="text-sm text-gray-600 dark:text-gray-400">{customer.phone}</p>}
               {customer?.address && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {typeof customer.address === 'string'
                     ? customer.address
                     : `${customer.address.street}, ${customer.address.city}, ${customer.address.parish}`}
@@ -376,32 +376,32 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
           <CardContent>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Invoice #</span>
+                <span className="text-gray-500 dark:text-gray-400">Invoice #</span>
                 <span className="font-medium">{invoice.invoiceNumber}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Issue Date</span>
+                <span className="text-gray-500 dark:text-gray-400">Issue Date</span>
                 <span className="font-medium">{format(new Date(invoice.issueDate), 'MMM dd, yyyy')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Due Date</span>
+                <span className="text-gray-500 dark:text-gray-400">Due Date</span>
                 <span className="font-medium">{format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</span>
               </div>
               {invoice.customerPONumber && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">PO Number</span>
+                  <span className="text-gray-500 dark:text-gray-400">PO Number</span>
                   <span className="font-medium">{invoice.customerPONumber}</span>
                 </div>
               )}
               {activeCompany?.trnNumber && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">TRN</span>
+                  <span className="text-gray-500 dark:text-gray-400">TRN</span>
                   <span className="font-medium">{formatTRN(activeCompany.trnNumber)}</span>
                 </div>
               )}
               {activeCompany?.gctRegistered && activeCompany?.gctNumber && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">GCT Reg</span>
+                  <span className="text-gray-500 dark:text-gray-400">GCT Reg</span>
                   <span className="font-medium">{activeCompany.gctNumber}</span>
                 </div>
               )}
@@ -417,22 +417,22 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
           <CardContent>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
                 <span className="font-medium">{fc(invoice.subtotal)}</span>
               </div>
               {activeCompany?.gctRegistered && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">GCT</span>
+                  <span className="text-gray-500 dark:text-gray-400">GCT</span>
                   <span className="font-medium">{fc(invoice.gctAmount)}</span>
                 </div>
               )}
               {invoice.discount > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Discount</span>
+                  <span className="text-gray-500 dark:text-gray-400">Discount</span>
                   <span className="font-medium text-red-600">-{fc(invoice.discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-gray-100">
+              <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
                 <span className="font-semibold">Total</span>
                 <span className="font-bold text-emerald-600">{fc(invoice.total)}</span>
               </div>
@@ -450,7 +450,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs uppercase text-gray-500 border-b border-gray-200">
+                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                   <th className="pb-3 font-medium">Description</th>
                   <th className="pb-3 font-medium text-right">Qty</th>
                   <th className="pb-3 font-medium text-right">Unit Price</th>
@@ -458,14 +458,14 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
                   <th className="pb-3 font-medium text-right">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {invoice.items.map((item) => (
                   <tr key={item.id}>
-                    <td className="py-3 text-gray-900">{item.description}</td>
-                    <td className="py-3 text-right text-gray-600">{item.quantity}</td>
-                    <td className="py-3 text-right text-gray-600">{fc(item.unitPrice)}</td>
-                    <td className="py-3 text-right text-gray-600">{fc(item.gctAmount)}</td>
-                    <td className="py-3 text-right font-medium text-gray-900">{fc(item.total)}</td>
+                    <td className="py-3 text-gray-900 dark:text-white">{item.description}</td>
+                    <td className="py-3 text-right text-gray-600 dark:text-gray-400">{item.quantity}</td>
+                    <td className="py-3 text-right text-gray-600 dark:text-gray-400">{fc(item.unitPrice)}</td>
+                    <td className="py-3 text-right text-gray-600 dark:text-gray-400">{fc(item.gctAmount)}</td>
+                    <td className="py-3 text-right font-medium text-gray-900 dark:text-white">{fc(item.total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -481,7 +481,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
             <CardTitle>Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700 whitespace-pre-wrap">{invoice.notes}</p>
+            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{invoice.notes}</p>
           </CardContent>
         </Card>
       )}
@@ -489,7 +489,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
       {/* Actions */}
       <div className="flex justify-between">
         <PermissionGate permission="invoices:delete">
-          <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => setShowDeleteModal(true)}>
+          <Button variant="outline" className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30" onClick={() => setShowDeleteModal(true)}>
             <TrashIcon className="w-4 h-4 mr-2" />
             Delete Invoice
           </Button>
@@ -523,15 +523,15 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
               onChange={(e) => setEmailSubject(e.target.value)}
             />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
               <Textarea
                 value={emailMessage}
                 onChange={(e) => setEmailMessage(e.target.value)}
                 rows={8}
               />
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">
+            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 <strong>Attachment:</strong> Invoice {invoice.invoiceNumber} (PDF)
               </p>
             </div>
@@ -556,13 +556,13 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
       <Modal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Record Payment">
         <ModalBody>
           <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-500">Invoice Total</span>
+                <span className="text-gray-500 dark:text-gray-400">Invoice Total</span>
                 <span className="font-medium">{fc(invoice.total)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Balance Due</span>
+                <span className="text-gray-500 dark:text-gray-400">Balance Due</span>
                 <span className="font-bold text-orange-600">{fc(invoice.balance)}</span>
               </div>
             </div>
@@ -581,11 +581,11 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
               onChange={(e) => setPaymentDate(e.target.value)}
             />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
               >
                 <option value="cash">Cash</option>
                 <option value="bank_transfer">Bank Transfer</option>
@@ -608,7 +608,7 @@ ${activeCompany?.businessName || 'YaadBooks'}`);
       {/* Delete Confirmation Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Invoice">
         <ModalBody>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Are you sure you want to delete invoice <strong>{invoice.invoiceNumber}</strong>? This action cannot be undone.
           </p>
         </ModalBody>

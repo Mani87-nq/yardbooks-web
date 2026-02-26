@@ -288,8 +288,8 @@ export default function BankingPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Banking</h1>
-          <p className="text-gray-500">Manage bank accounts and transactions</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Banking</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage bank accounts and transactions</p>
         </div>
         <div className="flex gap-2">
           {activeTab === 'accounts' && (
@@ -310,13 +310,13 @@ export default function BankingPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setActiveTab('accounts')}
           className={`px-4 py-2 font-medium text-sm border-b-2 -mb-px transition-colors ${
             activeTab === 'accounts'
               ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           <BuildingLibraryIcon className="w-4 h-4 inline mr-2" />
@@ -327,7 +327,7 @@ export default function BankingPage() {
           className={`px-4 py-2 font-medium text-sm border-b-2 -mb-px transition-colors ${
             activeTab === 'transactions'
               ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           <ArrowsRightLeftIcon className="w-4 h-4 inline mr-2" />
@@ -338,7 +338,7 @@ export default function BankingPage() {
           className={`px-4 py-2 font-medium text-sm border-b-2 -mb-px transition-colors ${
             activeTab === 'reconciliation'
               ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           <CheckCircleIcon className="w-4 h-4 inline mr-2" />
@@ -350,25 +350,25 @@ export default function BankingPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Balance</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Balance</p>
             <p className="text-2xl font-bold text-emerald-600">{fc(totalBalance)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Active Accounts</p>
-            <p className="text-2xl font-bold text-gray-900">{activeAccounts}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Active Accounts</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeAccounts}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Transactions</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
             <p className="text-2xl font-bold text-blue-600">{bankTransactions.length}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Unreconciled</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Unreconciled</p>
             <p className="text-2xl font-bold text-orange-600">
               {bankTransactions.filter(t => !t.isReconciled).length}
             </p>
@@ -386,7 +386,7 @@ export default function BankingPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
               rightIcon={searchQuery ? (
-                <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <XMarkIcon className="w-5 h-5" />
                 </button>
               ) : undefined}
@@ -397,8 +397,8 @@ export default function BankingPage() {
             {filteredAccounts.length === 0 ? (
               <Card className="col-span-full">
                 <CardContent className="text-center py-12">
-                  <BuildingLibraryIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500 mb-4">No bank accounts found</p>
+                  <BuildingLibraryIcon className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">No bank accounts found</p>
                   <Button onClick={() => handleOpenAccountModal()}>Add your first account</Button>
                 </CardContent>
               </Card>
@@ -408,12 +408,12 @@ export default function BankingPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                           <BuildingLibraryIcon className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
                           <CardTitle className="text-lg">{account.accountName}</CardTitle>
-                          <p className="text-sm text-gray-500">{account.bankName}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{account.bankName}</p>
                         </div>
                       </div>
                       <Badge variant={account.isActive ? 'success' : 'default'}>
@@ -424,22 +424,22 @@ export default function BankingPage() {
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Account #</span>
-                        <span className="font-mono">{account.accountNumber || '****'}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Account #</span>
+                        <span className="font-mono dark:text-gray-200">{account.accountNumber || '****'}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Type</span>
-                        <span className="capitalize">{account.accountType}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Type</span>
+                        <span className="capitalize dark:text-gray-200">{account.accountType}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Balance</span>
+                        <span className="text-gray-500 dark:text-gray-400">Balance</span>
                         <span className={`text-xl font-bold ${account.currentBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {fc(account.currentBalance)}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                       <Button
                         variant="outline"
                         size="sm"
@@ -488,7 +488,7 @@ export default function BankingPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
                 rightIcon={searchQuery ? (
-                  <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                  <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     <XMarkIcon className="w-5 h-5" />
                   </button>
                 ) : undefined}
@@ -497,7 +497,7 @@ export default function BankingPage() {
             <select
               value={selectedAccount?.id || ''}
               onChange={(e) => setSelectedAccount(bankAccounts.find(a => a.id === e.target.value) || null)}
-              className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
+              className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-200 text-sm"
             >
               <option value="">All Accounts</option>
               {bankAccounts.map((a) => (
@@ -522,7 +522,7 @@ export default function BankingPage() {
               <TableBody>
                 {filteredTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <p className="mb-4">No transactions found</p>
                       <Button onClick={handleOpenTransactionModal}>Add Transaction</Button>
                     </TableCell>
@@ -536,16 +536,16 @@ export default function BankingPage() {
 
                     return (
                       <TableRow key={txn.id}>
-                        <TableCell className="text-gray-500">{formatDate(txn.transactionDate)}</TableCell>
+                        <TableCell className="text-gray-500 dark:text-gray-400">{formatDate(txn.transactionDate)}</TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-gray-900">{txn.description}</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{txn.description}</p>
                             {txn.reference && (
-                              <p className="text-sm text-gray-500">Ref: {txn.reference}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Ref: {txn.reference}</p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-500">{account?.accountName || '-'}</TableCell>
+                        <TableCell className="text-gray-500 dark:text-gray-400">{account?.accountName || '-'}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <TypeIcon className={`w-4 h-4 ${typeInfo?.color}`} />
@@ -587,17 +587,17 @@ export default function BankingPage() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Book Balance</span>
+                    <span className="text-gray-500 dark:text-gray-400">Book Balance</span>
                     <span className="font-medium">{fc(account.currentBalance)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Last Synced</span>
-                    <span className="text-gray-500">
+                    <span className="text-gray-500 dark:text-gray-400">Last Synced</span>
+                    <span className="text-gray-500 dark:text-gray-400">
                       {account.lastSyncedAt ? formatDate(account.lastSyncedAt) : 'Never'}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Uncleared Items</span>
+                    <span className="text-gray-500 dark:text-gray-400">Uncleared Items</span>
                     <span className="font-medium text-orange-600">
                       {bankTransactions.filter(t => t.bankAccountId === account.id && !t.isReconciled).length}
                     </span>
@@ -634,11 +634,11 @@ export default function BankingPage() {
             />
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bank *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bank *</label>
                 <select
                   value={accountForm.bankName}
                   onChange={(e) => setAccountForm({ ...accountForm, bankName: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="">Select bank</option>
                   {JAMAICA_BANKS.map((bank) => (
@@ -647,11 +647,11 @@ export default function BankingPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Type</label>
                 <select
                   value={accountForm.accountType}
                   onChange={(e) => setAccountForm({ ...accountForm, accountType: e.target.value as BankAccount['accountType'] })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   {ACCOUNT_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -681,7 +681,7 @@ export default function BankingPage() {
                 onChange={(e) => setAccountForm({ ...accountForm, isActive: e.target.checked })}
                 className="rounded border-gray-300"
               />
-              <span className="text-sm text-gray-700">Active</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
             </label>
           </div>
         </ModalBody>
@@ -702,11 +702,11 @@ export default function BankingPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account *</label>
                 <select
                   value={transactionForm.accountId}
                   onChange={(e) => setTransactionForm({ ...transactionForm, accountId: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="">Select account</option>
                   {bankAccounts.filter(a => a.isActive).map((a) => (
@@ -715,11 +715,11 @@ export default function BankingPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type *</label>
                 <select
                   value={transactionForm.type}
                   onChange={(e) => setTransactionForm({ ...transactionForm, type: e.target.value as any })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   {TRANSACTION_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -795,16 +795,16 @@ export default function BankingPage() {
               />
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Book Balance</p>
+                  <p className="text-gray-500 dark:text-gray-400">Book Balance</p>
                   <p className="text-lg font-bold">
                     {fc(bankAccounts.find(a => a.id === reconcileForm.accountId)?.currentBalance || 0)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Statement Balance</p>
+                  <p className="text-gray-500 dark:text-gray-400">Statement Balance</p>
                   <p className="text-lg font-bold">
                     {fc(parseFloat(reconcileForm.statementBalance) || 0)}
                   </p>
@@ -812,7 +812,7 @@ export default function BankingPage() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Mark transactions as cleared to reconcile your account with your bank statement.
             </p>
           </div>

@@ -140,17 +140,17 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-3xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-lg">
               YB
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Welcome to YaadBooks</h1>
-              <p className="text-sm text-gray-500">Let&apos;s set up your business in a few steps</p>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Welcome to YaadBooks</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Let&apos;s set up your business in a few steps</p>
             </div>
           </div>
 
@@ -162,10 +162,10 @@ export default function OnboardingPage() {
                   onClick={() => index < currentStep && setCurrentStep(index)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     index === currentStep
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                       : index < currentStep
-                        ? 'text-emerald-600 hover:bg-emerald-50 cursor-pointer'
-                        : 'text-gray-400'
+                        ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer'
+                        : 'text-gray-400 dark:text-gray-500'
                   }`}
                   disabled={index > currentStep}
                 >
@@ -178,7 +178,7 @@ export default function OnboardingPage() {
                   <span className="sm:hidden">{index + 1}</span>
                 </button>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 ${index < currentStep ? 'bg-emerald-300' : 'bg-gray-200'}`} />
+                  <div className={`flex-1 h-0.5 ${index < currentStep ? 'bg-emerald-300' : 'bg-gray-200 dark:bg-gray-700'}`} />
                 )}
               </React.Fragment>
             ))}
@@ -189,61 +189,61 @@ export default function OnboardingPage() {
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 py-8">
         {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-6 text-sm">
             {error}
           </div>
         )}
 
         {/* Step 1: Company Info */}
         {currentStep === 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Company Information</h2>
-              <p className="text-sm text-gray-500 mt-1">Basic details about your business</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Company Information</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Basic details about your business</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Business Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={data.businessName}
                   onChange={(e) => updateField('businessName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="e.g. Dolphy's Auto Parts Ltd"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">TRN (Tax Registration Number)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">TRN (Tax Registration Number)</label>
                 <input
                   type="text"
                   value={data.trn}
                   onChange={(e) => updateField('trn', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="000-000-000"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">GCT Registration Number</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">GCT Registration Number</label>
                 <input
                   type="text"
                   value={data.gctNumber}
                   onChange={(e) => updateField('gctNumber', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Optional"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
                 <select
                   value={data.industry}
                   onChange={(e) => updateField('industry', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="">Select industry</option>
                   {INDUSTRIES.map((i) => (
@@ -253,44 +253,44 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
                 <input
                   type="tel"
                   value={data.phone}
                   onChange={(e) => updateField('phone', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="876-000-0000"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Street Address</label>
                 <input
                   type="text"
                   value={data.street}
                   onChange={(e) => updateField('street', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="123 King Street"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
                 <input
                   type="text"
                   value={data.city}
                   onChange={(e) => updateField('city', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Kingston"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Parish</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parish</label>
                 <select
                   value={data.parish}
                   onChange={(e) => updateField('parish', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="">Select parish</option>
                   {PARISHES.map((p) => (
@@ -304,19 +304,19 @@ export default function OnboardingPage() {
 
         {/* Step 2: Financial Settings */}
         {currentStep === 1 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Financial Settings</h2>
-              <p className="text-sm text-gray-500 mt-1">Configure your accounting defaults</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Financial Settings</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure your accounting defaults</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fiscal Year Start Month</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fiscal Year Start Month</label>
                 <select
                   value={data.fiscalYearStart}
                   onChange={(e) => updateField('fiscalYearStart', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="01">January</option>
                   <option value="02">February</option>
@@ -334,11 +334,11 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
                 <select
                   value={data.currency}
                   onChange={(e) => updateField('currency', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="JMD">JMD - Jamaican Dollar</option>
                   <option value="USD">USD - US Dollar</option>
@@ -348,23 +348,23 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">GCT Rate (%)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">GCT Rate (%)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={data.gctRate}
                   onChange={(e) => updateField('gctRate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
-                <p className="text-xs text-gray-400 mt-1">Jamaica standard rate is 15%</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Jamaica standard rate is 15%</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Default Payment Terms (days)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Payment Terms (days)</label>
                 <select
                   value={data.defaultPaymentTerms}
                   onChange={(e) => updateField('defaultPaymentTerms', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="0">Due on receipt</option>
                   <option value="7">Net 7</option>
@@ -376,9 +376,9 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="bg-emerald-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-emerald-800 mb-2">Jamaica-Specific Defaults</h3>
-              <ul className="text-sm text-emerald-700 space-y-1">
+            <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-2">Jamaica-Specific Defaults</h3>
+              <ul className="text-sm text-emerald-700 dark:text-emerald-400 space-y-1">
                 <li>&#8226; Chart of accounts pre-loaded with Jamaica standard GL codes</li>
                 <li>&#8226; GCT rates configured for standard (15%), telecom (25%), and tourism (10%)</li>
                 <li>&#8226; Parish-based customer/vendor addresses</li>
@@ -390,52 +390,52 @@ export default function OnboardingPage() {
 
         {/* Step 3: First Customer */}
         {currentStep === 2 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Add Your First Customer</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Your First Customer</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Optional — you can add customers later from the Customers page
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer Name</label>
                 <input
                   type="text"
                   value={data.customerName}
                   onChange={(e) => updateField('customerName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="e.g. ABC Hardware Ltd"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={data.customerEmail}
                   onChange={(e) => updateField('customerEmail', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="customer@example.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
                 <input
                   type="tel"
                   value={data.customerPhone}
                   onChange={(e) => updateField('customerPhone', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="876-000-0000"
                 />
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">What&apos;s next?</h3>
-              <ul className="text-sm text-gray-500 space-y-1">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">What&apos;s next?</h3>
+              <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
                 <li>&#8226; Create your first invoice from the Invoices page</li>
                 <li>&#8226; Set up your POS terminal for walk-in sales</li>
                 <li>&#8226; Add your products and inventory</li>
@@ -450,7 +450,7 @@ export default function OnboardingPage() {
           <button
             onClick={handleBack}
             disabled={currentStep === 0}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ArrowLeftIcon className="h-4 w-4" />
             Back
@@ -494,7 +494,7 @@ export default function OnboardingPage() {
               }
               router.push('/dashboard');
             }}
-            className="text-sm text-gray-400 hover:text-gray-600"
+            className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
           >
             Skip for now — I&apos;ll set this up later
           </button>

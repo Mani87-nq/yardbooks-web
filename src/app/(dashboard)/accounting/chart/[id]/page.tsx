@@ -27,7 +27,7 @@ export default function AccountDetailPage({ params }: PageProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <CalculatorIcon className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Account Not Found</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Account Not Found</h2>
         <Link href="/accounting/chart" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
           Back to Chart of Accounts
         </Link>
@@ -67,44 +67,44 @@ export default function AccountDetailPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/accounting/chart" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <Link href="/accounting/chart" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{account.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{account.name}</h1>
               <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getAccountTypeColor(account.type)}`}>
                 {account.type}
               </span>
             </div>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {account.accountNumber}
               {account.subType && ` • ${typeof account.subType === 'string' ? account.subType : account.subType}`}
             </p>
           </div>
         </div>
-        <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+        <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
           <PencilIcon className="w-4 h-4" />
           Edit
         </button>
       </div>
 
       {/* Balance Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <p className="text-sm text-gray-500 mb-1">Current Balance</p>
-            <p className="text-3xl font-bold text-gray-900">{formatCurrency(currentBalance)}</p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Balance</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatCurrency(currentBalance)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {account.normalBalance === 'debit' ? 'Debit' : 'Credit'} balance
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-1">YTD Debits</p>
-            <p className="text-2xl font-semibold text-gray-700">{formatCurrency(account.ytdDebits)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">YTD Debits</p>
+            <p className="text-2xl font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(account.ytdDebits)}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-1">Status</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Status</p>
             <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
               account.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
             }`}>
@@ -118,18 +118,18 @@ export default function AccountDetailPage({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           {/* Transaction History */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">Transaction History</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="font-semibold text-gray-900 dark:text-white">Transaction History</h2>
             </div>
             {accountTransactions.length === 0 ? (
               <div className="p-12 text-center">
-                <p className="text-gray-500">No transactions yet</p>
+                <p className="text-gray-500 dark:text-gray-400">No transactions yet</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-700">
                 {accountTransactions.slice(0, 20).map((transaction, index) => (
-                  <div key={index} className="p-4 hover:bg-gray-50">
+                  <div key={index} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -142,8 +142,8 @@ export default function AccountDetailPage({ params }: PageProps) {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{transaction.entry.description}</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="font-medium text-gray-900 dark:text-white">{transaction.entry.description}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {format(new Date(transaction.entry.date), 'MMM dd, yyyy')} • {transaction.entry.entryNumber}
                           </p>
                         </div>
@@ -167,29 +167,29 @@ export default function AccountDetailPage({ params }: PageProps) {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Account Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Account Information</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Account Information</h2>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm text-gray-500">Account Number</dt>
-                <dd className="font-medium text-gray-900">{account.accountNumber}</dd>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Account Number</dt>
+                <dd className="font-medium text-gray-900 dark:text-white">{account.accountNumber}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Account Type</dt>
-                <dd className="font-medium text-gray-900 capitalize">{account.type}</dd>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Account Type</dt>
+                <dd className="font-medium text-gray-900 dark:text-white capitalize">{account.type}</dd>
               </div>
               {account.subType && (
                 <div>
-                  <dt className="text-sm text-gray-500">Sub Type</dt>
-                  <dd className="font-medium text-gray-900 capitalize">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Sub Type</dt>
+                  <dd className="font-medium text-gray-900 dark:text-white capitalize">
                     {typeof account.subType === 'string' ? account.subType.replace('_', ' ') : account.subType}
                   </dd>
                 </div>
               )}
               {account.normalBalance && (
                 <div>
-                  <dt className="text-sm text-gray-500">Normal Balance</dt>
-                  <dd className="font-medium text-gray-900 capitalize">{account.normalBalance}</dd>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Normal Balance</dt>
+                  <dd className="font-medium text-gray-900 dark:text-white capitalize">{account.normalBalance}</dd>
                 </div>
               )}
             </dl>
@@ -197,15 +197,15 @@ export default function AccountDetailPage({ params }: PageProps) {
 
           {/* Description */}
           {account.description && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-2">Description</h2>
-              <p className="text-gray-700">{account.description}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-2">Description</h2>
+              <p className="text-gray-700 dark:text-gray-300">{account.description}</p>
             </div>
           )}
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
             <div className="space-y-2">
               <Link
                 href="/accounting/journal"
@@ -213,7 +213,7 @@ export default function AccountDetailPage({ params }: PageProps) {
               >
                 New Journal Entry
               </Link>
-              <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+              <button className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
                 Export Transactions
               </button>
             </div>

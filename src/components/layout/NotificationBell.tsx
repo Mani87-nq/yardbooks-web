@@ -147,10 +147,10 @@ export function NotificationBell() {
       {/* Bell button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+        className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         aria-label="Notifications"
       >
-        <BellIcon className="h-6 w-6 text-gray-600" />
+        <BellIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -160,10 +160,10 @@ export function NotificationBell() {
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 max-h-[480px] bg-white rounded-xl shadow-lg border border-gray-200 z-50 flex flex-col overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-96 max-h-[480px] bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900/30 border border-gray-200 dark:border-gray-700 z-50 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
               Notifications
             </h3>
             {unreadCount > 0 && (
@@ -178,11 +178,11 @@ export function NotificationBell() {
           </div>
 
           {/* Notification list */}
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700">
             {recentNotifications.length === 0 ? (
               <div className="py-10 text-center">
-                <BellIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No notifications yet</p>
+                <BellIcon className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet</p>
               </div>
             ) : (
               recentNotifications.map((n) => {
@@ -191,15 +191,15 @@ export function NotificationBell() {
                   <button
                     key={n.id}
                     onClick={() => handleNotificationClick(n)}
-                    className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
-                      !n.isRead ? 'bg-emerald-50/40' : ''
+                    className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                      !n.isRead ? 'bg-emerald-50/40 dark:bg-emerald-900/20' : ''
                     }`}
                   >
                     {/* Unread indicator + icon */}
                     <div className="relative flex-shrink-0 mt-0.5">
                       <div
                         className={`p-1.5 rounded-lg ${
-                          !n.isRead ? 'bg-emerald-100' : 'bg-gray-100'
+                          !n.isRead ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-gray-100 dark:bg-gray-700'
                         }`}
                       >
                         <Icon
@@ -220,13 +220,13 @@ export function NotificationBell() {
                       <p
                         className={`text-sm leading-snug ${
                           !n.isRead
-                            ? 'font-semibold text-gray-900'
-                            : 'font-medium text-gray-700'
+                            ? 'font-semibold text-gray-900 dark:text-white'
+                            : 'font-medium text-gray-700 dark:text-gray-300'
                         }`}
                       >
                         {n.title}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
                         {n.message}
                       </p>
                       <p className="text-[11px] text-gray-400 mt-1">
@@ -242,7 +242,7 @@ export function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 px-4 py-2.5">
+          <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-2.5">
             <button
               onClick={() => {
                 setOpen(false);

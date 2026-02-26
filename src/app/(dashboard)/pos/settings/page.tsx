@@ -133,8 +133,8 @@ export default function POSSettingsPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">POS Settings</h1>
-            <p className="text-gray-500">Configure your point of sale system</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">POS Settings</h1>
+            <p className="text-gray-500 dark:text-gray-400">Configure your point of sale system</p>
           </div>
         </div>
         <div className="flex items-center justify-center py-16">
@@ -155,16 +155,16 @@ export default function POSSettingsPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">POS Settings</h1>
-            <p className="text-gray-500">Configure your point of sale system</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">POS Settings</h1>
+            <p className="text-gray-500 dark:text-gray-400">Configure your point of sale system</p>
           </div>
         </div>
         <Card>
           <CardContent>
             <div className="text-center py-12">
               <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
-              <p className="text-gray-700 font-medium mb-2">Failed to load settings</p>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Failed to load settings</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                 {settingsError instanceof Error ? settingsError.message : 'Please try again.'}
               </p>
               <Button onClick={() => refetchSettings()}>Retry</Button>
@@ -298,7 +298,7 @@ export default function POSSettingsPage() {
               onChange={(e) => updateLocal({ taxIncludedInPrice: e.target.checked })}
               className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
             />
-            <label htmlFor="taxIncluded" className="text-sm text-gray-700">
+            <label htmlFor="taxIncluded" className="text-sm text-gray-700 dark:text-gray-300">
               Prices include GCT
             </label>
           </div>
@@ -315,7 +315,7 @@ export default function POSSettingsPage() {
             {paymentMethods.map((method) => (
               <label
                 key={method.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
+                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <input
                   type="checkbox"
@@ -329,7 +329,7 @@ export default function POSSettingsPage() {
                   }}
                   className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                <span className="text-sm font-medium text-gray-700">{method.label}</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{method.label}</span>
               </label>
             ))}
           </div>
@@ -347,19 +347,19 @@ export default function POSSettingsPage() {
               <ArrowPathIcon className="w-5 h-5 text-gray-400 animate-spin" />
             </div>
           ) : terminals.length === 0 ? (
-            <p className="text-gray-500 text-sm">No terminals configured yet.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No terminals configured yet.</p>
           ) : (
             <div className="space-y-3">
               {terminals.map((terminal) => (
                 <div
                   key={terminal.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <ComputerDesktopIcon className="w-6 h-6 text-gray-400" />
                     <div>
-                      <p className="font-medium text-gray-900">{terminal.name}</p>
-                      <p className="text-sm text-gray-500">{terminal.location}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{terminal.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{terminal.location}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -377,7 +377,7 @@ export default function POSSettingsPage() {
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-100">
+          <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
             <Input
               placeholder="Terminal name"
               value={newTerminalName}
@@ -427,7 +427,7 @@ export default function POSSettingsPage() {
                 onChange={(e) => updateLocal({ [option.key]: e.target.checked })}
                 className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-sm text-gray-700">{option.label}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
             </label>
           ))}
         </CardContent>

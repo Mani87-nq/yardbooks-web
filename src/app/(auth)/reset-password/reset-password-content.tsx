@@ -96,14 +96,14 @@ export default function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex">
         <BrandingPanel />
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
           <div className="w-full max-w-md text-center">
             <MobileLogo />
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
               <XCircleIcon className="h-8 w-8 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Invalid Reset Link</h2>
-            <p className="text-gray-500 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invalid Reset Link</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
               This password reset link is invalid. It may be missing the required token. Please request a new password reset.
             </p>
             <Link
@@ -112,7 +112,7 @@ export default function ResetPasswordContent() {
             >
               Request New Reset Link
             </Link>
-            <p className="mt-4 text-sm text-gray-500">
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
               <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
                 Back to Sign in
               </Link>
@@ -128,14 +128,14 @@ export default function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex">
         <BrandingPanel />
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
           <div className="w-full max-w-md text-center">
             <MobileLogo />
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mb-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-6">
               <CheckCircleIcon className="h-8 w-8 text-emerald-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Reset Successful</h2>
-            <p className="text-gray-500 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Password Reset Successful</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
               Your password has been updated. All existing sessions have been logged out for security. You can now sign in with your new password.
             </p>
             <Link
@@ -155,14 +155,14 @@ export default function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex">
         <BrandingPanel />
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
           <div className="w-full max-w-md text-center">
             <MobileLogo />
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 mb-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 mb-6">
               <XCircleIcon className="h-8 w-8 text-amber-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Link Expired</h2>
-            <p className="text-gray-500 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Link Expired</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
               {error || 'This password reset link has expired or is invalid. Please request a new one.'}
             </p>
             <Link
@@ -171,7 +171,7 @@ export default function ResetPasswordContent() {
             >
               Request New Reset Link
             </Link>
-            <p className="mt-4 text-sm text-gray-500">
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
               <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
                 Back to Sign in
               </Link>
@@ -186,17 +186,17 @@ export default function ResetPasswordContent() {
   return (
     <div className="min-h-screen flex">
       <BrandingPanel />
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
         <div className="w-full max-w-md">
           <MobileLogo />
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Set a new password</h2>
-          <p className="text-gray-500 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Set a new password</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8">
             Choose a strong password for your YaadBooks account.
           </p>
 
           {error && !isExpired && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
               {error}
             </div>
           )}
@@ -204,18 +204,18 @@ export default function ResetPasswordContent() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* New Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 New Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                  <LockClosedIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Enter your new password"
                   autoFocus
                 />
@@ -225,9 +225,9 @@ export default function ResetPasswordContent() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                    <EyeIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   )}
                 </button>
               </div>
@@ -235,8 +235,8 @@ export default function ResetPasswordContent() {
 
             {/* Password Strength Indicator */}
             {password.length > 0 && (
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Password Requirements
                 </p>
                 {requirementResults.map((req) => (
@@ -244,9 +244,9 @@ export default function ResetPasswordContent() {
                     {req.met ? (
                       <CheckCircleIcon className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                     ) : (
-                      <XCircleIcon className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                      <XCircleIcon className="h-4 w-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
                     )}
-                    <span className={req.met ? 'text-emerald-700' : 'text-gray-500'}>
+                    <span className={req.met ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}>
                       {req.label}
                     </span>
                   </div>
@@ -256,21 +256,21 @@ export default function ResetPasswordContent() {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Confirm Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                  <LockClosedIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
                     confirmPassword.length > 0 && !passwordsMatch
                       ? 'border-red-300'
-                      : 'border-gray-300'
+                      : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Confirm your new password"
                 />
@@ -280,9 +280,9 @@ export default function ResetPasswordContent() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showConfirmPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                    <EyeIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   )}
                 </button>
               </div>
@@ -306,7 +306,7 @@ export default function ResetPasswordContent() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-gray-500">
+          <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
               Back to Sign in
             </Link>
@@ -353,7 +353,7 @@ function MobileLogo() {
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
         YB
       </div>
-      <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+      <span className="text-2xl font-bold text-gray-900 dark:text-white">YaadBooks</span>
     </div>
   );
 }

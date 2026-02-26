@@ -449,15 +449,15 @@ export default function HelpPage() {
     <div className="max-w-5xl mx-auto space-y-10">
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Help Center</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Help Center</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
           Find answers to common questions about YaadBooks
         </p>
       </div>
 
       {/* ── Search ──────────────────────────────────────────────────── */}
       <div className="relative">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           value={searchQuery}
@@ -467,7 +467,7 @@ export default function HelpPage() {
             setOpenItems(new Set());
           }}
           placeholder="Search help articles..."
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
+          className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-200 dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
         />
       </div>
 
@@ -481,8 +481,8 @@ export default function HelpPage() {
           className={cn(
             'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
             !activeCategory
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
           )}
         >
           All
@@ -499,8 +499,8 @@ export default function HelpPage() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                 cat === activeCategory
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               )}
             >
               <Icon className="h-4 w-4" />
@@ -513,8 +513,8 @@ export default function HelpPage() {
       {/* ── FAQ Items ───────────────────────────────────────────────── */}
       <div className="space-y-3">
         {filteredFAQ.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <QuestionMarkCircleIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <QuestionMarkCircleIcon className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <p className="text-lg font-medium">No results found</p>
             <p className="text-sm mt-1">Try a different search term or category</p>
           </div>
@@ -525,28 +525,28 @@ export default function HelpPage() {
             return (
               <div
                 key={`${item.category}-${globalIndex}`}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden"
               >
                 <button
                   onClick={() => toggleItem(globalIndex)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <span className="text-xs text-emerald-600 font-medium uppercase tracking-wide">
                       {item.category}
                     </span>
-                    <p className="text-sm font-medium text-gray-900 mt-0.5">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
                       {item.question}
                     </p>
                   </div>
                   {isOpen ? (
-                    <ChevronUpIcon className="h-5 w-5 text-gray-400 flex-shrink-0 ml-4" />
+                    <ChevronUpIcon className="h-5 w-5 text-gray-400 dark:text-gray-500 flex-shrink-0 ml-4" />
                   ) : (
-                    <ChevronDownIcon className="h-5 w-5 text-gray-400 flex-shrink-0 ml-4" />
+                    <ChevronDownIcon className="h-5 w-5 text-gray-400 dark:text-gray-500 flex-shrink-0 ml-4" />
                   )}
                 </button>
                 {isOpen && (
-                  <div className="px-5 pb-4 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-3">
+                  <div className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-700 pt-3">
                     {item.answer}
                   </div>
                 )}
@@ -558,7 +558,7 @@ export default function HelpPage() {
 
       {/* ── Quick Links ─────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {QUICK_LINKS.map((link) => (
             <Link key={link.href} href={link.href}>
@@ -567,15 +567,15 @@ export default function HelpPage() {
                 className="group h-full hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer"
               >
                 <CardContent className="flex items-start gap-3 p-4">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 flex-shrink-0 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 transition-colors">
                     <link.icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 group-hover:text-emerald-700 transition-colors flex items-center gap-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1">
                       {link.label}
                       <ArrowRightIcon className="h-3.5 w-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{link.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{link.description}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -585,44 +585,44 @@ export default function HelpPage() {
       </div>
 
       {/* ── Contact Support ─────────────────────────────────────────── */}
-      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           Still need help?
         </h2>
-        <p className="text-sm text-gray-500 mb-5">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
           Our support team is here to assist you with any questions.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <a
             href="mailto:support@yaadbooks.com"
-            className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition-all"
+            className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm dark:hover:shadow-gray-900/20 transition-all"
           >
             <EnvelopeIcon className="h-6 w-6 text-emerald-600" />
             <div>
-              <p className="text-sm font-medium text-gray-900">Email Support</p>
-              <p className="text-xs text-gray-500">support@yaadbooks.com</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Email Support</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">support@yaadbooks.com</p>
             </div>
           </a>
           <a
             href="tel:+18766139119"
-            className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition-all"
+            className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm dark:hover:shadow-gray-900/20 transition-all"
           >
             <PhoneIcon className="h-6 w-6 text-emerald-600" />
             <div>
-              <p className="text-sm font-medium text-gray-900">Phone Support</p>
-              <p className="text-xs text-gray-500">876-613-9119</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Phone Support</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">876-613-9119</p>
             </div>
           </a>
           <a
             href="https://wa.me/18766139119"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition-all"
+            className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm dark:hover:shadow-gray-900/20 transition-all"
           >
             <ChatBubbleLeftRightIcon className="h-6 w-6 text-emerald-600" />
             <div>
-              <p className="text-sm font-medium text-gray-900">WhatsApp</p>
-              <p className="text-xs text-gray-500">Chat with us</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">WhatsApp</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Chat with us</p>
             </div>
           </a>
         </div>

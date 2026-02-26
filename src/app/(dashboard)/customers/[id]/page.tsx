@@ -48,8 +48,8 @@ export default function CustomerDetailPage() {
         <Card>
           <div className="p-12 text-center">
             <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/3 mx-auto" />
-              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mx-auto" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mx-auto" />
             </div>
           </div>
         </Card>
@@ -62,7 +62,7 @@ export default function CustomerDetailPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <Card>
           <div className="p-12 text-center">
-            <p className="text-gray-500 mb-4">Customer not found</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">Customer not found</p>
             <Button onClick={() => router.push('/customers')}>
               Back to Customers
             </Button>
@@ -87,7 +87,7 @@ export default function CustomerDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl font-bold text-gray-900">{customer.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{customer.name}</h1>
               <Badge
                 variant={
                   customer.type === 'customer'
@@ -101,7 +101,7 @@ export default function CustomerDetailPage() {
               </Badge>
             </div>
             {customer.companyName && (
-              <p className="text-gray-500">{customer.companyName}</p>
+              <p className="text-gray-500 dark:text-gray-400">{customer.companyName}</p>
             )}
           </div>
         </div>
@@ -134,13 +134,13 @@ export default function CustomerDetailPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Type</p>
-            <p className="text-2xl font-bold text-gray-900 capitalize">{customer.type}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white capitalize">{customer.type}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Status</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
             <p className="text-2xl font-bold text-emerald-600">
               {customer.isActive !== false ? 'Active' : 'Inactive'}
             </p>
@@ -148,16 +148,16 @@ export default function CustomerDetailPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Balance</p>
-            <p className={`text-2xl font-bold ${(customer.balance || 0) > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Balance</p>
+            <p className={`text-2xl font-bold ${(customer.balance || 0) > 0 ? 'text-orange-600' : 'text-gray-900 dark:text-white'}`}>
               {fc(customer.balance || 0)}
             </p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Customer Since</p>
-            <p className="text-lg font-bold text-gray-900">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Customer Since</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
               {customer.createdAt ? formatDate(customer.createdAt) : 'N/A'}
             </p>
           </div>
@@ -168,11 +168,11 @@ export default function CustomerDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Contact Information</h2>
             <div className="space-y-3">
               {customer.email && (
                 <div className="flex items-center gap-3">
-                  <EnvelopeIcon className="w-5 h-5 text-gray-400" />
+                  <EnvelopeIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   <a
                     href={`mailto:${customer.email}`}
                     className="text-emerald-600 hover:text-emerald-700"
@@ -184,7 +184,7 @@ export default function CustomerDetailPage() {
 
               {customer.phone && (
                 <div className="flex items-center gap-3">
-                  <PhoneIcon className="w-5 h-5 text-gray-400" />
+                  <PhoneIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   <a
                     href={`tel:${customer.phone}`}
                     className="text-emerald-600 hover:text-emerald-700"
@@ -196,8 +196,8 @@ export default function CustomerDetailPage() {
 
               {(customer.addressStreet || customer.addressCity || customer.addressParish) && (
                 <div className="flex items-start gap-3">
-                  <MapPinIcon className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div className="text-gray-700">
+                  <MapPinIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 mt-0.5" />
+                  <div className="text-gray-700 dark:text-gray-300">
                     {customer.addressStreet && <p>{customer.addressStreet}</p>}
                     <p>
                       {[customer.addressCity, customer.addressParish]
@@ -210,7 +210,7 @@ export default function CustomerDetailPage() {
               )}
 
               {!customer.email && !customer.phone && !customer.addressStreet && !customer.addressCity && !customer.addressParish && (
-                <p className="text-gray-400 text-sm">No contact information provided</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">No contact information provided</p>
               )}
             </div>
           </div>
@@ -218,31 +218,31 @@ export default function CustomerDetailPage() {
 
         <Card>
           <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Business Details</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Business Details</h2>
             <div className="space-y-3">
               {customer.trnNumber && (
                 <div>
-                  <p className="text-sm text-gray-500">TRN Number</p>
-                  <p className="font-medium text-gray-900">{customer.trnNumber}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">TRN Number</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{customer.trnNumber}</p>
                 </div>
               )}
 
               {customer.notes && (
                 <div>
-                  <p className="text-sm text-gray-500">Notes</p>
-                  <p className="text-gray-700">{customer.notes}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Notes</p>
+                  <p className="text-gray-700 dark:text-gray-300">{customer.notes}</p>
                 </div>
               )}
 
               <div>
-                <p className="text-sm text-gray-500">Created</p>
-                <p className="text-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Created</p>
+                <p className="text-gray-700 dark:text-gray-300">
                   {customer.createdAt ? formatDate(customer.createdAt) : 'N/A'}
                 </p>
               </div>
 
               {!customer.trnNumber && !customer.notes && (
-                <p className="text-gray-400 text-sm">No business details provided</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">No business details provided</p>
               )}
             </div>
           </div>
@@ -253,8 +253,8 @@ export default function CustomerDetailPage() {
       <Card>
         <div className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <DocumentTextIcon className="w-5 h-5 text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            <DocumentTextIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button
@@ -281,10 +281,10 @@ export default function CustomerDetailPage() {
       >
         <ModalBody>
           <div className="space-y-3">
-            <p className="text-gray-700">
+            <p className="text-gray-700 dark:text-gray-300">
               Are you sure you want to delete <strong>{customer.name}</strong>?
             </p>
-            <p className="text-sm text-gray-500">This action cannot be undone.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
           </div>
         </ModalBody>
         <ModalFooter>

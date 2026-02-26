@@ -310,8 +310,8 @@ export default function AgingReportPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Aging Report</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Aging Report</h1>
+          <p className="text-gray-500 dark:text-gray-400">
             Outstanding balances by aging period as of {formatDate(new Date())}
           </p>
         </div>
@@ -328,13 +328,13 @@ export default function AgingReportPage() {
       </div>
 
       {/* Tab Toggle */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => { setActiveTab('ar'); setExpandedRows(new Set()); }}
           className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'ar'
               ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
           }`}
         >
           Accounts Receivable
@@ -344,7 +344,7 @@ export default function AgingReportPage() {
           className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'ap'
               ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
           }`}
         >
           Accounts Payable
@@ -355,38 +355,38 @@ export default function AgingReportPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Current</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current</p>
             <p className="text-lg font-bold text-emerald-600 mt-1">{fc(data.totals.current)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">1-30 Days</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">1-30 Days</p>
             <p className="text-lg font-bold text-yellow-600 mt-1">{fc(data.totals.days1to30)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">31-60 Days</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">31-60 Days</p>
             <p className="text-lg font-bold text-orange-500 mt-1">{fc(data.totals.days31to60)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">61-90 Days</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">61-90 Days</p>
             <p className="text-lg font-bold text-orange-600 mt-1">{fc(data.totals.days61to90)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">90+ Days</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">90+ Days</p>
             <p className="text-lg font-bold text-red-600 mt-1">{fc(data.totals.days90plus)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</p>
-            <p className="text-lg font-bold text-gray-900 mt-1">{fc(data.totals.total)}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">{fc(data.totals.total)}</p>
           </CardContent>
         </Card>
       </div>
@@ -401,7 +401,7 @@ export default function AgingReportPage() {
         <CardContent>
           {data.groups.length === 0 ? (
             <div className="px-6 pb-6">
-              <p className="text-gray-500 text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400 text-center py-12">
                 {activeTab === 'ar'
                   ? 'No outstanding receivables found.'
                   : 'No outstanding payables found.'}
@@ -411,17 +411,17 @@ export default function AgingReportPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left py-3 px-6 font-semibold text-gray-600 w-8"></th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">
+                  <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    <th className="text-left py-3 px-6 font-semibold text-gray-600 dark:text-gray-400 w-8"></th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">
                       {activeTab === 'ar' ? 'Customer' : 'Vendor / Category'}
                     </th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600">Current</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600">1-30 Days</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600">31-60 Days</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600">61-90 Days</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600">90+ Days</th>
-                    <th className="text-right py-3 px-6 font-semibold text-gray-600">Total</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Current</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">1-30 Days</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">31-60 Days</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">61-90 Days</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">90+ Days</th>
+                    <th className="text-right py-3 px-6 font-semibold text-gray-600 dark:text-gray-400">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -429,17 +429,17 @@ export default function AgingReportPage() {
                     <React.Fragment key={group.id}>
                       {/* Group Row */}
                       <tr
-                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                         onClick={() => toggleRow(group.id)}
                       >
                         <td className="py-3 px-6">
                           {expandedRows.has(group.id) ? (
-                            <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                            <ChevronDownIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                           ) : (
-                            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+                            <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                           )}
                         </td>
-                        <td className="py-3 px-4 font-medium text-gray-900">{group.name}</td>
+                        <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{group.name}</td>
                         <td className="py-3 px-4 text-right tabular-nums">
                           {group.buckets.current > 0 ? fc(group.buckets.current) : '-'}
                         </td>
@@ -463,7 +463,7 @@ export default function AgingReportPage() {
                             <span className="text-red-600 font-medium">{fc(group.buckets.days90plus)}</span>
                           ) : '-'}
                         </td>
-                        <td className="py-3 px-6 text-right font-semibold tabular-nums text-gray-900">
+                        <td className="py-3 px-6 text-right font-semibold tabular-nums text-gray-900 dark:text-white">
                           {fc(group.buckets.total)}
                         </td>
                       </tr>
@@ -474,22 +474,22 @@ export default function AgingReportPage() {
                         return (
                           <tr
                             key={item.id}
-                            className="border-b border-gray-50 bg-gray-50/50"
+                            className="border-b border-gray-50 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50"
                           >
                             <td className="py-2 px-6"></td>
                             <td className="py-2 px-4 pl-10">
                               <div className="flex items-center gap-3">
-                                <span className="text-gray-600 text-xs font-mono">{item.reference}</span>
+                                <span className="text-gray-600 dark:text-gray-400 text-xs font-mono">{item.reference}</span>
                                 <Badge variant={badgeInfo.variant} size="sm">
                                   {badgeInfo.label}
                                 </Badge>
                                 {item.daysOverdue > 0 && (
-                                  <span className="text-xs text-gray-400">
+                                  <span className="text-xs text-gray-400 dark:text-gray-500">
                                     {item.daysOverdue} {item.daysOverdue === 1 ? 'day' : 'days'} overdue
                                   </span>
                                 )}
                               </div>
-                              <div className="flex gap-4 mt-1 text-xs text-gray-400">
+                              <div className="flex gap-4 mt-1 text-xs text-gray-400 dark:text-gray-500">
                                 <span>Date: {formatDate(item.date)}</span>
                                 <span>Due: {formatDate(item.dueDate)}</span>
                                 {item.amount !== item.balance && (
@@ -497,22 +497,22 @@ export default function AgingReportPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-2 px-4 text-right tabular-nums text-gray-500">
+                            <td className="py-2 px-4 text-right tabular-nums text-gray-500 dark:text-gray-400">
                               {item.bucket === 'current' ? fc(item.balance) : '-'}
                             </td>
-                            <td className="py-2 px-4 text-right tabular-nums text-gray-500">
+                            <td className="py-2 px-4 text-right tabular-nums text-gray-500 dark:text-gray-400">
                               {item.bucket === 'days1to30' ? fc(item.balance) : '-'}
                             </td>
-                            <td className="py-2 px-4 text-right tabular-nums text-gray-500">
+                            <td className="py-2 px-4 text-right tabular-nums text-gray-500 dark:text-gray-400">
                               {item.bucket === 'days31to60' ? fc(item.balance) : '-'}
                             </td>
-                            <td className="py-2 px-4 text-right tabular-nums text-gray-500">
+                            <td className="py-2 px-4 text-right tabular-nums text-gray-500 dark:text-gray-400">
                               {item.bucket === 'days61to90' ? fc(item.balance) : '-'}
                             </td>
-                            <td className="py-2 px-4 text-right tabular-nums text-gray-500">
+                            <td className="py-2 px-4 text-right tabular-nums text-gray-500 dark:text-gray-400">
                               {item.bucket === 'days90plus' ? fc(item.balance) : '-'}
                             </td>
-                            <td className="py-2 px-6 text-right tabular-nums text-gray-600 font-medium">
+                            <td className="py-2 px-6 text-right tabular-nums text-gray-600 dark:text-gray-400 font-medium">
                               {fc(item.balance)}
                             </td>
                           </tr>
@@ -522,9 +522,9 @@ export default function AgingReportPage() {
                   ))}
 
                   {/* Grand Total Row */}
-                  <tr className="bg-gray-100 border-t-2 border-gray-300">
+                  <tr className="bg-gray-100 dark:bg-gray-700 border-t-2 border-gray-300 dark:border-gray-600">
                     <td className="py-4 px-6"></td>
-                    <td className="py-4 px-4 font-bold text-gray-900">Grand Total</td>
+                    <td className="py-4 px-4 font-bold text-gray-900 dark:text-white">Grand Total</td>
                     <td className="py-4 px-4 text-right font-bold tabular-nums text-emerald-600">
                       {fc(data.totals.current)}
                     </td>
@@ -540,7 +540,7 @@ export default function AgingReportPage() {
                     <td className="py-4 px-4 text-right font-bold tabular-nums text-red-600">
                       {fc(data.totals.days90plus)}
                     </td>
-                    <td className="py-4 px-6 text-right font-bold tabular-nums text-gray-900">
+                    <td className="py-4 px-6 text-right font-bold tabular-nums text-gray-900 dark:text-white">
                       {fc(data.totals.total)}
                     </td>
                   </tr>

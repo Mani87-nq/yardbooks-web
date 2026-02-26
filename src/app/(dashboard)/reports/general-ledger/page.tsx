@@ -65,7 +65,7 @@ function getAccountTypeBadgeColor(type: string): string {
     income: 'bg-emerald-100 text-emerald-700',
     expense: 'bg-orange-100 text-orange-700',
   };
-  return colors[type] || 'bg-gray-100 text-gray-700';
+  return colors[type] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
 }
 
 // ---------------------------------------------------------------------------
@@ -371,8 +371,8 @@ export default function GeneralLedgerPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">General Ledger</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">General Ledger</h1>
+          <p className="text-gray-500 dark:text-gray-400">
             Detailed transaction history for all accounts
           </p>
         </div>
@@ -394,10 +394,10 @@ export default function GeneralLedgerPage() {
           <div className="flex flex-wrap items-end gap-4">
             {/* Date range */}
             <div className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-gray-400" />
+              <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               <div className="flex items-center gap-2">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                     From
                   </label>
                   <Input
@@ -409,9 +409,9 @@ export default function GeneralLedgerPage() {
                     className="w-40"
                   />
                 </div>
-                <span className="text-gray-400 mt-5">to</span>
+                <span className="text-gray-400 dark:text-gray-500 mt-5">to</span>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                     To
                   </label>
                   <Input
@@ -480,15 +480,15 @@ export default function GeneralLedgerPage() {
 
             {/* Account filter */}
             <div className="flex items-center gap-2">
-              <FunnelIcon className="w-5 h-5 text-gray-400" />
+              <FunnelIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                   Account
                 </label>
                 <select
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white min-w-[220px]"
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800 min-w-[220px]"
                 >
                   <option value="all">All Accounts</option>
                   {[...glAccounts]
@@ -516,27 +516,27 @@ export default function GeneralLedgerPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Accounts Shown
             </p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {activeLedgers.length}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Total Transactions
             </p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {activeLedgers.reduce((s, l) => s + l.transactions.length, 0)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Total Debits
             </p>
             <p className="text-2xl font-bold text-blue-600 mt-1">
@@ -546,7 +546,7 @@ export default function GeneralLedgerPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Total Credits
             </p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">
@@ -565,7 +565,7 @@ export default function GeneralLedgerPage() {
           <Button variant="outline" size="sm" onClick={collapseAll}>
             Collapse All
           </Button>
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-gray-400 dark:text-gray-500">
             {expandedAccounts.size} of {activeLedgers.length} expanded
           </span>
         </div>
@@ -575,10 +575,10 @@ export default function GeneralLedgerPage() {
       {activeLedgers.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">
               No transactions found for the selected period.
             </p>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
               Try adjusting the date range or account filter.
             </p>
           </CardContent>
@@ -594,20 +594,20 @@ export default function GeneralLedgerPage() {
                 <button
                   type="button"
                   onClick={() => toggleAccount(ledger.accountId)}
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                 >
                   <div className="flex items-center gap-3">
                     {isExpanded ? (
-                      <ChevronDownIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <ChevronDownIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                     ) : (
-                      <ChevronRightIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <ChevronRightIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                     )}
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm text-gray-500">
+                        <span className="font-mono text-sm text-gray-500 dark:text-gray-400">
                           {ledger.accountNumber}
                         </span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                           {ledger.accountName}
                         </span>
                         <span
@@ -618,7 +618,7 @@ export default function GeneralLedgerPage() {
                           {getAccountTypeLabel(ledger.accountType)}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {ledger.transactions.length} transaction
                         {ledger.transactions.length !== 1 ? 's' : ''} in period
                       </p>
@@ -626,14 +626,14 @@ export default function GeneralLedgerPage() {
                   </div>
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-right">
-                      <p className="text-xs text-gray-400">Opening</p>
-                      <p className="font-medium text-gray-700">
+                      <p className="text-xs text-gray-400 dark:text-gray-500">Opening</p>
+                      <p className="font-medium text-gray-700 dark:text-gray-300">
                         {fc(ledger.openingBalance)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-400">Closing</p>
-                      <p className="font-bold text-gray-900">
+                      <p className="text-xs text-gray-400 dark:text-gray-500">Closing</p>
+                      <p className="font-bold text-gray-900 dark:text-white">
                         {fc(ledger.closingBalance)}
                       </p>
                     </div>
@@ -642,11 +642,11 @@ export default function GeneralLedgerPage() {
 
                 {/* Expanded transaction detail */}
                 {isExpanded && (
-                  <div className="border-t border-gray-100">
+                  <div className="border-t border-gray-100 dark:border-gray-700">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="bg-gray-50 text-gray-600">
+                          <tr className="bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
                             <th className="text-left px-5 py-3 font-semibold w-28">
                               Date
                             </th>
@@ -669,15 +669,15 @@ export default function GeneralLedgerPage() {
                         </thead>
                         <tbody>
                           {/* Opening balance row */}
-                          <tr className="bg-emerald-50/50 border-b border-gray-100">
-                            <td className="px-5 py-2.5 text-gray-500" colSpan={3}>
-                              <span className="font-medium text-gray-700">
+                          <tr className="bg-emerald-50/50 dark:bg-emerald-900/20 border-b border-gray-100 dark:border-gray-700">
+                            <td className="px-5 py-2.5 text-gray-500 dark:text-gray-400" colSpan={3}>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">
                                 Opening Balance
                               </span>
                             </td>
                             <td className="px-3 py-2.5 text-right" />
                             <td className="px-3 py-2.5 text-right" />
-                            <td className="px-5 py-2.5 text-right font-semibold text-gray-800">
+                            <td className="px-5 py-2.5 text-right font-semibold text-gray-800 dark:text-gray-100">
                               {fc(ledger.openingBalance)}
                             </td>
                           </tr>
@@ -686,19 +686,19 @@ export default function GeneralLedgerPage() {
                           {ledger.transactions.map((txn, idx) => (
                             <tr
                               key={`${ledger.accountId}-${idx}`}
-                              className={`border-b border-gray-50 hover:bg-gray-50/80 transition-colors ${
-                                idx % 2 === 1 ? 'bg-gray-50/30' : ''
+                              className={`border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/80 transition-colors ${
+                                idx % 2 === 1 ? 'bg-gray-50/30 dark:bg-gray-800/50' : ''
                               }`}
                             >
-                              <td className="px-5 py-2.5 text-gray-600 whitespace-nowrap">
+                              <td className="px-5 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                 {formatDate(new Date(txn.date))}
                               </td>
                               <td className="px-3 py-2.5">
-                                <span className="font-mono text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                <span className="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded">
                                   {txn.entryNumber}
                                 </span>
                               </td>
-                              <td className="px-3 py-2.5 text-gray-700">
+                              <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
                                 {txn.lineDescription}
                               </td>
                               <td className="px-3 py-2.5 text-right font-mono">
@@ -707,7 +707,7 @@ export default function GeneralLedgerPage() {
                                     {fc(txn.debit)}
                                   </span>
                                 ) : (
-                                  <span className="text-gray-300">&mdash;</span>
+                                  <span className="text-gray-300 dark:text-gray-600">&mdash;</span>
                                 )}
                               </td>
                               <td className="px-3 py-2.5 text-right font-mono">
@@ -716,18 +716,18 @@ export default function GeneralLedgerPage() {
                                     {fc(txn.credit)}
                                   </span>
                                 ) : (
-                                  <span className="text-gray-300">&mdash;</span>
+                                  <span className="text-gray-300 dark:text-gray-600">&mdash;</span>
                                 )}
                               </td>
-                              <td className="px-5 py-2.5 text-right font-mono font-medium text-gray-800">
+                              <td className="px-5 py-2.5 text-right font-mono font-medium text-gray-800 dark:text-gray-100">
                                 {fc(txn.runningBalance)}
                               </td>
                             </tr>
                           ))}
 
                           {/* Closing balance / totals row */}
-                          <tr className="bg-gray-100 font-semibold">
-                            <td className="px-5 py-3 text-gray-800" colSpan={3}>
+                          <tr className="bg-gray-100 dark:bg-gray-700 font-semibold">
+                            <td className="px-5 py-3 text-gray-800 dark:text-gray-100" colSpan={3}>
                               Closing Balance
                             </td>
                             <td className="px-3 py-3 text-right text-blue-800 font-mono">
@@ -736,7 +736,7 @@ export default function GeneralLedgerPage() {
                             <td className="px-3 py-3 text-right text-emerald-800 font-mono">
                               {fc(ledger.totalCredits)}
                             </td>
-                            <td className="px-5 py-3 text-right text-gray-900 font-mono font-bold">
+                            <td className="px-5 py-3 text-right text-gray-900 dark:text-white font-mono font-bold">
                               {fc(ledger.closingBalance)}
                             </td>
                           </tr>
@@ -753,21 +753,21 @@ export default function GeneralLedgerPage() {
 
       {/* Grand totals footer */}
       {activeLedgers.length > 0 && (
-        <Card className="bg-gray-50 border-2 border-gray-200">
+        <Card className="bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-gray-900 text-lg">
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">
                   Grand Totals
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {formatDate(new Date(dateRange.start))} to{' '}
                   {formatDate(new Date(dateRange.end))}
                 </p>
               </div>
               <div className="flex items-center gap-8">
                 <div className="text-right">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                     Total Debits
                   </p>
                   <p className="text-xl font-bold text-blue-700 font-mono">
@@ -775,7 +775,7 @@ export default function GeneralLedgerPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                     Total Credits
                   </p>
                   <p className="text-xl font-bold text-emerald-700 font-mono">

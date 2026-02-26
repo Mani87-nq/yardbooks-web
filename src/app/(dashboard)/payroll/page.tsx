@@ -372,8 +372,8 @@ export default function PayrollPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Payroll</h1>
-          <p className="text-gray-500">Manage employees and process payroll</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Payroll</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage employees and process payroll</p>
         </div>
         <div className="flex gap-2">
           {activeTab === 'employees' ? (
@@ -393,13 +393,13 @@ export default function PayrollPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => handleTabChange('employees')}
           className={`px-4 py-2 font-medium text-sm border-b-2 -mb-px transition-colors ${
             activeTab === 'employees'
               ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           <UserGroupIcon className="w-4 h-4 inline mr-2" />
@@ -410,7 +410,7 @@ export default function PayrollPage() {
           className={`px-4 py-2 font-medium text-sm border-b-2 -mb-px transition-colors ${
             activeTab === 'payroll'
               ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           <BanknotesIcon className="w-4 h-4 inline mr-2" />
@@ -420,10 +420,10 @@ export default function PayrollPage() {
 
       {/* Error State */}
       {employeesFetchError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-red-800">Failed to load employees. {employeesFetchError instanceof Error ? employeesFetchError.message : ''}</p>
+            <p className="text-sm text-red-800 dark:text-red-400">Failed to load employees. {employeesFetchError instanceof Error ? employeesFetchError.message : ''}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => refetchEmployees()}>
             <ArrowPathIcon className="w-4 h-4 mr-1" />
@@ -436,26 +436,26 @@ export default function PayrollPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Employees</p>
-            <p className="text-2xl font-bold text-gray-900">{employeesLoading ? '-' : employees.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Employees</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{employeesLoading ? '-' : employees.length}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Active</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
             <p className="text-2xl font-bold text-emerald-600">{employeesLoading ? '-' : activeEmployees.length}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Monthly Payroll</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Payroll</p>
             <p className="text-2xl font-bold text-blue-600">{employeesLoading ? '-' : fc(totalMonthlyPayroll)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Payroll Runs</p>
-            <p className="text-2xl font-bold text-gray-900">{payrollRuns.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Payroll Runs</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{payrollRuns.length}</p>
           </div>
         </Card>
       </div>
@@ -471,7 +471,7 @@ export default function PayrollPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
               rightIcon={searchQuery ? (
-                <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <XMarkIcon className="w-5 h-5" />
                 </button>
               ) : undefined}
@@ -483,7 +483,7 @@ export default function PayrollPage() {
             <Card>
               <div className="p-12 text-center">
                 <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-                <p className="text-gray-500">Loading employees...</p>
+                <p className="text-gray-500 dark:text-gray-400">Loading employees...</p>
               </div>
             </Card>
           )}
@@ -506,7 +506,7 @@ export default function PayrollPage() {
               <TableBody>
                 {filteredEmployees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <p className="mb-4">No employees found</p>
                       <Button onClick={() => handleOpenEmployeeModal()}>Add your first employee</Button>
                     </TableCell>
@@ -516,16 +516,16 @@ export default function PayrollPage() {
                     <TableRow key={employee.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 dark:text-white">
                             {employee.firstName} {employee.lastName}
                           </p>
                           {employee.email && (
-                            <p className="text-sm text-gray-500">{employee.email}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{employee.email}</p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-500">{employee.department || '-'}</TableCell>
-                      <TableCell className="text-gray-500">{employee.position || '-'}</TableCell>
+                      <TableCell className="text-gray-500 dark:text-gray-400">{employee.department || '-'}</TableCell>
+                      <TableCell className="text-gray-500 dark:text-gray-400">{employee.position || '-'}</TableCell>
                       <TableCell>
                         <Badge variant="default">
                           {employee.employmentType?.replace('_', ' ')}
@@ -573,7 +573,7 @@ export default function PayrollPage() {
             <Card>
               <div className="p-12 text-center">
                 <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-                <p className="text-gray-500">Loading payroll runs...</p>
+                <p className="text-gray-500 dark:text-gray-400">Loading payroll runs...</p>
               </div>
             </Card>
           )}
@@ -595,7 +595,7 @@ export default function PayrollPage() {
               <TableBody>
                 {payrollRuns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <p className="mb-4">No payroll runs yet</p>
                       <Button onClick={handleOpenPayrollModal}>
                         <PlayIcon className="w-4 h-4 mr-1" />
@@ -606,11 +606,11 @@ export default function PayrollPage() {
                 ) : (
                   payrollRuns.map((run) => (
                     <TableRow key={run.id}>
-                      <TableCell className="font-mono text-gray-600">{run.id.slice(0, 8)}</TableCell>
-                      <TableCell className="text-gray-500">
+                      <TableCell className="font-mono text-gray-600 dark:text-gray-400">{run.id.slice(0, 8)}</TableCell>
+                      <TableCell className="text-gray-500 dark:text-gray-400">
                         {formatDate(run.periodStart)} - {formatDate(run.periodEnd)}
                       </TableCell>
-                      <TableCell className="text-gray-500">{formatDate(run.payDate)}</TableCell>
+                      <TableCell className="text-gray-500 dark:text-gray-400">{formatDate(run.payDate)}</TableCell>
                       <TableCell>{run.entries?.length ?? 0}</TableCell>
                       <TableCell className="font-medium">{fc(run.totalGross)}</TableCell>
                       <TableCell className="font-medium text-emerald-600">
@@ -679,7 +679,7 @@ export default function PayrollPage() {
         <ModalBody>
           <div className="space-y-4">
             {saveError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-400">
                 {saveError}
               </div>
             )}
@@ -722,11 +722,11 @@ export default function PayrollPage() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employment Type</label>
                 <select
                   value={employeeForm.employmentType}
                   onChange={(e) => setEmployeeForm({ ...employeeForm, employmentType: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   {EMPLOYMENT_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -734,11 +734,11 @@ export default function PayrollPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pay Frequency</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pay Frequency</label>
                 <select
                   value={employeeForm.paymentFrequency}
                   onChange={(e) => setEmployeeForm({ ...employeeForm, paymentFrequency: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   {PAY_FREQUENCIES.map((f) => (
                     <option key={f.value} value={f.value}>{f.label}</option>
@@ -836,8 +836,8 @@ export default function PayrollPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Employees &amp; Earnings</label>
-              <div className="border rounded-lg max-h-64 overflow-y-auto">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Employees &amp; Earnings</label>
+              <div className="border dark:border-gray-600 rounded-lg max-h-64 overflow-y-auto">
                 {employees.filter(e => e.isActive).map((emp) => {
                   const isSelected = payrollForm.selectedEmployees.includes(emp.id);
                   const ov = payrollForm.overrides[emp.id] ?? { overtime: '0', bonus: '0', commission: '0', allowances: '0' };
@@ -871,51 +871,51 @@ export default function PayrollPage() {
                         />
                         <div className="flex-1">
                           <p className="font-medium text-sm">{emp.firstName} {emp.lastName}</p>
-                          <p className="text-xs text-gray-500">{emp.position} &middot; Base: {emp.baseSalary ? fc(emp.baseSalary) : '-'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{emp.position} &middot; Base: {emp.baseSalary ? fc(emp.baseSalary) : '-'}</p>
                         </div>
                       </label>
                       {isSelected && (
                         <div className="grid grid-cols-4 gap-2 mt-2 ml-8">
                           <div>
-                            <label className="text-xs text-gray-500">Overtime</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400">Overtime</label>
                             <input
                               type="number"
                               value={ov.overtime}
                               onChange={(e) => updateOverride('overtime', e.target.value)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-xs"
                               min="0"
                               step="0.01"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-gray-500">Bonus</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400">Bonus</label>
                             <input
                               type="number"
                               value={ov.bonus}
                               onChange={(e) => updateOverride('bonus', e.target.value)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-xs"
                               min="0"
                               step="0.01"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-gray-500">Commission</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400">Commission</label>
                             <input
                               type="number"
                               value={ov.commission}
                               onChange={(e) => updateOverride('commission', e.target.value)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-xs"
                               min="0"
                               step="0.01"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-gray-500">Allowances</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400">Allowances</label>
                             <input
                               type="number"
                               value={ov.allowances}
                               onChange={(e) => updateOverride('allowances', e.target.value)}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                              className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-xs"
                               min="0"
                               step="0.01"
                             />
@@ -928,13 +928,13 @@ export default function PayrollPage() {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Selected Employees:</span>
+                <span className="text-gray-600 dark:text-gray-400">Selected Employees:</span>
                 <span className="font-medium">{payrollForm.selectedEmployees.length}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Estimated Gross:</span>
+                <span className="text-gray-600 dark:text-gray-400">Estimated Gross:</span>
                 <span className="font-medium">
                   {fc(
                     employees
@@ -950,7 +950,7 @@ export default function PayrollPage() {
               </div>
             </div>
 
-            <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-300">
               <p className="font-medium mb-1">Jamaica Statutory Deductions</p>
               <ul className="space-y-1 text-blue-600">
                 <li>NIS: 3% employee / 3% employer</li>

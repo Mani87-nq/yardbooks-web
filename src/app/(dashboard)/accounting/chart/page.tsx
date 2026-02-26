@@ -194,8 +194,8 @@ export default function ChartOfAccountsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Chart of Accounts</h1>
-          <p className="text-gray-500">Manage your general ledger accounts</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Chart of Accounts</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage your general ledger accounts</p>
         </div>
         <div className="flex gap-2">
           <Link href="/accounting/journal">
@@ -215,9 +215,9 @@ export default function ChartOfAccountsPage() {
           return (
             <Card key={type.value}>
               <div className="p-4">
-                <p className="text-sm text-gray-500">{type.label}</p>
-                <p className="text-xl font-bold text-gray-900">{typeAccounts.length}</p>
-                <p className="text-sm text-gray-500">{fc(total)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{type.label}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{typeAccounts.length}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{fc(total)}</p>
               </div>
             </Card>
           );
@@ -233,7 +233,7 @@ export default function ChartOfAccountsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -247,7 +247,7 @@ export default function ChartOfAccountsPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 typeFilter === type.value
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {type.label}
@@ -260,10 +260,10 @@ export default function ChartOfAccountsPage() {
       {groupedAccounts.map((group) => (
         group.accounts.length > 0 && (
           <Card key={group.value} padding="none">
-            <CardHeader className="bg-gray-50 border-b border-gray-100">
+            <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FolderIcon className="w-5 h-5 text-gray-500" />
+                  <FolderIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   <CardTitle>{group.label}</CardTitle>
                   <Badge variant="default">{group.accounts.length}</Badge>
                 </div>
@@ -284,20 +284,20 @@ export default function ChartOfAccountsPage() {
               <TableBody>
                 {group.accounts.map((account) => (
                   <TableRow key={account.id}>
-                    <TableCell className="font-mono text-gray-600">
+                    <TableCell className="font-mono text-gray-600 dark:text-gray-400">
                       {account.accountNumber}
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-gray-900">{account.name}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{account.name}</p>
                         {account.description && (
-                          <p className="text-sm text-gray-500 truncate max-w-xs">
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
                             {account.description}
                           </p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-500">
+                    <TableCell className="text-gray-500 dark:text-gray-400">
                       {account.subType || '-'}
                     </TableCell>
                     <TableCell className="font-medium">
@@ -329,7 +329,7 @@ export default function ChartOfAccountsPage() {
       {filteredAccounts.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-gray-500 mb-4">No accounts found</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">No accounts found</p>
             <Button onClick={() => handleOpenModal()}>Add your first account</Button>
           </CardContent>
         </Card>
@@ -352,7 +352,7 @@ export default function ChartOfAccountsPage() {
                 placeholder="e.g., 1000"
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account Type *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Type *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({
@@ -360,7 +360,7 @@ export default function ChartOfAccountsPage() {
                     type: e.target.value as GLAccount['type'],
                     subType: ''
                   })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   {ACCOUNT_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>{type.label}</option>
@@ -376,11 +376,11 @@ export default function ChartOfAccountsPage() {
             />
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sub-Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sub-Type</label>
                 <select
                   value={formData.subType}
                   onChange={(e) => setFormData({ ...formData, subType: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="">Select sub-type</option>
                   {SUB_TYPES[formData.type]?.map((st) => (
@@ -389,11 +389,11 @@ export default function ChartOfAccountsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Parent Account</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parent Account</label>
                 <select
                   value={formData.parentAccountId}
                   onChange={(e) => setFormData({ ...formData, parentAccountId: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="">None (Top-level)</option>
                   {glAccounts
@@ -407,11 +407,11 @@ export default function ChartOfAccountsPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm resize-none"
                 rows={2}
                 placeholder="Optional description for this account"
               />
@@ -421,9 +421,9 @@ export default function ChartOfAccountsPage() {
                 type="checkbox"
                 checked={formData.isActive}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded border-gray-300"
+                className="rounded border-gray-300 dark:border-gray-600"
               />
-              <span className="text-sm text-gray-700">Active</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
             </label>
           </div>
         </ModalBody>

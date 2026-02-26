@@ -50,14 +50,14 @@ export default function VerifyEmailContent() {
     return (
       <div className="min-h-screen flex">
         <BrandingPanel />
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
           <div className="w-full max-w-md text-center">
             <MobileLogo />
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
               <XCircleIcon className="h-8 w-8 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Invalid Verification Link</h2>
-            <p className="text-gray-500 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invalid Verification Link</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
               This verification link is invalid. It may be missing the required token.
             </p>
             <Link
@@ -77,14 +77,14 @@ export default function VerifyEmailContent() {
     return (
       <div className="min-h-screen flex">
         <BrandingPanel />
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
           <div className="w-full max-w-md text-center">
             <MobileLogo />
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mb-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-6">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Verifying your email...</h2>
-            <p className="text-gray-500">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Verifying your email...</h2>
+            <p className="text-gray-500 dark:text-gray-400">
               Please wait while we verify your email address.
             </p>
           </div>
@@ -98,14 +98,14 @@ export default function VerifyEmailContent() {
     return (
       <div className="min-h-screen flex">
         <BrandingPanel />
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
           <div className="w-full max-w-md text-center">
             <MobileLogo />
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mb-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-6">
               <CheckCircleIcon className="h-8 w-8 text-emerald-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h2>
-            <p className="text-gray-500 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Email Verified!</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
               Your email has been verified successfully. Redirecting to sign in...
             </p>
             <Link
@@ -124,14 +124,14 @@ export default function VerifyEmailContent() {
   return (
     <div className="min-h-screen flex">
       <BrandingPanel />
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
         <div className="w-full max-w-md text-center">
           <MobileLogo />
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 mb-6">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 mb-6">
             <XCircleIcon className="h-8 w-8 text-amber-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification Failed</h2>
-          <p className="text-gray-500 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Verification Failed</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8">
             {errorMessage || 'The verification link may have expired or is invalid. Please try signing up again.'}
           </p>
           <Link
@@ -140,7 +140,7 @@ export default function VerifyEmailContent() {
           >
             Back to Sign in
           </Link>
-          <p className="mt-4 text-sm text-gray-500">
+          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
             <Link href="/signup" className="text-emerald-600 hover:text-emerald-700 font-medium">
               Create a new account
             </Link>
@@ -187,7 +187,7 @@ function MobileLogo() {
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
         YB
       </div>
-      <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+      <span className="text-2xl font-bold text-gray-900 dark:text-white">YaadBooks</span>
     </div>
   );
 }

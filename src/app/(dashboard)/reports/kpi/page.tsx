@@ -73,7 +73,7 @@ function KPICard({
   icon: Icon,
   trend,
   trendLabel,
-  color = 'text-gray-900',
+  color = 'text-gray-900 dark:text-white',
 }: {
   title: string;
   value: string;
@@ -87,9 +87,9 @@ function KPICard({
     <Card>
       <div className="p-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <div className="p-2 rounded-lg bg-gray-50">
-            <Icon className="w-5 h-5 text-gray-400" />
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900">
+            <Icon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
         </div>
         <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -110,7 +110,7 @@ function KPICard({
               </span>
             )}
             {(subtitle || trendLabel) && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 {subtitle || trendLabel}
               </span>
             )}
@@ -216,8 +216,8 @@ export default function KPIDashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">KPI Dashboard</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">KPI Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400">
             Key financial performance indicators
             {fiscalYearStart && (
               <span className="ml-1 text-xs">
@@ -228,7 +228,7 @@ export default function KPIDashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 whitespace-nowrap">
+            <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
               As of:
             </label>
             <Input
@@ -264,7 +264,7 @@ export default function KPIDashboardPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm text-red-800 flex-1">
             Failed to load KPI data.{' '}
@@ -280,8 +280,8 @@ export default function KPIDashboardPage() {
       {isLoading && (
         <Card>
           <div className="p-12 text-center">
-            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Calculating KPIs...</p>
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 dark:text-gray-500 animate-spin" />
+            <p className="text-gray-500 dark:text-gray-400">Calculating KPIs...</p>
           </div>
         </Card>
       )}
@@ -290,7 +290,7 @@ export default function KPIDashboardPage() {
         <>
           {/* Revenue Section */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
               <CurrencyDollarIcon className="w-5 h-5 text-emerald-500" />
               Revenue
             </h2>
@@ -329,7 +329,7 @@ export default function KPIDashboardPage() {
 
           {/* Profitability Section */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
               <ChartBarIcon className="w-5 h-5 text-blue-500" />
               Profitability
             </h2>
@@ -383,7 +383,7 @@ export default function KPIDashboardPage() {
 
           {/* Liquidity Section */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
               <BanknotesIcon className="w-5 h-5 text-purple-500" />
               Liquidity
             </h2>
@@ -436,7 +436,7 @@ export default function KPIDashboardPage() {
 
           {/* Efficiency Section */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
               <ClockIcon className="w-5 h-5 text-orange-500" />
               Efficiency
             </h2>
@@ -464,7 +464,7 @@ export default function KPIDashboardPage() {
                 subtitle={`${kpis.overdueInvoices} overdue`}
                 icon={DocumentTextIcon}
                 color={
-                  kpis.overdueInvoices > 0 ? 'text-red-700' : 'text-gray-900'
+                  kpis.overdueInvoices > 0 ? 'text-red-700' : 'text-gray-900 dark:text-white'
                 }
               />
               <KPICard

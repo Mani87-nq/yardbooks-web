@@ -33,8 +33,8 @@ export default function EmployeeDetailPage({ params }: PageProps) {
   if (!employee) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <UserIcon className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Employee Not Found</h2>
+        <UserIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Employee Not Found</h2>
         <Link href="/payroll" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
           Back to Payroll
         </Link>
@@ -137,8 +137,8 @@ export default function EmployeeDetailPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/payroll" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <Link href="/payroll" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -147,12 +147,12 @@ export default function EmployeeDetailPage({ params }: PageProps) {
               </span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {employee.firstName} {employee.lastName}
               </h1>
-              <p className="text-gray-500">{employee.position}</p>
+              <p className="text-gray-500 dark:text-gray-400">{employee.position}</p>
               <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                employee.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                employee.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}>
                 {employee.isActive ? 'Active' : 'Inactive'}
               </span>
@@ -161,7 +161,7 @@ export default function EmployeeDetailPage({ params }: PageProps) {
         </div>
         <Link
           href={`/payroll/employees/${employee.id}/edit`}
-          className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
         >
           <PencilIcon className="w-4 h-4" />
           Edit
@@ -172,41 +172,41 @@ export default function EmployeeDetailPage({ params }: PageProps) {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Compensation */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <BanknotesIcon className="w-5 h-5 text-emerald-600" />
               Compensation
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <dt className="text-sm text-gray-500">Base Salary</dt>
-                <dd className="text-lg font-semibold text-gray-900">{formatCurrency(employee.baseSalary)}</dd>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Base Salary</dt>
+                <dd className="text-lg font-semibold text-gray-900 dark:text-white">{formatCurrency(employee.baseSalary)}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Pay Frequency</dt>
-                <dd className="text-lg font-semibold text-gray-900 capitalize">{employee.paymentFrequency}</dd>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Pay Frequency</dt>
+                <dd className="text-lg font-semibold text-gray-900 dark:text-white capitalize">{employee.paymentFrequency}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Employment Type</dt>
-                <dd className="text-lg font-semibold text-gray-900 capitalize">{employee.employmentType.replace('_', ' ')}</dd>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Employment Type</dt>
+                <dd className="text-lg font-semibold text-gray-900 dark:text-white capitalize">{employee.employmentType.replace('_', ' ')}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Department</dt>
-                <dd className="text-lg font-semibold text-gray-900">{employee.department || '-'}</dd>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Department</dt>
+                <dd className="text-lg font-semibold text-gray-900 dark:text-white">{employee.department || '-'}</dd>
               </div>
             </div>
           </div>
 
           {/* Payroll History */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Recent Payroll History</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Recent Payroll History</h2>
             {employeePayrollHistory.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No payroll history yet</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">No payroll history yet</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-xs uppercase text-gray-500 border-b">
+                    <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
                       <th className="pb-3 font-medium">Period</th>
                       <th className="pb-3 font-medium text-right">Gross</th>
                       <th className="pb-3 font-medium text-right">Deductions</th>
@@ -215,15 +215,15 @@ export default function EmployeeDetailPage({ params }: PageProps) {
                       <th className="pb-3 font-medium">Payslip</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {employeePayrollHistory.map(({ run, entry }, index) => (
                       <tr key={index}>
-                        <td className="py-3 text-gray-900">
+                        <td className="py-3 text-gray-900 dark:text-white">
                           {format(new Date(run.periodStart), 'MMM dd')} - {format(new Date(run.periodEnd), 'MMM dd, yyyy')}
                         </td>
-                        <td className="py-3 text-right text-gray-900">{formatCurrency(entry?.grossPay || 0)}</td>
+                        <td className="py-3 text-right text-gray-900 dark:text-white">{formatCurrency(entry?.grossPay || 0)}</td>
                         <td className="py-3 text-right text-red-600">{formatCurrency(entry?.totalDeductions || 0)}</td>
-                        <td className="py-3 text-right font-semibold text-gray-900">{formatCurrency(entry?.netPay || 0)}</td>
+                        <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(entry?.netPay || 0)}</td>
                         <td className="py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             run.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
@@ -235,7 +235,7 @@ export default function EmployeeDetailPage({ params }: PageProps) {
                           {entry && (
                             <button
                               onClick={() => handlePrintPayslip(run, entry)}
-                              className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded transition-colors"
                               title="Print payslip"
                             >
                               <PrinterIcon className="w-4 h-4" />
@@ -254,25 +254,25 @@ export default function EmployeeDetailPage({ params }: PageProps) {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Contact Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Contact Information</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Contact Information</h2>
             <dl className="space-y-3">
               {employee.email && (
                 <div className="flex items-center gap-3">
                   <EnvelopeIcon className="w-5 h-5 text-gray-400" />
-                  <dd className="text-gray-900">{employee.email}</dd>
+                  <dd className="text-gray-900 dark:text-white">{employee.email}</dd>
                 </div>
               )}
               {employee.phone && (
                 <div className="flex items-center gap-3">
                   <PhoneIcon className="w-5 h-5 text-gray-400" />
-                  <dd className="text-gray-900">{employee.phone}</dd>
+                  <dd className="text-gray-900 dark:text-white">{employee.phone}</dd>
                 </div>
               )}
               {employee.address && (
                 <div className="flex items-start gap-3">
                   <MapPinIcon className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <dd className="text-gray-900">
+                  <dd className="text-gray-900 dark:text-white">
                     {employee.address.street}
                     <br />
                     {employee.address.city}, {employee.address.parish}
@@ -283,44 +283,44 @@ export default function EmployeeDetailPage({ params }: PageProps) {
           </div>
 
           {/* Employment Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Employment Details</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Employment Details</h2>
             <dl className="space-y-3">
               <div className="flex items-center gap-3">
                 <CalendarIcon className="w-5 h-5 text-gray-400" />
                 <div>
-                  <dt className="text-xs text-gray-500">Hire Date</dt>
-                  <dd className="text-gray-900">{format(new Date(employee.hireDate), 'MMM dd, yyyy')}</dd>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Hire Date</dt>
+                  <dd className="text-gray-900 dark:text-white">{format(new Date(employee.hireDate), 'MMM dd, yyyy')}</dd>
                 </div>
               </div>
               <div>
-                <dt className="text-xs text-gray-500">Employee Number</dt>
-                <dd className="text-gray-900">{employee.employeeNumber}</dd>
+                <dt className="text-xs text-gray-500 dark:text-gray-400">Employee Number</dt>
+                <dd className="text-gray-900 dark:text-white">{employee.employeeNumber}</dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500">TRN</dt>
-                <dd className="text-gray-900">{employee.trnNumber}</dd>
+                <dt className="text-xs text-gray-500 dark:text-gray-400">TRN</dt>
+                <dd className="text-gray-900 dark:text-white">{employee.trnNumber}</dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500">NIS</dt>
-                <dd className="text-gray-900">{employee.nisNumber}</dd>
+                <dt className="text-xs text-gray-500 dark:text-gray-400">NIS</dt>
+                <dd className="text-gray-900 dark:text-white">{employee.nisNumber}</dd>
               </div>
             </dl>
           </div>
 
           {/* Bank Info */}
           {employee.bankName && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Bank Information</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Bank Information</h2>
               <dl className="space-y-2">
                 <div>
-                  <dt className="text-xs text-gray-500">Bank</dt>
-                  <dd className="text-gray-900">{employee.bankName}</dd>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Bank</dt>
+                  <dd className="text-gray-900 dark:text-white">{employee.bankName}</dd>
                 </div>
                 {employee.bankAccountNumber && (
                   <div>
-                    <dt className="text-xs text-gray-500">Account Number</dt>
-                    <dd className="text-gray-900">****{employee.bankAccountNumber.slice(-4)}</dd>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">Account Number</dt>
+                    <dd className="text-gray-900 dark:text-white">****{employee.bankAccountNumber.slice(-4)}</dd>
                   </div>
                 )}
               </dl>

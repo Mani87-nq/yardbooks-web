@@ -291,8 +291,8 @@ export default function FixedAssetsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fixed Assets</h1>
-          <p className="text-gray-500">Track and depreciate capital assets</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fixed Assets</h1>
+          <p className="text-gray-500 dark:text-gray-400">Track and depreciate capital assets</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" icon={<CalculatorIcon className="w-4 h-4" />} onClick={() => setShowDepreciationModal(true)}>
@@ -305,14 +305,14 @@ export default function FixedAssetsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex gap-6">
           <button
             onClick={() => setActiveTab('assets')}
             className={`py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'assets'
                 ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             Asset Register
@@ -322,7 +322,7 @@ export default function FixedAssetsPage() {
             className={`py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'allowances'
                 ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             Capital Allowances (Tax)
@@ -332,10 +332,10 @@ export default function FixedAssetsPage() {
 
       {/* Error State */}
       {fetchError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-red-800">Failed to load fixed assets. {fetchError instanceof Error ? fetchError.message : ''}</p>
+            <p className="text-sm text-red-800 dark:text-red-300">Failed to load fixed assets. {fetchError instanceof Error ? fetchError.message : ''}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <ArrowPathIcon className="w-4 h-4 mr-1" />
@@ -350,25 +350,25 @@ export default function FixedAssetsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Assets</p>
-                <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : fixedAssets.length}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Assets</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{isLoading ? '-' : fixedAssets.length}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Cost</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Cost</p>
                 <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(totalCost)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Book Value</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Book Value</p>
                 <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : fc(totalBookValue)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Depreciation</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Depreciation</p>
                 <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : fc(totalDepreciation)}</p>
               </div>
             </Card>
@@ -382,25 +382,25 @@ export default function FixedAssetsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Cost (Tax Base)</p>
-                <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : fc(totalCost)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Cost (Tax Base)</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{isLoading ? '-' : fc(totalCost)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Written Down Value</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Written Down Value</p>
                 <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(totalTaxWDV)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Initial Allowances</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Initial Allowances</p>
                 <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : fc(totalInitialAllowanceClaimed)}</p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Claimed</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Claimed</p>
                 <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : fc(totalAccumulatedAllowances)}</p>
               </div>
             </Card>
@@ -415,7 +415,7 @@ export default function FixedAssetsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                    <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                       <th className="px-4 py-3 font-medium">Class</th>
                       <th className="px-4 py-3 font-medium">Asset Type</th>
                       <th className="px-4 py-3 font-medium text-right">Initial Allowance</th>
@@ -423,14 +423,14 @@ export default function FixedAssetsPage() {
                       <th className="px-4 py-3 font-medium">Notes</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {JAMAICA_CAPITAL_ALLOWANCE_CLASSES.map((cls) => (
-                      <tr key={cls.class} className="hover:bg-gray-50">
+                      <tr key={cls.class} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td className="px-4 py-3 font-medium text-emerald-600">{cls.class}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{cls.name}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{cls.name}</td>
                         <td className="px-4 py-3 text-right">{(cls.initialAllowance * 100).toFixed(0)}%</td>
                         <td className="px-4 py-3 text-right">{(cls.annualAllowance * 100).toFixed(1)}%</td>
-                        <td className="px-4 py-3 text-gray-500">{cls.notes}</td>
+                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{cls.notes}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -449,7 +449,7 @@ export default function FixedAssetsPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                      <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                         <th className="px-4 py-3 font-medium">Class</th>
                         <th className="px-4 py-3 font-medium">Category</th>
                         <th className="px-4 py-3 font-medium text-right">Assets</th>
@@ -458,11 +458,11 @@ export default function FixedAssetsPage() {
                         <th className="px-4 py-3 font-medium text-right">Claimed to Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {allowanceClassSummary.map((cls) => (
-                        <tr key={cls.class} className="hover:bg-gray-50">
+                        <tr key={cls.class} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                           <td className="px-4 py-3 font-medium text-emerald-600">{cls.class}</td>
-                          <td className="px-4 py-3 font-medium text-gray-900">{cls.name}</td>
+                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{cls.name}</td>
                           <td className="px-4 py-3 text-right">{cls.assetCount}</td>
                           <td className="px-4 py-3 text-right">{fc(cls.totalCost)}</td>
                           <td className="px-4 py-3 text-right font-medium text-blue-600">{fc(cls.totalWDV)}</td>
@@ -470,7 +470,7 @@ export default function FixedAssetsPage() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="bg-gray-50 border-t border-gray-200">
+                    <tfoot className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
                       <tr>
                         <td colSpan={2} className="px-4 py-3 font-semibold">Total</td>
                         <td className="px-4 py-3 text-right font-semibold">{allowanceClassSummary.reduce((sum, c) => sum + c.assetCount, 0)}</td>
@@ -486,18 +486,18 @@ export default function FixedAssetsPage() {
           )}
 
           {/* Info Box */}
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
             <CardContent>
               <div className="flex gap-3">
-                <CalculatorIcon className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                <CalculatorIcon className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                 <div>
-                  <h4 className="font-medium text-blue-900">Understanding Capital Allowances</h4>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-200">Understanding Capital Allowances</h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                     Capital Allowances are tax deductions for business assets under Jamaica Income Tax Act.
                     They differ from book depreciation (used for financial statements).
                     Initial allowances are claimed in the year of purchase, while annual allowances are claimed each subsequent year on the reducing Written Down Value (WDV).
                   </p>
-                  <p className="text-sm text-blue-700 mt-2">
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
                     <strong>Note:</strong> Motor vehicles have a cost cap of J$5,000,000 for capital allowance purposes.
                   </p>
                 </div>
@@ -518,7 +518,7 @@ export default function FixedAssetsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -528,7 +528,7 @@ export default function FixedAssetsPage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-200 text-sm"
           >
             <option value="all">All Categories</option>
             {categoryOptions.map((cat) => (
@@ -538,7 +538,7 @@ export default function FixedAssetsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-200 text-sm"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -554,7 +554,7 @@ export default function FixedAssetsPage() {
         <Card>
           <div className="p-12 text-center">
             <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Loading assets...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading assets...</p>
           </div>
         </Card>
       )}
@@ -578,7 +578,7 @@ export default function FixedAssetsPage() {
           <TableBody>
             {filteredAssets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={8} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <p className="mb-4">No fixed assets found</p>
                   <Button onClick={() => handleOpenModal()}>Add your first asset</Button>
                 </TableCell>
@@ -591,17 +591,17 @@ export default function FixedAssetsPage() {
                   <TableRow key={asset.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gray-100 rounded-lg">
-                          <CategoryIcon className="w-5 h-5 text-gray-600" />
+                        <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                          <CategoryIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{asset.name || asset.description}</p>
-                          <p className="text-sm text-gray-500">{asset.assetNumber || asset.assetTag}</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{asset.name || asset.description}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{asset.assetNumber || asset.assetTag}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-500">{catName || '-'}</TableCell>
-                    <TableCell className="text-gray-500">
+                    <TableCell className="text-gray-500 dark:text-gray-400">{catName || '-'}</TableCell>
+                    <TableCell className="text-gray-500 dark:text-gray-400">
                       {asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : asset.acquisitionDate ? formatDate(new Date(asset.acquisitionDate)) : '-'}
                     </TableCell>
                     <TableCell className="font-medium">{fc(asset.purchaseCost ?? asset.acquisitionCost ?? 0)}</TableCell>
@@ -652,7 +652,7 @@ export default function FixedAssetsPage() {
         <ModalBody>
           <div className="space-y-4">
             {saveError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-300">
                 {saveError}
               </div>
             )}
@@ -671,17 +671,17 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-3 py-2 text-sm resize-none"
                 rows={2}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
                 <select
                   value={formData.categoryId}
                   onChange={(e) => {
@@ -694,7 +694,7 @@ export default function FixedAssetsPage() {
                       depreciationMethod: cat?.depreciationMethod || 'STRAIGHT_LINE',
                     });
                   }}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="">Select category</option>
                   {categoryOptions.map((cat) => (
@@ -734,11 +734,11 @@ export default function FixedAssetsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Depreciation Method</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Depreciation Method</label>
                 <select
                   value={formData.depreciationMethod}
                   onChange={(e) => setFormData({ ...formData, depreciationMethod: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   {DEPRECIATION_METHODS.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
@@ -785,15 +785,15 @@ export default function FixedAssetsPage() {
       >
         <ModalBody>
           <div className="space-y-4">
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               This will calculate and record depreciation for all active assets based on their depreciation method and useful life
               for the current month.
             </p>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm text-gray-600">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 <strong>{activeAssetCount}</strong> active assets will be processed
               </p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Period: {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
               </p>
             </div>

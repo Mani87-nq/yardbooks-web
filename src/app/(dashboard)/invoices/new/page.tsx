@@ -277,8 +277,8 @@ export default function NewInvoicePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Create Invoice</h1>
-          <p className="text-gray-500">Create a new sales invoice</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create Invoice</h1>
+          <p className="text-gray-500 dark:text-gray-400">Create a new sales invoice</p>
         </div>
       </div>
 
@@ -336,7 +336,7 @@ export default function NewInvoicePage() {
         <CardContent>
           <div className="space-y-4">
             {/* Header */}
-            <div className={`grid ${activeCompany?.gctRegistered ? 'grid-cols-12' : 'grid-cols-10'} gap-2 text-xs font-medium text-gray-500 uppercase`}>
+            <div className={`grid ${activeCompany?.gctRegistered ? 'grid-cols-12' : 'grid-cols-10'} gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase`}>
               <div className="col-span-4">Description</div>
               <div className="col-span-2">Qty</div>
               <div className="col-span-2">Price</div>
@@ -439,16 +439,16 @@ export default function NewInvoicePage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-500">Subtotal</span>
+              <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
               <span className="font-medium">{fc(subtotal)}</span>
             </div>
             {activeCompany?.gctRegistered && (
               <div className="flex justify-between">
-                <span className="text-gray-500">GCT</span>
+                <span className="text-gray-500 dark:text-gray-400">GCT</span>
                 <span className="font-medium">{fc(gctAmount)}</span>
               </div>
             )}
-            <div className="flex justify-between pt-3 border-t border-gray-100">
+            <div className="flex justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
               <span className="font-semibold">Total</span>
               <span className="text-xl font-bold text-emerald-600">{fc(total)}</span>
             </div>
@@ -483,7 +483,7 @@ export default function NewInvoicePage() {
       >
         <ModalBody className="space-y-4">
           {newCustomerErrors.form && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{newCustomerErrors.form}</p>
+            <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/30 rounded-lg p-3">{newCustomerErrors.form}</p>
           )}
           <Input
             label="Name *"

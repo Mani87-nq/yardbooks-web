@@ -158,13 +158,13 @@ export default function AIAuditorPage() {
             <SparklesIcon className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">AI Auditor</h1>
-            <p className="text-gray-500">Jamaica Tax Compliance & Accounting Review</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Auditor</h1>
+            <p className="text-gray-500 dark:text-gray-400">Jamaica Tax Compliance & Accounting Review</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {lastRunDate && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               Last audit: {formatDate(lastRunDate)}
             </span>
           )}
@@ -180,14 +180,14 @@ export default function AIAuditorPage() {
 
       {auditResults.length === 0 ? (
         // Initial state - before running audit
-        <Card className="bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
           <CardContent>
             <div className="text-center py-16">
-              <div className="mx-auto w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-6">
-                <ShieldCheckIcon className="w-10 h-10 text-indigo-600" />
+              <div className="mx-auto w-20 h-20 bg-white dark:bg-gray-700 rounded-full shadow-lg dark:shadow-none flex items-center justify-center mb-6">
+                <ShieldCheckIcon className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Ready to Audit</h2>
-              <p className="text-gray-600 max-w-md mx-auto mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Ready to Audit</h2>
+              <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto mb-6">
                 Run an AI-powered compliance check to verify your business meets Jamaica tax regulations
                 including GCT, PAYE, NIS, NHT, and accounting standards.
               </p>
@@ -216,45 +216,45 @@ export default function AIAuditorPage() {
             </Card>
             <Card>
               <div className="p-4 flex items-center gap-4">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircleIcon className="w-6 h-6 text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Passed</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Passed</p>
                   <p className="text-2xl font-bold text-green-600">{passedChecks}</p>
                 </div>
               </div>
             </Card>
             <Card>
               <div className="p-4 flex items-center gap-4">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <ExclamationTriangleIcon className="w-6 h-6 text-yellow-600" />
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                  <ExclamationTriangleIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Warnings</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Warnings</p>
                   <p className="text-2xl font-bold text-yellow-600">{warningChecks}</p>
                 </div>
               </div>
             </Card>
             <Card>
               <div className="p-4 flex items-center gap-4">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <XCircleIcon className="w-6 h-6 text-red-600" />
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <XCircleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Failed</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Failed</p>
                   <p className="text-2xl font-bold text-red-600">{failedChecks}</p>
                 </div>
               </div>
             </Card>
             <Card>
               <div className="p-4 flex items-center gap-4">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <ChartBarIcon className="w-6 h-6 text-gray-600" />
+                <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                  <ChartBarIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Categories</p>
-                  <p className="text-2xl font-bold text-gray-900">{auditResults.length}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Categories</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{auditResults.length}</p>
                 </div>
               </div>
             </Card>
@@ -278,8 +278,8 @@ export default function AIAuditorPage() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <div className={`p-2 rounded-lg ${hasIssues ? 'bg-yellow-100' : 'bg-green-100'}`}>
-                        <CategoryIcon className={`w-5 h-5 ${hasIssues ? 'text-yellow-600' : 'text-green-600'}`} />
+                      <div className={`p-2 rounded-lg ${hasIssues ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
+                        <CategoryIcon className={`w-5 h-5 ${hasIssues ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
                       </div>
                       <span className={`text-sm font-medium ${
                         passed === total ? 'text-green-600' : 'text-yellow-600'
@@ -287,8 +287,8 @@ export default function AIAuditorPage() {
                         {passed}/{total}
                       </span>
                     </div>
-                    <h3 className="font-medium text-gray-900">{category.name}</h3>
-                    <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <h3 className="font-medium text-gray-900 dark:text-white">{category.name}</h3>
+                    <div className="mt-2 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${passed === total ? 'bg-green-500' : 'bg-yellow-500'}`}
                         style={{ width: `${(passed / total) * 100}%` }}
@@ -305,36 +305,36 @@ export default function AIAuditorPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <selectedCategoryData.icon className="w-6 h-6 text-gray-600" />
+                  <selectedCategoryData.icon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
                   <CardTitle>{selectedCategoryData.name} - Detailed Results</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {selectedCategoryData.checks.map((check) => (
-                    <div key={check.id} className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50">
+                    <div key={check.id} className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                       <div className="flex items-start gap-4">
                         {getStatusIcon(check.status)}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-gray-900">{check.name}</h4>
+                            <h4 className="font-medium text-gray-900 dark:text-white">{check.name}</h4>
                             {getStatusBadge(check.status)}
                           </div>
-                          <p className="text-sm text-gray-600">{check.description}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{check.description}</p>
                           {check.details && (
-                            <p className="mt-2 text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded">
+                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
                               {check.details}
                             </p>
                           )}
                           {check.recommendation && (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                              <p className="text-sm text-blue-800">
+                            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <p className="text-sm text-blue-800 dark:text-blue-300">
                                 <strong>Recommendation:</strong> {check.recommendation}
                               </p>
                             </div>
                           )}
                           {check.regulation && (
-                            <p className="mt-2 text-xs text-gray-400">
+                            <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
                               Reference: {check.regulation}
                             </p>
                           )}
@@ -363,25 +363,25 @@ export default function AIAuditorPage() {
                           key={check.id}
                           className={`p-4 rounded-lg border ${
                             check.status === 'fail'
-                              ? 'border-red-200 bg-red-50'
-                              : 'border-yellow-200 bg-yellow-50'
+                              ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30'
+                              : 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/30'
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             {getStatusIcon(check.status)}
                             <div>
                               <p className={`font-medium ${
-                                check.status === 'fail' ? 'text-red-800' : 'text-yellow-800'
+                                check.status === 'fail' ? 'text-red-800 dark:text-red-300' : 'text-yellow-800 dark:text-yellow-300'
                               }`}>
                                 {check.name}
                               </p>
                               <p className={`text-sm ${
-                                check.status === 'fail' ? 'text-red-600' : 'text-yellow-600'
+                                check.status === 'fail' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'
                               }`}>
                                 {check.details}
                               </p>
                               {check.recommendation && (
-                                <p className="mt-1 text-sm text-gray-600">
+                                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                                   {check.recommendation}
                                 </p>
                               )}

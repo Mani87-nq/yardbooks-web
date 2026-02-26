@@ -148,8 +148,8 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Customers & Vendors</h1>
-          <p className="text-gray-500">Manage your business contacts</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Customers & Vendors</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage your business contacts</p>
         </div>
         <PermissionGate permission="customers:create">
           <div className="flex gap-2">
@@ -167,10 +167,10 @@ export default function CustomersPage() {
 
       {/* Error State */}
       {fetchError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-red-800">Failed to load contacts. {fetchError instanceof Error ? fetchError.message : ''}</p>
+            <p className="text-sm text-red-800 dark:text-red-300">Failed to load contacts. {fetchError instanceof Error ? fetchError.message : ''}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <ArrowPathIcon className="w-4 h-4 mr-1" />
@@ -183,25 +183,25 @@ export default function CustomersPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Contacts</p>
-            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : stats.total}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Contacts</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{isLoading ? '-' : stats.total}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Customers</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Customers</p>
             <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : stats.customers}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Vendors</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Vendors</p>
             <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : stats.vendors}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">With Balance</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">With Balance</p>
             <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : stats.withBalance}</p>
           </div>
         </Card>
@@ -216,7 +216,7 @@ export default function CustomersPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -230,7 +230,7 @@ export default function CustomersPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 typeFilter === type
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
@@ -243,8 +243,8 @@ export default function CustomersPage() {
       {isLoading && (
         <Card>
           <div className="p-12 text-center">
-            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Loading contacts...</p>
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 dark:text-gray-500 animate-spin" />
+            <p className="text-gray-500 dark:text-gray-400">Loading contacts...</p>
           </div>
         </Card>
       )}
@@ -266,7 +266,7 @@ export default function CustomersPage() {
           <TableBody>
             {customers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <p className="mb-4">No contacts found</p>
                   <PermissionGate permission="customers:create">
                     <Button onClick={() => handleOpenModal()}>Add your first contact</Button>
@@ -278,9 +278,9 @@ export default function CustomersPage() {
                 <TableRow key={customer.id}>
                   <TableCell>
                     <Link href={`/customers/${customer.id}`} className="block group">
-                      <p className="font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">{customer.name}</p>
+                      <p className="font-medium text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">{customer.name}</p>
                       {customer.companyName && (
-                        <p className="text-sm text-gray-500">{customer.companyName}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{customer.companyName}</p>
                       )}
                     </Link>
                   </TableCell>
@@ -292,21 +292,21 @@ export default function CustomersPage() {
                   <TableCell>
                     <div className="space-y-1">
                       {customer.email && (
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                           <EnvelopeIcon className="w-3 h-3" />
                           {customer.email}
                         </div>
                       )}
                       {customer.phone && (
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                           <PhoneIcon className="w-3 h-3" />
                           {customer.phone}
                         </div>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-500">{customer.trnNumber || '-'}</TableCell>
-                  <TableCell className={customer.balance > 0 ? 'text-orange-600 font-medium' : 'text-gray-500'}>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{customer.trnNumber || '-'}</TableCell>
+                  <TableCell className={customer.balance > 0 ? 'text-orange-600 font-medium' : 'text-gray-500 dark:text-gray-400'}>
                     {fc(customer.balance)}
                   </TableCell>
                   <TableCell>
@@ -351,7 +351,7 @@ export default function CustomersPage() {
         <ModalBody>
           <div className="space-y-4">
             {saveError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-300">
                 {saveError}
               </div>
             )}
@@ -381,11 +381,11 @@ export default function CustomersPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm dark:text-gray-200"
                 >
                   <option value="customer">Customer</option>
                   <option value="vendor">Vendor</option>
@@ -403,7 +403,7 @@ export default function CustomersPage() {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm dark:text-gray-200 resize-none"
                 rows={3}
               />
             </div>

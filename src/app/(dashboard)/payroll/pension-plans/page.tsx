@@ -187,8 +187,8 @@ export default function PensionPlansPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pension Plans</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pension Plans</h1>
+          <p className="text-gray-500 dark:text-gray-400">
             Manage Jamaica-approved pension plans for tax relief
           </p>
         </div>
@@ -221,15 +221,15 @@ export default function PensionPlansPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Plans</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Plans</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {isLoading ? '-' : plans.length}
             </p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Active</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
             <p className="text-2xl font-bold text-emerald-600">
               {isLoading ? '-' : activePlans.length}
             </p>
@@ -237,7 +237,7 @@ export default function PensionPlansPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">TAJ Approved</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">TAJ Approved</p>
             <p className="text-2xl font-bold text-blue-600">
               {isLoading ? '-' : approvedPlans.length}
             </p>
@@ -245,7 +245,7 @@ export default function PensionPlansPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Enrolled Employees</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Enrolled Employees</p>
             <p className="text-2xl font-bold text-purple-600">
               {isLoading ? '-' : totalEnrolled}
             </p>
@@ -254,9 +254,9 @@ export default function PensionPlansPage() {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+      <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-300">
         <p className="font-medium mb-1">Jamaica Pension Tax Relief</p>
-        <p className="text-blue-600">
+        <p className="text-blue-600 dark:text-blue-400">
           Employee contributions to TAJ-approved pension plans are deducted from
           statutory income before PAYE calculation, providing tax savings for
           employees. Employer contributions are a deductible business expense.
@@ -265,9 +265,9 @@ export default function PensionPlansPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-sm text-red-800 flex-1">
+          <p className="text-sm text-red-800 dark:text-red-300 flex-1">
             Failed to load pension plans.{' '}
             {error instanceof Error ? error.message : ''}
           </p>
@@ -283,7 +283,7 @@ export default function PensionPlansPage() {
         <Card>
           <div className="p-12 text-center">
             <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Loading pension plans...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading pension plans...</p>
           </div>
         </Card>
       )}
@@ -308,9 +308,9 @@ export default function PensionPlansPage() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="text-center py-12 text-gray-500"
+                    className="text-center py-12 text-gray-500 dark:text-gray-400"
                   >
-                    <BuildingLibraryIcon className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                    <BuildingLibraryIcon className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                     <p className="mb-4">No pension plans configured</p>
                     <Button
                       onClick={() => {
@@ -327,15 +327,15 @@ export default function PensionPlansPage() {
                   <TableRow key={plan.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-gray-900">{plan.name}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{plan.name}</p>
                         {plan.policyNumber && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             Policy: {plan.policyNumber}
                           </p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-500">
+                    <TableCell className="text-gray-500 dark:text-gray-400">
                       {plan.providerName || '-'}
                     </TableCell>
                     <TableCell className="font-medium">
@@ -383,7 +383,7 @@ export default function PensionPlansPage() {
         <ModalBody>
           <div className="space-y-4">
             {formError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-300">
                 {formError}
               </div>
             )}
@@ -438,9 +438,9 @@ export default function PensionPlansPage() {
                 onChange={(e) =>
                   setForm({ ...form, isApproved: e.target.checked })
                 }
-                className="rounded border-gray-300"
+                className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
               />
-              <label htmlFor="isApproved" className="text-sm text-gray-700">
+              <label htmlFor="isApproved" className="text-sm text-gray-700 dark:text-gray-300">
                 TAJ-approved pension plan (qualifies for income tax relief)
               </label>
             </div>

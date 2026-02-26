@@ -202,11 +202,11 @@ export default function InventoryPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-gray-500">Manage your products and stock levels</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inventory</h1>
+          <p className="text-gray-500 dark:text-gray-400">Manage your products and stock levels</p>
         </div>
         <div className="flex gap-2 items-center">
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <input
               type="checkbox"
               checked={showCostOfGoods}
@@ -232,10 +232,10 @@ export default function InventoryPage() {
 
       {/* Error State */}
       {fetchError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-red-800">Failed to load products. {fetchError instanceof Error ? fetchError.message : ''}</p>
+            <p className="text-sm text-red-800 dark:text-red-300">Failed to load products. {fetchError instanceof Error ? fetchError.message : ''}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <ArrowPathIcon className="w-4 h-4 mr-1" />
@@ -248,31 +248,31 @@ export default function InventoryPage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Products</p>
-            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : stats.total}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Products</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{isLoading ? '-' : stats.total}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Active</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
             <p className="text-2xl font-bold text-emerald-600">{isLoading ? '-' : stats.active}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Low Stock</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Low Stock</p>
             <p className="text-2xl font-bold text-orange-600">{isLoading ? '-' : stats.lowStock}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Out of Stock</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Out of Stock</p>
             <p className="text-2xl font-bold text-red-600">{isLoading ? '-' : stats.outOfStock}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Value</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Value</p>
             <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(stats.totalValue)}</p>
           </div>
         </Card>
@@ -287,7 +287,7 @@ export default function InventoryPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -297,7 +297,7 @@ export default function InventoryPage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-200 text-sm"
           >
             <option value="all">All Categories</option>
             {categories.map((cat) => (
@@ -307,7 +307,7 @@ export default function InventoryPage() {
           <select
             value={stockFilter}
             onChange={(e) => setStockFilter(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-200 text-sm"
           >
             <option value="all">All Stock</option>
             <option value="in">In Stock</option>
@@ -322,7 +322,7 @@ export default function InventoryPage() {
         <Card>
           <div className="p-12 text-center">
             <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Loading products...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading products...</p>
           </div>
         </Card>
       )}
@@ -347,7 +347,7 @@ export default function InventoryPage() {
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showCostOfGoods ? 9 : 7} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={showCostOfGoods ? 9 : 7} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <p className="mb-4">No products found</p>
                   <PermissionGate permission="inventory:create">
                     <Button onClick={() => handleOpenModal()}>Add your first product</Button>
@@ -363,32 +363,32 @@ export default function InventoryPage() {
                   <TableRow key={product.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
                         {product.description && (
-                          <p className="text-sm text-gray-500 truncate max-w-xs">{product.description}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">{product.description}</p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {product.sku && (
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                             <TagIcon className="w-3 h-3" />
                             {product.sku}
                           </div>
                         )}
                         {product.barcode && (
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                             <QrCodeIcon className="w-3 h-3" />
                             {product.barcode}
                           </div>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-500">{product.category || '-'}</TableCell>
+                    <TableCell className="text-gray-500 dark:text-gray-400">{product.category || '-'}</TableCell>
                     <TableCell className="font-medium">{fc(product.unitPrice)}</TableCell>
                     {showCostOfGoods && (
-                      <TableCell className="text-gray-500">
+                      <TableCell className="text-gray-500 dark:text-gray-400">
                         {product.costPrice ? fc(product.costPrice) : '-'}
                       </TableCell>
                     )}
@@ -414,7 +414,7 @@ export default function InventoryPage() {
                         <span className={
                           isOutOfStock ? 'text-red-600 font-medium' :
                           isLowStock ? 'text-orange-600 font-medium' :
-                          'text-gray-900'
+                          'text-gray-900 dark:text-white'
                         }>
                           {product.quantity} {unitDisplay(product.unit)}
                         </span>
@@ -470,7 +470,7 @@ export default function InventoryPage() {
         <ModalBody>
           <div className="space-y-4">
             {saveError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-300">
                 {saveError}
               </div>
             )}
@@ -495,11 +495,11 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm resize-none"
                 rows={2}
               />
             </div>
@@ -541,11 +541,11 @@ export default function InventoryPage() {
                 placeholder="0"
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
                 <select
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="EACH">Each</option>
                   <option value="KG">Kilogram</option>
@@ -570,7 +570,7 @@ export default function InventoryPage() {
                   onChange={(e) => setFormData({ ...formData, gctApplicable: e.target.checked })}
                   className="rounded border-gray-300"
                 />
-                <span className="text-sm text-gray-700">GCT Applicable (15%)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">GCT Applicable (15%)</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -579,7 +579,7 @@ export default function InventoryPage() {
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                   className="rounded border-gray-300"
                 />
-                <span className="text-sm text-gray-700">Active</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
               </label>
             </div>
           </div>

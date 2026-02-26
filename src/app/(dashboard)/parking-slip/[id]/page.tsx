@@ -61,7 +61,7 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500">Loading parking slip...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading parking slip...</p>
         </div>
       </div>
     );
@@ -70,11 +70,11 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
   if (error || !slip) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <TruckIcon className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <TruckIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
           {error || 'Slip Not Found'}
         </h2>
-        <p className="text-gray-500 mb-4">The parking slip you are looking for doesn't exist or could not be loaded.</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-4">The parking slip you are looking for doesn't exist or could not be loaded.</p>
         <Link
           href="/parking-slip"
           className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
@@ -99,10 +99,10 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
   const getStatusColor = (status: ParkingSlipStatus) => {
     const colors: Record<ParkingSlipStatus, string> = {
-      active: 'bg-green-100 text-green-700',
-      completed: 'bg-blue-100 text-blue-700',
-      cancelled: 'bg-red-100 text-red-700',
-      expired: 'bg-orange-100 text-orange-700',
+      active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+      completed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      expired: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
     };
     return colors[status];
   };
@@ -180,13 +180,13 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
         <div className="flex items-center gap-4">
           <Link
             href="/parking-slip"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{slip.slipNumber}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{slip.slipNumber}</h1>
               <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(slip.status)}`}>
                 {PARKING_STATUS_LABELS[slip.status]}
               </span>
@@ -197,10 +197,10 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
         <button
           onClick={handlePrint}
-          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
           title="Print parking slip"
         >
-          <PrinterIcon className="w-5 h-5 text-gray-600" />
+          <PrinterIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
       </div>
 
@@ -208,50 +208,50 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
           {/* Time & Cost Summary */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
             <div className="grid grid-cols-3 gap-6">
               <div className="text-center">
                 <ClockIcon className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Duration</p>
-                <p className="text-xl font-bold text-gray-900">{formatDuration(duration)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Duration</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{formatDuration(duration)}</p>
               </div>
-              <div className="text-center border-x border-gray-200">
+              <div className="text-center border-x border-gray-200 dark:border-gray-700">
                 <CurrencyDollarIcon className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Amount Due</p>
-                <p className="text-xl font-bold text-gray-900">${amount.toLocaleString()}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Amount Due</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">${amount.toLocaleString()}</p>
               </div>
               <div className="text-center">
                 <TruckIcon className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Rate</p>
-                <p className="text-xl font-bold text-gray-900">${slip.hourlyRate}/hr</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Rate</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">${slip.hourlyRate}/hr</p>
               </div>
             </div>
           </div>
 
           {/* Vehicle Details */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Vehicle Details</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Vehicle Details</h2>
             <dl className="grid grid-cols-2 gap-4">
               <div>
-                <dt className="text-sm text-gray-500">License Plate</dt>
-                <dd className="font-medium text-gray-900">{slip.vehiclePlate}</dd>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">License Plate</dt>
+                <dd className="font-medium text-gray-900 dark:text-white">{slip.vehiclePlate}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Vehicle Type</dt>
-                <dd className="font-medium text-gray-900">
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Vehicle Type</dt>
+                <dd className="font-medium text-gray-900 dark:text-white">
                   {slip.vehicleType ? VEHICLE_TYPE_LABELS[slip.vehicleType] : '-'}
                 </dd>
               </div>
               {slip.vehicleColor && (
                 <div>
-                  <dt className="text-sm text-gray-500">Color</dt>
-                  <dd className="font-medium text-gray-900">{slip.vehicleColor}</dd>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Color</dt>
+                  <dd className="font-medium text-gray-900 dark:text-white">{slip.vehicleColor}</dd>
                 </div>
               )}
               {slip.vehicleDescription && (
                 <div>
-                  <dt className="text-sm text-gray-500">Description</dt>
-                  <dd className="font-medium text-gray-900">{slip.vehicleDescription}</dd>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Description</dt>
+                  <dd className="font-medium text-gray-900 dark:text-white">{slip.vehicleDescription}</dd>
                 </div>
               )}
             </dl>
@@ -259,19 +259,19 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
           {/* Driver Details */}
           {(slip.driverName || slip.driverPhone) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Driver Details</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Driver Details</h2>
               <dl className="grid grid-cols-2 gap-4">
                 {slip.driverName && (
                   <div>
-                    <dt className="text-sm text-gray-500">Name</dt>
-                    <dd className="font-medium text-gray-900">{slip.driverName}</dd>
+                    <dt className="text-sm text-gray-500 dark:text-gray-400">Name</dt>
+                    <dd className="font-medium text-gray-900 dark:text-white">{slip.driverName}</dd>
                   </div>
                 )}
                 {slip.driverPhone && (
                   <div>
-                    <dt className="text-sm text-gray-500">Phone</dt>
-                    <dd className="font-medium text-gray-900">{slip.driverPhone}</dd>
+                    <dt className="text-sm text-gray-500 dark:text-gray-400">Phone</dt>
+                    <dd className="font-medium text-gray-900 dark:text-white">{slip.driverPhone}</dd>
                   </div>
                 )}
               </dl>
@@ -280,9 +280,9 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
           {/* Notes */}
           {slip.notes && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-2">Notes</h2>
-              <p className="text-gray-700">{slip.notes}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-2">Notes</h2>
+              <p className="text-gray-700 dark:text-gray-300">{slip.notes}</p>
             </div>
           )}
         </div>
@@ -290,33 +290,33 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Time Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Time Information</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Time Information</h2>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm text-gray-500">Entry Time</dt>
-                <dd className="font-medium text-gray-900">
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Entry Time</dt>
+                <dd className="font-medium text-gray-900 dark:text-white">
                   {format(new Date(slip.entryTime), 'dd MMM yyyy, HH:mm')}
                 </dd>
               </div>
               {slip.exitTime && (
                 <div>
-                  <dt className="text-sm text-gray-500">Exit Time</dt>
-                  <dd className="font-medium text-gray-900">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Exit Time</dt>
+                  <dd className="font-medium text-gray-900 dark:text-white">
                     {format(new Date(slip.exitTime), 'dd MMM yyyy, HH:mm')}
                   </dd>
                 </div>
               )}
               {slip.lotName && (
                 <div>
-                  <dt className="text-sm text-gray-500">Lot</dt>
-                  <dd className="font-medium text-gray-900">{slip.lotName}</dd>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Lot</dt>
+                  <dd className="font-medium text-gray-900 dark:text-white">{slip.lotName}</dd>
                 </div>
               )}
               {slip.spotNumber && (
                 <div>
-                  <dt className="text-sm text-gray-500">Spot</dt>
-                  <dd className="font-medium text-gray-900">{slip.spotNumber}</dd>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Spot</dt>
+                  <dd className="font-medium text-gray-900 dark:text-white">{slip.spotNumber}</dd>
                 </div>
               )}
             </dl>
@@ -324,11 +324,11 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
           {/* Payment / Checkout */}
           {slip.status === 'active' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Checkout</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Checkout</h2>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Payment Method
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -338,8 +338,8 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
                       onClick={() => setPaymentMethod(method)}
                       className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
                         paymentMethod === method
-                          ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 text-emerald-700 dark:text-emerald-400'
+                          : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       {method.charAt(0).toUpperCase() + method.slice(1)}
@@ -348,7 +348,7 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mb-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total Due</span>
                   <span className="text-emerald-600">${amount.toLocaleString()}</span>
@@ -368,12 +368,12 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
           {/* Status Actions */}
           {slip.status === 'active' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Actions</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Actions</h2>
               <button
                 onClick={handleCancel}
                 disabled={updating}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
               >
                 <XMarkIcon className="w-4 h-4" />
                 {updating ? 'Cancelling...' : 'Cancel Slip'}
@@ -383,20 +383,20 @@ export default function ParkingSlipDetailPage({ params }: PageProps) {
 
           {/* Payment Info (if completed) */}
           {slip.status === 'completed' && slip.isPaid && (
-            <div className="bg-green-50 rounded-xl border border-green-200 p-6">
+            <div className="bg-green-50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                <h2 className="font-semibold text-green-800">Payment Complete</h2>
+                <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <h2 className="font-semibold text-green-800 dark:text-green-300">Payment Complete</h2>
               </div>
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-green-700">Amount Paid</dt>
-                  <dd className="font-medium text-green-800">${(slip.totalAmount || 0).toLocaleString()}</dd>
+                  <dt className="text-green-700 dark:text-green-400">Amount Paid</dt>
+                  <dd className="font-medium text-green-800 dark:text-green-300">${(slip.totalAmount || 0).toLocaleString()}</dd>
                 </div>
                 {slip.paymentMethod && (
                   <div className="flex justify-between">
-                    <dt className="text-green-700">Method</dt>
-                    <dd className="font-medium text-green-800 capitalize">{slip.paymentMethod}</dd>
+                    <dt className="text-green-700 dark:text-green-400">Method</dt>
+                    <dd className="font-medium text-green-800 dark:text-green-300 capitalize">{slip.paymentMethod}</dd>
                   </div>
                 )}
               </dl>

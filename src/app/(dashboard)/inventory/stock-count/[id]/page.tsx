@@ -139,14 +139,14 @@ export default function StockCountDetailPage({ params }: PageProps) {
 
   const getStatusColor = (s: StockCountStatus) => {
     const colors: Record<StockCountStatus, string> = {
-      DRAFT: 'bg-gray-100 text-gray-700',
-      IN_PROGRESS: 'bg-blue-100 text-blue-700',
-      PENDING_REVIEW: 'bg-yellow-100 text-yellow-700',
-      APPROVED: 'bg-emerald-100 text-emerald-700',
-      POSTED: 'bg-green-100 text-green-700',
-      CANCELLED: 'bg-red-100 text-red-700',
+      DRAFT: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+      IN_PROGRESS: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+      PENDING_REVIEW: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+      APPROVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+      POSTED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+      CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
     };
-    return colors[s] || 'bg-gray-100 text-gray-700';
+    return colors[s] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
   };
 
   // Loading state
@@ -154,16 +154,16 @@ export default function StockCountDetailPage({ params }: PageProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Link href="/inventory/stock-count" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <Link href="/inventory/stock-count" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Loading...</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Loading...</h1>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-12 text-center">
           <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-          <p className="text-gray-500">Loading stock count...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading stock count...</p>
         </div>
       </div>
     );
@@ -174,23 +174,23 @@ export default function StockCountDetailPage({ params }: PageProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Link href="/inventory/stock-count" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <Link href="/inventory/stock-count" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Stock Count</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Stock Count</h1>
           </div>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-red-800">
+            <p className="text-sm text-red-800 dark:text-red-300">
               {fetchError instanceof Error ? fetchError.message : 'Failed to load stock count.'}
             </p>
           </div>
           <button
             onClick={() => refetch()}
-            className="px-3 py-1.5 text-sm border border-red-300 rounded-lg text-red-700 hover:bg-red-100"
+            className="px-3 py-1.5 text-sm border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
           >
             <ArrowPathIcon className="w-4 h-4 inline mr-1" />
             Retry
@@ -205,19 +205,19 @@ export default function StockCountDetailPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/inventory/stock-count" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <Link href="/inventory/stock-count" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{stockCount.countNumber}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{stockCount.countNumber}</h1>
               <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
                 {getStatusLabel(status)}
               </span>
             </div>
-            <p className="text-gray-500">{stockCount.name}</p>
+            <p className="text-gray-500 dark:text-gray-400">{stockCount.name}</p>
             {stockCount.warehouseName && (
-              <p className="text-sm text-gray-400">{stockCount.warehouseName}</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">{stockCount.warehouseName}</p>
             )}
           </div>
         </div>
@@ -226,7 +226,7 @@ export default function StockCountDetailPage({ params }: PageProps) {
             <button
               onClick={handleCancelCount}
               disabled={updateStockCount.isPending}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
             >
               Cancel Count
             </button>
@@ -242,19 +242,19 @@ export default function StockCountDetailPage({ params }: PageProps) {
       </div>
 
       {/* Progress */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-900">Counting Progress</h2>
-          <span className="text-2xl font-bold text-gray-900">{progress}%</span>
+          <h2 className="font-semibold text-gray-900 dark:text-white">Counting Progress</h2>
+          <span className="text-2xl font-bold text-gray-900 dark:text-white">{progress}%</span>
         </div>
-        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-500 rounded-full transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
         <div className="flex justify-between mt-3 text-sm">
-          <span className="text-gray-500">
+          <span className="text-gray-500 dark:text-gray-400">
             {countedCount} of {items.length} items counted
           </span>
           {varianceCount > 0 && (
@@ -279,7 +279,7 @@ export default function StockCountDetailPage({ params }: PageProps) {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === tab.value
                 ? 'bg-emerald-600 text-white'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             {tab.label}
@@ -291,11 +291,11 @@ export default function StockCountDetailPage({ params }: PageProps) {
       </div>
 
       {/* Items List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
         {filteredItems.length === 0 ? (
           <div className="p-12 text-center">
-            <ClipboardDocumentListIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-500">
+            <ClipboardDocumentListIcon className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+            <p className="text-gray-500 dark:text-gray-400">
               {activeTab === 'pending' ? 'All items have been counted' :
                activeTab === 'variance' ? 'No variances found' :
                'No items in this stock count'}
@@ -305,7 +305,7 @@ export default function StockCountDetailPage({ params }: PageProps) {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                   <th className="px-4 py-3 font-medium">Product</th>
                   <th className="px-4 py-3 font-medium text-center">Expected</th>
                   <th className="px-4 py-3 font-medium text-center">Counted</th>
@@ -313,27 +313,27 @@ export default function StockCountDetailPage({ params }: PageProps) {
                   <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filteredItems.map((item) => {
                   const counted = getCountedQty(item);
                   const itemStatus = getItemStatus(item);
                   const variance = getVariance(item);
 
                   return (
-                    <tr key={item.id} className="hover:bg-gray-50">
+                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-4 py-3">
                         <div>
-                          <span className="font-medium text-gray-900">{item.productName}</span>
-                          <span className="text-sm text-gray-500 ml-2">{item.sku}</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{item.productName}</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{item.sku}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-900">{item.expectedQuantity}</td>
+                      <td className="px-4 py-3 text-center text-gray-900 dark:text-white">{item.expectedQuantity}</td>
                       <td className="px-4 py-3">
                         {isMutable ? (
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => updateCount(item, Math.max((counted ?? 0) - 1, 0))}
-                              className="p-1 rounded hover:bg-gray-200"
+                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                               disabled={updateItem.isPending}
                             >
                               <MinusIcon className="w-4 h-4" />
@@ -353,19 +353,19 @@ export default function StockCountDetailPage({ params }: PageProps) {
                                   updateCount(item, parseInt(val) || 0);
                                 }
                               }}
-                              className="w-20 text-center border border-gray-300 rounded-lg py-1 text-gray-900"
+                              className="w-20 text-center border border-gray-300 dark:border-gray-600 rounded-lg py-1 text-gray-900 dark:text-gray-200 dark:bg-gray-700"
                               placeholder="-"
                             />
                             <button
                               onClick={() => updateCount(item, (counted ?? 0) + 1)}
-                              className="p-1 rounded hover:bg-gray-200"
+                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                               disabled={updateItem.isPending}
                             >
                               <PlusIcon className="w-4 h-4" />
                             </button>
                           </div>
                         ) : (
-                          <div className="text-center text-gray-900">
+                          <div className="text-center text-gray-900 dark:text-white">
                             {counted ?? '-'}
                           </div>
                         )}
@@ -387,7 +387,7 @@ export default function StockCountDetailPage({ params }: PageProps) {
                             Counted
                           </span>
                         ) : (
-                          <span className="text-gray-500">Pending</span>
+                          <span className="text-gray-500 dark:text-gray-400">Pending</span>
                         )}
                       </td>
                     </tr>

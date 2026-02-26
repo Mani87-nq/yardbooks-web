@@ -84,8 +84,8 @@ export default function POSOrdersPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Order History</h1>
-              <p className="text-gray-500">View all POS transactions</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Order History</h1>
+              <p className="text-gray-500 dark:text-gray-400">View all POS transactions</p>
             </div>
           </div>
         </div>
@@ -108,8 +108,8 @@ export default function POSOrdersPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Order History</h1>
-              <p className="text-gray-500">View all POS transactions</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Order History</h1>
+              <p className="text-gray-500 dark:text-gray-400">View all POS transactions</p>
             </div>
           </div>
         </div>
@@ -117,8 +117,8 @@ export default function POSOrdersPage() {
           <CardContent>
             <div className="text-center py-12">
               <ExclamationCircleIcon className="w-12 h-12 mx-auto mb-3 text-red-400" />
-              <p className="text-gray-700 font-medium mb-2">Failed to load orders</p>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Failed to load orders</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                 {error instanceof Error ? error.message : 'Please try again.'}
               </p>
               <Button onClick={() => refetch()}>Retry</Button>
@@ -156,7 +156,7 @@ export default function POSOrdersPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -170,7 +170,7 @@ export default function POSOrdersPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 statusFilter === status
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {status === 'all' ? 'All' : status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -196,7 +196,7 @@ export default function POSOrdersPage() {
           <TableBody>
             {filteredOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500 dark:text-gray-400">
                   No orders found
                 </TableCell>
               </TableRow>
@@ -204,7 +204,7 @@ export default function POSOrdersPage() {
               filteredOrders.map((order: ApiPosOrder) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                  <TableCell className="text-gray-500">{formatDateTime(order.createdAt)}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{formatDateTime(order.createdAt)}</TableCell>
                   <TableCell>{order.customerName}</TableCell>
                   <TableCell>{order.itemCount} items</TableCell>
                   <TableCell className="font-medium">{fc(Number(order.total))}</TableCell>

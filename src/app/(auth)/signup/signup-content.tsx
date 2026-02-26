@@ -391,10 +391,10 @@ export default function SignupContent() {
       </div>
 
       {/* Right Panel - Signup Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 dark:bg-gray-900">
         <div className="w-full max-w-md">
           {/* Mobile: Back to Pricing */}
-          <Link href="/" className="lg:hidden inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors mb-6">
+          <Link href="/" className="lg:hidden inline-flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors mb-6">
             <ArrowLeftIcon className="w-4 h-4" />
             Back to Pricing
           </Link>
@@ -403,13 +403,13 @@ export default function SignupContent() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold text-xl">
               YB
             </div>
-            <span className="text-2xl font-bold text-gray-900">YaadBooks</span>
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">YaadBooks</span>
           </div>
 
           {/* Mobile: Selected Plan */}
-          <div className="lg:hidden bg-emerald-50 rounded-xl p-4 mb-6">
+          <div className="lg:hidden bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-4 mb-6">
             <p className="text-emerald-600 text-sm mb-1">Selected Plan</p>
-            <p className="text-gray-900 text-lg font-bold">{planInfo.name} — {planInfo.price}</p>
+            <p className="text-gray-900 dark:text-white text-lg font-bold">{planInfo.name} — {planInfo.price}</p>
             <Link href="/#pricing" className="text-emerald-600 text-sm hover:underline">
               Change plan →
             </Link>
@@ -421,21 +421,21 @@ export default function SignupContent() {
               <div
                 key={s}
                 className={`h-2 rounded-full transition-all ${
-                  s === step ? 'w-8 bg-emerald-600' : s < step ? 'w-8 bg-emerald-200' : 'w-8 bg-gray-200'
+                  s === step ? 'w-8 bg-emerald-600' : s < step ? 'w-8 bg-emerald-200' : 'w-8 bg-gray-200 dark:bg-gray-700'
                 }`}
               />
             ))}
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             {step === 1 ? 'Create your account' : 'Set up your business'}
           </h2>
-          <p className="text-gray-500 mb-8">
+          <p className="text-gray-500 dark:text-gray-400 mb-8">
             {step === 1 ? 'Enter your personal information' : 'Tell us about your business'}
           </p>
 
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
               {error}
             </div>
           )}
@@ -445,19 +445,19 @@ export default function SignupContent() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       First Name *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <UserIcon className="h-5 w-5 text-gray-400" />
+                        <UserIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                       </div>
                       <input
                         type="text"
                         value={formData.firstName}
                         onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                          getFieldError('firstName') ? 'border-red-300' : 'border-gray-300'
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                          getFieldError('firstName') ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                         }`}
                         placeholder="John"
                       />
@@ -467,15 +467,15 @@ export default function SignupContent() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Last Name *
                     </label>
                     <input
                       type="text"
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                        getFieldError('lastName') ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full px-4 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('lastName') ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="Brown"
                     />
@@ -486,19 +486,19 @@ export default function SignupContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Email Address *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+                      <EnvelopeIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                        getFieldError('email') ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('email') ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="you@example.com"
                     />
@@ -509,37 +509,37 @@ export default function SignupContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Phone Number
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <PhoneIcon className="h-5 w-5 text-gray-400" />
+                      <PhoneIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="876-xxx-xxxx"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Password *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                      <LockClosedIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                        getFieldError('password') ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('password') ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="Min. 12 characters"
                     />
@@ -549,9 +549,9 @@ export default function SignupContent() {
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     >
                       {showPassword ? (
-                        <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                        <EyeSlashIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                       ) : (
-                        <EyeIcon className="h-5 w-5 text-gray-400" />
+                        <EyeIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                       )}
                     </button>
                   </div>
@@ -561,15 +561,15 @@ export default function SignupContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Confirm Password *
                   </label>
                   <input
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                      getFieldError('confirmPassword') ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-4 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                      getFieldError('confirmPassword') ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                     }`}
                     placeholder="Re-enter password"
                   />
@@ -591,19 +591,19 @@ export default function SignupContent() {
             {step === 2 && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Business Name *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <BuildingOfficeIcon className="h-5 w-5 text-gray-400" />
+                      <BuildingOfficeIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="text"
                       value={formData.businessName}
                       onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                        getFieldError('businessName') ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        getFieldError('businessName') ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="Your Company Ltd."
                     />
@@ -614,26 +614,26 @@ export default function SignupContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Trading Name
                   </label>
                   <input
                     type="text"
                     value={formData.tradingName}
                     onChange={(e) => setFormData({ ...formData, tradingName: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="DBA / Trade As name (optional)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Business Type
                   </label>
                   <select
                     value={formData.businessType}
                     onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800"
                   >
                     {BUSINESS_TYPES.map((bt) => (
                       <option key={bt.value} value={bt.value}>{bt.label}</option>
@@ -643,13 +643,13 @@ export default function SignupContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Industry
                     </label>
                     <select
                       value={formData.industry}
                       onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800"
                     >
                       <option value="">Select industry</option>
                       {INDUSTRIES.map((i) => (
@@ -658,13 +658,13 @@ export default function SignupContent() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Parish
                     </label>
                     <select
                       value={formData.parish}
                       onChange={(e) => setFormData({ ...formData, parish: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800"
                     >
                       <option value="">Select parish</option>
                       {PARISHES.map((p) => (
@@ -675,26 +675,26 @@ export default function SignupContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     TRN (Tax Registration Number)
                   </label>
                   <input
                     type="text"
                     value={formData.trnNumber}
                     onChange={(e) => setFormData({ ...formData, trnNumber: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="XXX-XXX-XXX (optional)"
                   />
                 </div>
 
                 {/* Referral Code */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Referral Code
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <GiftIcon className="h-5 w-5 text-gray-400" />
+                      <GiftIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="text"
@@ -716,12 +716,12 @@ export default function SignupContent() {
                         }
                       }}
                       maxLength={20}
-                      className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 uppercase ${
+                      className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 uppercase ${
                         referralStatus === 'valid'
-                          ? 'border-emerald-400 bg-emerald-50'
+                          ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30'
                           : referralStatus === 'invalid'
-                          ? 'border-red-300 bg-red-50'
-                          : 'border-gray-300'
+                          ? 'border-red-300 bg-red-50 dark:bg-red-900/30'
+                          : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="e.g. YAAD2026 (optional)"
                     />
@@ -748,7 +748,7 @@ export default function SignupContent() {
                     <p className="mt-1 text-xs text-red-600">{referralMessage}</p>
                   )}
                   {referralStatus === 'idle' && !formData.referralCode && (
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                       Have a referral code? Enter it for bonus trial days.
                     </p>
                   )}
@@ -758,7 +758,7 @@ export default function SignupContent() {
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                    className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     Back
                   </button>
@@ -779,10 +779,10 @@ export default function SignupContent() {
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                  <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">Or continue with</span>
                 </div>
               </div>
 
@@ -790,7 +790,7 @@ export default function SignupContent() {
                 type="button"
                 onClick={() => window.location.href = '/api/auth/oauth/google?intent=signup'}
                 disabled={isLoading}
-                className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+                className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors disabled:opacity-50"
               >
                 <GoogleIcon className="w-5 h-5" />
                 Sign up with Google
@@ -798,7 +798,7 @@ export default function SignupContent() {
             </div>
           )}
 
-          <p className="mt-8 text-center text-sm text-gray-500">
+          <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Already have an account?{' '}
             <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
               Sign in
@@ -806,7 +806,7 @@ export default function SignupContent() {
           </p>
 
           {step === 1 && (
-            <p className="mt-4 text-center text-xs text-gray-400">
+            <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
               By signing up, you agree to our{' '}
               <Link href="/terms" className="text-emerald-600" target="_blank">Terms of Service</Link>
               {' '}and{' '}

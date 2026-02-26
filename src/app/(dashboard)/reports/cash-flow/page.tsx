@@ -330,7 +330,7 @@ export default function CashFlowPage() {
       ? 'text-emerald-600'
       : value < 0
         ? 'text-red-600'
-        : 'text-gray-700';
+        : 'text-gray-700 dark:text-gray-300';
 
   const formatAmount = (value: number) => {
     if (value < 0) {
@@ -479,10 +479,10 @@ export default function CashFlowPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Cash Flow Statement
           </h1>
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Indirect method &mdash; sources and uses of cash
           </p>
         </div>
@@ -503,8 +503,8 @@ export default function CashFlowPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-600">Period:</span>
+              <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">Period:</span>
             </div>
             <Input
               type="date"
@@ -514,7 +514,7 @@ export default function CashFlowPage() {
               }
               className="w-40"
             />
-            <span className="text-gray-400">to</span>
+            <span className="text-gray-400 dark:text-gray-500">to</span>
             <Input
               type="date"
               value={dateRange.end}
@@ -595,7 +595,7 @@ export default function CashFlowPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-700">
                 {section.items.map((item, idx) => {
                   // Section sub-header (amount = 0, not indented)
                   const isSubHeader =
@@ -607,7 +607,7 @@ export default function CashFlowPage() {
                         key={idx}
                         className="py-3 pt-5"
                       >
-                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                           {item.label}
                         </span>
                       </div>
@@ -624,8 +624,8 @@ export default function CashFlowPage() {
                       <span
                         className={`text-sm ${
                           item.indent
-                            ? 'text-gray-600'
-                            : 'font-medium text-gray-800'
+                            ? 'text-gray-600 dark:text-gray-400'
+                            : 'font-medium text-gray-800 dark:text-gray-100'
                         }`}
                       >
                         {item.label}
@@ -642,8 +642,8 @@ export default function CashFlowPage() {
                 })}
 
                 {/* Subtotal row */}
-                <div className="flex items-center justify-between py-4 bg-gray-50 -mx-6 px-6 mt-2 rounded-b-lg border-t-2 border-gray-200">
-                  <span className="font-bold text-gray-900">
+                <div className="flex items-center justify-between py-4 bg-gray-50 dark:bg-gray-900 -mx-6 px-6 mt-2 rounded-b-lg border-t-2 border-gray-200 dark:border-gray-700">
+                  <span className="font-bold text-gray-900 dark:text-white">
                     Net Cash from{' '}
                     {section.title.replace('Cash Flows from ', '')}
                   </span>
@@ -662,15 +662,15 @@ export default function CashFlowPage() {
       })}
 
       {/* Summary */}
-      <Card className="border-2 border-gray-300">
+      <Card className="border-2 border-gray-300 dark:border-gray-600">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Cash Flow Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {/* Net change */}
             <div className="flex items-center justify-between py-4">
-              <span className="font-medium text-gray-800">
+              <span className="font-medium text-gray-800 dark:text-gray-100">
                 Net Change in Cash
               </span>
               <span
@@ -684,17 +684,17 @@ export default function CashFlowPage() {
 
             {/* Opening balance */}
             <div className="flex items-center justify-between py-4">
-              <span className="font-medium text-gray-800">
+              <span className="font-medium text-gray-800 dark:text-gray-100">
                 Opening Cash Balance
               </span>
-              <span className="font-mono text-base font-medium text-gray-700">
+              <span className="font-mono text-base font-medium text-gray-700 dark:text-gray-300">
                 {fc(cashFlowData.openingCash)}
               </span>
             </div>
 
             {/* Closing balance */}
-            <div className="flex items-center justify-between py-5 bg-emerald-50 -mx-6 px-6 rounded-b-lg border-t-2 border-emerald-200">
-              <span className="font-bold text-lg text-gray-900">
+            <div className="flex items-center justify-between py-5 bg-emerald-50 dark:bg-emerald-900/30 -mx-6 px-6 rounded-b-lg border-t-2 border-emerald-200 dark:border-emerald-800">
+              <span className="font-bold text-lg text-gray-900 dark:text-white">
                 Closing Cash Balance
               </span>
               <span
@@ -710,7 +710,7 @@ export default function CashFlowPage() {
       </Card>
 
       {/* Footer note */}
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
         Report period: {formatDate(new Date(dateRange.start))} &ndash;{' '}
         {formatDate(new Date(dateRange.end))}
         {activeCompany?.businessName

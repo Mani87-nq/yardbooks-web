@@ -157,10 +157,10 @@ export default function StockValuationPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Stock Valuation Report
           </h1>
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Inventory value using weighted average cost method
             {report?.asOfDate && (
               <span className="ml-1 text-xs">(as of {report.asOfDate})</span>
@@ -168,12 +168,12 @@ export default function StockValuationPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
             <input
               type="checkbox"
               checked={showLowStockOnly}
               onChange={(e) => setShowLowStockOnly(e.target.checked)}
-              className="rounded border-gray-300"
+              className="rounded border-gray-300 dark:border-gray-600"
             />
             Low stock only
           </label>
@@ -204,7 +204,7 @@ export default function StockValuationPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm text-red-800 flex-1">
             Failed to load stock valuation.
@@ -219,8 +219,8 @@ export default function StockValuationPage() {
       {isLoading && (
         <Card>
           <div className="p-12 text-center">
-            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Calculating stock valuation...</p>
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 dark:text-gray-500 animate-spin" />
+            <p className="text-gray-500 dark:text-gray-400">Calculating stock valuation...</p>
           </div>
         </Card>
       )}
@@ -231,15 +231,15 @@ export default function StockValuationPage() {
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Products</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Products</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {report.summary.totalProducts}
                 </p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Cost Value</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Cost Value</p>
                 <p className="text-xl font-bold text-blue-700">
                   {fc(report.summary.totalCostValue)}
                 </p>
@@ -247,7 +247,7 @@ export default function StockValuationPage() {
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Retail Value</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Retail Value</p>
                 <p className="text-xl font-bold text-emerald-700">
                   {fc(report.summary.totalRetailValue)}
                 </p>
@@ -255,18 +255,18 @@ export default function StockValuationPage() {
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Potential Margin</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Potential Margin</p>
                 <p className="text-xl font-bold text-purple-700">
                   {report.summary.potentialGrossMargin.toFixed(1)}%
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
                   {fc(report.summary.potentialGrossProfit)} profit
                 </p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Low Stock Items</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Low Stock Items</p>
                 <p
                   className={`text-2xl font-bold ${
                     report.summary.lowStockItems > 0
@@ -284,7 +284,7 @@ export default function StockValuationPage() {
           {report.categories.length > 0 && (
             <Card>
               <div className="p-4 border-b">
-                <h3 className="font-semibold text-gray-800">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100">
                   By Category
                 </h3>
               </div>
@@ -293,18 +293,18 @@ export default function StockValuationPage() {
                   {report.categories.map((cat) => (
                     <div
                       key={cat.category}
-                      className="border rounded-lg p-3 bg-gray-50"
+                      className="border rounded-lg p-3 bg-gray-50 dark:bg-gray-900"
                     >
-                      <p className="font-medium text-gray-900 text-sm">
+                      <p className="font-medium text-gray-900 dark:text-white text-sm">
                         {cat.category}
                       </p>
-                      <div className="flex justify-between mt-1 text-xs text-gray-500">
+                      <div className="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
                         <span>{cat.itemCount} items</span>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
                           {fc(cat.totalCostValue)}
                         </span>
                       </div>
-                      <div className="flex justify-between mt-0.5 text-xs text-gray-500">
+                      <div className="flex justify-between mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                         <span>{cat.totalQuantity} units</span>
                         <span className="text-emerald-600">
                           {cat.potentialMargin.toFixed(1)}% margin
@@ -339,9 +339,9 @@ export default function StockValuationPage() {
                     <TableRow>
                       <TableCell
                         colSpan={9}
-                        className="text-center py-12 text-gray-500"
+                        className="text-center py-12 text-gray-500 dark:text-gray-400"
                       >
-                        <CubeIcon className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                        <CubeIcon className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                         <p>No products found</p>
                       </TableCell>
                     </TableRow>
@@ -349,17 +349,17 @@ export default function StockValuationPage() {
                     report.items.map((item) => (
                       <TableRow
                         key={item.id}
-                        className={item.isLowStock ? 'bg-red-50/30' : ''}
+                        className={item.isLowStock ? 'bg-red-50/30 dark:bg-red-900/20' : ''}
                       >
                         <TableCell>
-                          <p className="font-medium text-gray-900 text-sm">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm">
                             {item.name}
                           </p>
                         </TableCell>
-                        <TableCell className="text-gray-500 font-mono text-xs">
+                        <TableCell className="text-gray-500 dark:text-gray-400 font-mono text-xs">
                           {item.sku}
                         </TableCell>
-                        <TableCell className="text-gray-500 text-sm">
+                        <TableCell className="text-gray-500 dark:text-gray-400 text-sm">
                           {item.category}
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">

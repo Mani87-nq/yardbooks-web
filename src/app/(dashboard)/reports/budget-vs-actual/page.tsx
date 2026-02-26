@@ -72,7 +72,7 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   EXPENSE: 'text-red-700',
   ASSET: 'text-blue-700',
   LIABILITY: 'text-purple-700',
-  EQUITY: 'text-gray-700',
+  EQUITY: 'text-gray-700 dark:text-gray-300',
 };
 
 export default function BudgetVsActualPage() {
@@ -174,20 +174,20 @@ export default function BudgetVsActualPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Budget vs Actual
           </h1>
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Compare budgeted amounts against actual GL activity
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">FY:</label>
+            <label className="text-sm text-gray-600 dark:text-gray-400">FY:</label>
             <select
               value={fiscalYear}
               onChange={(e) => setFiscalYear(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
             >
               {[2025, 2026, 2027, 2028].map((y) => (
                 <option key={y} value={y}>
@@ -197,11 +197,11 @@ export default function BudgetVsActualPage() {
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Through:</label>
+            <label className="text-sm text-gray-600 dark:text-gray-400">Through:</label>
             <select
               value={throughMonth}
               onChange={(e) => setThroughMonth(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
             >
               {MONTH_NAMES.map((name, i) => (
                 <option key={i} value={i + 1}>
@@ -237,7 +237,7 @@ export default function BudgetVsActualPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationTriangleIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-amber-800 font-medium">
@@ -260,8 +260,8 @@ export default function BudgetVsActualPage() {
       {isLoading && (
         <Card>
           <div className="p-12 text-center">
-            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Loading budget report...</p>
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 dark:text-gray-500 animate-spin" />
+            <p className="text-gray-500 dark:text-gray-400">Loading budget report...</p>
           </div>
         </Card>
       )}
@@ -272,18 +272,18 @@ export default function BudgetVsActualPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
               <div className="p-5">
-                <p className="text-sm text-gray-500">Total Budget (YTD)</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Budget (YTD)</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {fc(report.totals.budget)}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   {report.budgetName}
                 </p>
               </div>
             </Card>
             <Card>
               <div className="p-5">
-                <p className="text-sm text-gray-500">Total Actual (YTD)</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Actual (YTD)</p>
                 <p className="text-2xl font-bold text-blue-700">
                   {fc(report.totals.actual)}
                 </p>
@@ -291,7 +291,7 @@ export default function BudgetVsActualPage() {
             </Card>
             <Card>
               <div className="p-5">
-                <p className="text-sm text-gray-500">Total Variance</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Variance</p>
                 <p
                   className={`text-2xl font-bold ${varianceColor(
                     report.totals.variance
@@ -300,7 +300,7 @@ export default function BudgetVsActualPage() {
                   {varianceIcon(report.totals.variance)}
                   {fc(Math.abs(report.totals.variance))}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   {report.totals.variance >= 0
                     ? 'Under budget'
                     : 'Over budget'}
@@ -315,7 +315,7 @@ export default function BudgetVsActualPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-white z-10">
+                    <TableHead className="sticky left-0 bg-white dark:bg-gray-800 z-10">
                       Account
                     </TableHead>
                     <TableHead>Type</TableHead>
@@ -330,18 +330,18 @@ export default function BudgetVsActualPage() {
                     <TableRow>
                       <TableCell
                         colSpan={6}
-                        className="text-center py-12 text-gray-500"
+                        className="text-center py-12 text-gray-500 dark:text-gray-400"
                       >
-                        <ScaleIcon className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                        <ScaleIcon className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                         <p>No budget lines found</p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     report.lines.map((line) => (
                       <TableRow key={line.accountId}>
-                        <TableCell className="sticky left-0 bg-white z-10">
+                        <TableCell className="sticky left-0 bg-white dark:bg-gray-800 z-10">
                           <div>
-                            <p className="font-medium text-gray-900 text-sm">
+                            <p className="font-medium text-gray-900 dark:text-white text-sm">
                               {line.accountNumber} - {line.accountName}
                             </p>
                           </div>
@@ -350,7 +350,7 @@ export default function BudgetVsActualPage() {
                           <span
                             className={`text-xs font-medium ${
                               ACCOUNT_TYPE_COLORS[line.accountType] ??
-                              'text-gray-600'
+                              'text-gray-600 dark:text-gray-400'
                             }`}
                           >
                             {line.accountType}
@@ -384,8 +384,8 @@ export default function BudgetVsActualPage() {
                   )}
                   {/* Totals Row */}
                   {report.lines.length > 0 && (
-                    <TableRow className="bg-gray-50 font-bold">
-                      <TableCell className="sticky left-0 bg-gray-50 z-10">
+                    <TableRow className="bg-gray-50 dark:bg-gray-900 font-bold">
+                      <TableCell className="sticky left-0 bg-gray-50 dark:bg-gray-900 z-10">
                         Grand Total
                       </TableCell>
                       <TableCell />

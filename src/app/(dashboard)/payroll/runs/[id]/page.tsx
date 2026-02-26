@@ -36,8 +36,8 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
   if (!run) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <DocumentTextIcon className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Payroll Run Not Found</h2>
+        <DocumentTextIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Payroll Run Not Found</h2>
         <Link href="/payroll" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
           Back to Payroll
         </Link>
@@ -49,11 +49,11 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      draft: 'bg-gray-100 text-gray-700',
+      draft: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
       approved: 'bg-blue-100 text-blue-700',
       paid: 'bg-green-100 text-green-700',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
   };
 
   const handleApprove = async () => {
@@ -177,17 +177,17 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/payroll" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <Link href="/payroll" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">Payroll Run</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Payroll Run</h1>
               <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(run.status)}`}>
                 {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
               </span>
             </div>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {format(new Date(run.periodStart), 'MMM dd')} - {format(new Date(run.periodEnd), 'MMM dd, yyyy')}
             </p>
           </div>
@@ -195,10 +195,10 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
             title="Print payroll run"
           >
-            <PrinterIcon className="w-5 h-5 text-gray-600" />
+            <PrinterIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
           {(run.status === 'draft' || (run.status as string) === 'DRAFT') && (
             <button
@@ -233,66 +233,66 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <UserGroupIcon className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Employees</p>
-              <p className="text-2xl font-bold text-gray-900">{run.entries?.length || 0}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Employees</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{run.entries?.length || 0}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-100 rounded-lg">
               <BanknotesIcon className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Gross Pay</p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(run.totalGross)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Gross Pay</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(run.totalGross)}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-100 rounded-lg">
               <ClockIcon className="w-6 h-6 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Deductions</p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(run.totalDeductions)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Deductions</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(run.totalDeductions)}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckCircleIcon className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Net Pay</p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(run.totalNet)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Net Pay</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(run.totalNet)}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Payroll Entries Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Payroll Entries</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-900 dark:text-white">Payroll Entries</h2>
         </div>
         {!run.entries || run.entries.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-gray-500">No entries in this payroll run</p>
+            <p className="text-gray-500 dark:text-gray-400">No entries in this payroll run</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                   <th className="px-4 py-3 font-medium">Employee</th>
                   <th className="px-4 py-3 font-medium text-right">Basic</th>
                   <th className="px-4 py-3 font-medium text-right">Gross Pay</th>
@@ -302,9 +302,9 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
                   <th className="px-4 py-3 font-medium text-right">Net Pay</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {run.entries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50">
+                  <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3">
                       <Link
                         href={`/payroll/employees/${entry.employeeId}`}
@@ -313,24 +313,24 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
                         {getEmployeeName(entry.employeeId)}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(entry.basicSalary)}</td>
-                    <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(entry.grossPay)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(entry.paye)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(entry.nis)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{formatCurrency(entry.basicSalary)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{formatCurrency(entry.grossPay)}</td>
+                    <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(entry.paye)}</td>
+                    <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(entry.nis)}</td>
                     <td className="px-4 py-3 text-right text-red-600">{formatCurrency(entry.totalDeductions)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(entry.netPay)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(entry.netPay)}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-gray-50 border-t border-gray-200">
+              <tfoot className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
                 <tr>
-                  <td className="px-4 py-3 font-semibold text-gray-900">Totals</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900">-</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(run.totalGross)}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-600">-</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-600">-</td>
+                  <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">Totals</td>
+                  <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">-</td>
+                  <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(run.totalGross)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">-</td>
+                  <td className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">-</td>
                   <td className="px-4 py-3 text-right font-semibold text-red-600">{formatCurrency(run.totalDeductions)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatCurrency(run.totalNet)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(run.totalNet)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -339,16 +339,16 @@ export default function PayrollRunDetailPage({ params }: PageProps) {
       </div>
 
       {/* Employer Contributions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Employer Contributions</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Employer Contributions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <dt className="text-sm text-gray-500">Total Employer Contributions</dt>
-            <dd className="text-2xl font-bold text-gray-900">{formatCurrency(run.totalEmployerContributions)}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">Total Employer Contributions</dt>
+            <dd className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(run.totalEmployerContributions)}</dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500">Pay Date</dt>
-            <dd className="text-lg font-semibold text-gray-900">{format(new Date(run.payDate), 'MMM dd, yyyy')}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">Pay Date</dt>
+            <dd className="text-lg font-semibold text-gray-900 dark:text-white">{format(new Date(run.payDate), 'MMM dd, yyyy')}</dd>
           </div>
         </div>
       </div>

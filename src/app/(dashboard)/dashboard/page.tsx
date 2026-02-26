@@ -91,14 +91,14 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className={`group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 ${hoverBorder} hover:shadow-lg transition-all duration-300 overflow-hidden`}
+      className={`group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 ${hoverBorder} hover:shadow-lg dark:shadow-gray-900/30 transition-all duration-300 overflow-hidden`}
     >
       {/* Subtle background glow on hover */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.04] transition-opacity duration-300 rounded-2xl" style={{ background: 'radial-gradient(circle at center, currentColor, transparent 70%)' }} />
       <div className={`w-12 h-12 rounded-xl ${bgColor} flex items-center justify-center group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
         <Icon className="w-6 h-6 text-white" />
       </div>
-      <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">{title}</span>
+      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{title}</span>
     </Link>
   );
 }
@@ -127,38 +127,38 @@ function StatCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 p-6 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}
+      className={`relative overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm dark:shadow-gray-900/20 hover:shadow-lg dark:hover:shadow-gray-900/30 transition-all duration-300 p-6 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}
     >
       {/* Decorative corner accent */}
       <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.07]" style={{ background: 'currentColor' }} />
 
       <div className="flex items-start justify-between relative">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-500 tracking-wide uppercase">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight truncate">{value}</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide uppercase">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2 tracking-tight truncate">{value}</p>
           {change && (
             <div className="flex items-center gap-1.5 mt-3">
               {changeType === 'positive' && (
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800">
                   <ArrowTrendingUpIcon className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-xs font-semibold text-emerald-700">{change}</span>
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{change}</span>
                 </div>
               )}
               {changeType === 'negative' && (
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 border border-red-100">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800">
                   <ArrowTrendingDownIcon className="w-3.5 h-3.5 text-red-600" />
-                  <span className="text-xs font-semibold text-red-700">{change}</span>
+                  <span className="text-xs font-semibold text-red-700 dark:text-red-400">{change}</span>
                 </div>
               )}
               {changeType === 'neutral' && (
-                <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 px-2 py-0.5 rounded-full border border-gray-100 dark:border-gray-700">
                   {change}
                 </span>
               )}
             </div>
           )}
         </div>
-        <div className={`w-14 h-14 rounded-2xl ${iconBg} flex items-center justify-center shadow-sm flex-shrink-0`}>
+        <div className={`w-14 h-14 rounded-2xl ${iconBg} flex items-center justify-center shadow-sm dark:shadow-gray-900/20 flex-shrink-0`}>
           <Icon className="w-7 h-7 text-white" />
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
 
       <div className="space-y-8 pb-8">
         {/* ─── WELCOME HEADER ─────────────────────────────────────────── */}
-        <div style={fadeSlideUpStyle(0)} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 p-8 lg:p-10 shadow-lg">
+        <div style={fadeSlideUpStyle(0)} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 p-8 lg:p-10 shadow-lg dark:shadow-gray-900/30">
           {/* Background decorative elements */}
           <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-1/3 w-48 h-48 rounded-full bg-white/5 translate-y-1/2" />
@@ -229,7 +229,7 @@ export default function DashboardPage() {
         {/* ─── QUICK ACTIONS ──────────────────────────────────────────── */}
         <div style={fadeSlideUpStyle(80)}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <QuickAction
@@ -286,8 +286,8 @@ export default function DashboardPage() {
             changeType="neutral"
             icon={BanknotesIcon}
             iconBg="bg-gradient-to-br from-emerald-500 to-emerald-600"
-            gradientFrom="from-white"
-            gradientTo="to-emerald-50/50"
+            gradientFrom="from-white dark:from-gray-800"
+            gradientTo="to-emerald-50/50 dark:to-emerald-900/20"
           />
           <StatCard
             title="Receivable"
@@ -296,8 +296,8 @@ export default function DashboardPage() {
             changeType={stats.overdueCount > 0 ? 'negative' : 'positive'}
             icon={DocumentTextIcon}
             iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
-            gradientFrom="from-white"
-            gradientTo="to-blue-50/50"
+            gradientFrom="from-white dark:from-gray-800"
+            gradientTo="to-blue-50/50 dark:to-blue-900/20"
           />
           <StatCard
             title="Expenses"
@@ -306,8 +306,8 @@ export default function DashboardPage() {
             changeType="neutral"
             icon={BanknotesIcon}
             iconBg="bg-gradient-to-br from-rose-500 to-rose-600"
-            gradientFrom="from-white"
-            gradientTo="to-rose-50/50"
+            gradientFrom="from-white dark:from-gray-800"
+            gradientTo="to-rose-50/50 dark:to-rose-900/20"
           />
           <StatCard
             title="Net Profit"
@@ -316,47 +316,47 @@ export default function DashboardPage() {
             changeType={stats.profit > 0 ? 'positive' : stats.profit < 0 ? 'negative' : 'neutral'}
             icon={ArrowTrendingUpIcon}
             iconBg="bg-gradient-to-br from-purple-500 to-purple-600"
-            gradientFrom="from-white"
-            gradientTo="to-purple-50/50"
+            gradientFrom="from-white dark:from-gray-800"
+            gradientTo="to-purple-50/50 dark:to-purple-900/20"
           />
         </div>
 
         {/* ─── AT A GLANCE METRICS BAR ────────────────────────────────── */}
         <div style={fadeSlideUpStyle(220)} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm dark:shadow-gray-900/20">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
               <UserGroupIcon className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.customerCount}</p>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customers</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.customerCount}</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Customers</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm dark:shadow-gray-900/20">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
               <DocumentTextIcon className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.invoiceCount}</p>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoices</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.invoiceCount}</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Invoices</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm dark:shadow-gray-900/20">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
               <CubeIcon className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.lowStockCount}</p>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Low Stock</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lowStockCount}</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Low Stock</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm dark:shadow-gray-900/20">
+            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
               <ClockIcon className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.overdueCount}</p>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Overdue</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.overdueCount}</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Overdue</p>
             </div>
           </div>
         </div>
@@ -364,13 +364,13 @@ export default function DashboardPage() {
         {/* ─── LOWER SECTION: INVOICES & LOW STOCK ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Invoices */}
-          <div style={fadeSlideUpStyle(300)} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div style={fadeSlideUpStyle(300)} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm dark:shadow-gray-900/20 overflow-hidden">
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
                   <DocumentTextIcon className="w-5 h-5 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">Recent Invoices</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Invoices</h3>
               </div>
               <Link
                 href="/invoices"
@@ -382,10 +382,10 @@ export default function DashboardPage() {
             <div className="px-6 pb-6">
               {recentInvoices.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                    <DocumentTextIcon className="w-8 h-8 text-gray-300" />
+                  <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center mx-auto mb-4">
+                    <DocumentTextIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />
                   </div>
-                  <p className="text-gray-500 font-medium">No invoices yet</p>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">No invoices yet</p>
                   <Link
                     href="/invoices/new"
                     className="inline-flex items-center gap-1.5 mt-3 text-emerald-600 hover:text-emerald-700 text-sm font-semibold"
@@ -400,24 +400,24 @@ export default function DashboardPage() {
                     <Link
                       key={invoice.id}
                       href={`/invoices/${invoice.id}`}
-                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-gray-50/80 transition-all duration-200 group"
+                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-gray-50/80 dark:hover:bg-gray-700 transition-all duration-200 group"
                       style={fadeSlideUpStyle(350 + index * 50)}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 group-hover:bg-white flex items-center justify-center transition-colors border border-gray-100">
-                          <span className="text-xs font-bold text-gray-400">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900 group-hover:bg-white dark:group-hover:bg-gray-700 flex items-center justify-center transition-colors border border-gray-100 dark:border-gray-700">
+                          <span className="text-xs font-bold text-gray-400 dark:text-gray-500">
                             {(index + 1).toString().padStart(2, '0')}
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm truncate">{invoice.invoiceNumber}</p>
-                          <p className="text-xs text-gray-500 truncate">
+                          <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{invoice.invoiceNumber}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                             {invoice.customer?.name || 'Unknown'} &middot; {formatRelativeTime(invoice.issueDate)}
                           </p>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-4">
-                        <p className="font-bold text-gray-900 text-sm">{fc(invoice.total)}</p>
+                        <p className="font-bold text-gray-900 dark:text-white text-sm">{fc(invoice.total)}</p>
                         <div className="mt-1">
                           <StatusBadge status={invoice.status} />
                         </div>
@@ -430,17 +430,17 @@ export default function DashboardPage() {
           </div>
 
           {/* Low Stock Alerts */}
-          <div style={fadeSlideUpStyle(320)} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div style={fadeSlideUpStyle(320)} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm dark:shadow-gray-900/20 overflow-hidden">
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl ${lowStockProducts.length > 0 ? 'bg-amber-50' : 'bg-emerald-50'} flex items-center justify-center`}>
+                <div className={`w-9 h-9 rounded-xl ${lowStockProducts.length > 0 ? 'bg-amber-50 dark:bg-amber-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30'} flex items-center justify-center`}>
                   {lowStockProducts.length > 0 ? (
                     <ExclamationTriangleIcon className="w-5 h-5 text-amber-600" />
                   ) : (
                     <CheckCircleIcon className="w-5 h-5 text-emerald-600" />
                   )}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {lowStockProducts.length > 0 ? 'Low Stock Alerts' : 'Stock Status'}
                 </h3>
                 {lowStockProducts.length > 0 && (
@@ -459,11 +459,11 @@ export default function DashboardPage() {
             <div className="px-6 pb-6">
               {lowStockProducts.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-4">
                     <CheckCircleIcon className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <p className="text-gray-900 font-medium">All stock levels healthy</p>
-                  <p className="text-sm text-gray-500 mt-1">No items below reorder level</p>
+                  <p className="text-gray-900 dark:text-white font-medium">All stock levels healthy</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No items below reorder level</p>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -471,21 +471,21 @@ export default function DashboardPage() {
                     <Link
                       key={product.id}
                       href="/inventory"
-                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-amber-50/50 transition-all duration-200 group"
+                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-amber-50/50 dark:hover:bg-amber-900/20 transition-all duration-200 group"
                       style={fadeSlideUpStyle(370 + index * 50)}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors border border-red-100">
+                        <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/30 group-hover:bg-red-100 dark:group-hover:bg-red-900/50 flex items-center justify-center transition-colors border border-red-100 dark:border-red-800">
                           <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm truncate">{product.name}</p>
-                          <p className="text-xs text-gray-500 truncate">SKU: {product.sku}</p>
+                          <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{product.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">SKU: {product.sku}</p>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-4">
                         <p className="font-bold text-red-600 text-sm">{product.quantity} left</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Reorder at {product.reorderLevel}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Reorder at {product.reorderLevel}</p>
                       </div>
                     </Link>
                   ))}
@@ -506,7 +506,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ─── GCT BANNER (PREMIUM) ───────────────────────────────────── */}
-        <div style={fadeSlideUpStyle(400)} className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 p-6 lg:p-8 shadow-lg">
+        <div style={fadeSlideUpStyle(400)} className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 p-6 lg:p-8 shadow-lg dark:shadow-gray-900/30">
           {/* Decorative pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-40 h-40 rounded-full border-2 border-white -translate-y-1/2 translate-x-1/4" />

@@ -278,13 +278,13 @@ export default function BudgetsPage() {
   // ---------- Render ----------
 
   return (
-    <PermissionGate permission="gl:read" fallback={<div className="p-8 text-center text-gray-500">You do not have permission to view budgets.</div>}>
+    <PermissionGate permission="gl:read" fallback={<div className="p-8 text-center text-gray-500 dark:text-gray-400">You do not have permission to view budgets.</div>}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Budgets</h1>
-            <p className="text-gray-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Budgets</h1>
+            <p className="text-gray-500 dark:text-gray-400">
               Plan and manage your fiscal year budgets
             </p>
           </div>
@@ -303,17 +303,17 @@ export default function BudgetsPage() {
           <Card>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-1">
-                <ClipboardDocumentListIcon className="w-5 h-5 text-gray-400" />
-                <p className="text-sm text-gray-500">Total Budgets</p>
+                <ClipboardDocumentListIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Budgets</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{totalBudgets}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalBudgets}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <CheckBadgeIcon className="w-5 h-5 text-emerald-500" />
-                <p className="text-sm text-gray-500">Active Budgets</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Active Budgets</p>
               </div>
               <p className="text-2xl font-bold text-emerald-600">
                 {activeBudgets}
@@ -324,7 +324,7 @@ export default function BudgetsPage() {
             <div className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <CurrencyDollarIcon className="w-5 h-5 text-blue-500" />
-                <p className="text-sm text-gray-500">Total Budgeted</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Budgeted</p>
               </div>
               <p className="text-2xl font-bold text-blue-600">
                 {fc(totalBudgetedAmount)}
@@ -349,13 +349,13 @@ export default function BudgetsPage() {
             <TableBody>
               {budgetsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-12 text-gray-500 dark:text-gray-400">
                     Loading budgets...
                   </TableCell>
                 </TableRow>
               ) : budgets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-12 text-gray-500 dark:text-gray-400">
                     <p className="mb-4">No budgets found</p>
                     <PermissionGate permission="gl:create">
                       <Button onClick={handleOpenModal}>
@@ -369,11 +369,11 @@ export default function BudgetsPage() {
                   <TableRow key={budget.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-gray-900 dark:text-white">
                           {budget.name}
                         </p>
                         {budget.notes && (
-                          <p className="text-sm text-gray-500 truncate max-w-xs">
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
                             {budget.notes}
                           </p>
                         )}
@@ -381,10 +381,10 @@ export default function BudgetsPage() {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-gray-900 dark:text-white">
                           FY {budget.fiscalYear}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {getFiscalYearLabel(budget.fiscalYear)}
                         </p>
                       </div>
@@ -394,13 +394,13 @@ export default function BudgetsPage() {
                         {budget.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-700">
+                    <TableCell className="text-gray-700 dark:text-gray-300">
                       {budget._count?.lines ?? budget.lines?.length ?? 0}
                     </TableCell>
                     <TableCell className="font-medium">
                       {fc(budget.totalBudget)}
                     </TableCell>
-                    <TableCell className="text-gray-500">
+                    <TableCell className="text-gray-500 dark:text-gray-400">
                       {formatDate(budget.createdAt)}
                     </TableCell>
                   </TableRow>
@@ -430,7 +430,7 @@ export default function BudgetsPage() {
                   placeholder="e.g., Operating Budget 2026"
                 />
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Fiscal Year *
                   </label>
                   <select
@@ -441,7 +441,7 @@ export default function BudgetsPage() {
                         fiscalYear: parseInt(e.target.value),
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                   >
                     {FISCAL_YEAR_OPTIONS.map((fy) => (
                       <option key={fy} value={fy}>
@@ -453,7 +453,7 @@ export default function BudgetsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Notes
                 </label>
                 <textarea
@@ -461,7 +461,7 @@ export default function BudgetsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, notes: e.target.value })
                   }
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm resize-none"
                   rows={2}
                   placeholder="Optional notes about this budget"
                 />
@@ -470,7 +470,7 @@ export default function BudgetsPage() {
               {/* Budget Lines */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Budget Lines
                   </label>
                   <Button variant="outline" size="sm" onClick={handleAddLine}>
@@ -480,7 +480,7 @@ export default function BudgetsPage() {
                 </div>
 
                 {budgetLines.length === 0 ? (
-                  <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-500">
+                  <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center text-gray-500 dark:text-gray-400">
                     <p className="mb-2">No budget lines added yet</p>
                     <Button
                       variant="outline"
@@ -492,23 +492,23 @@ export default function BudgetsPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                  <div className="border dark:border-gray-600 rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-900">
                         <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
                             GL Account
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-40">
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 w-40">
                             Annual Amount
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-32">
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 w-32">
                             Monthly
                           </th>
                           <th className="px-3 py-2 w-10"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {budgetLines.map((line, index) => (
                           <tr key={index}>
                             <td className="px-3 py-2">
@@ -521,7 +521,7 @@ export default function BudgetsPage() {
                                     e.target.value
                                   )
                                 }
-                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                                className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm"
                               >
                                 <option value="">Select account</option>
                                 {glAccounts.map((a) => (
@@ -542,13 +542,13 @@ export default function BudgetsPage() {
                                     e.target.value
                                   )
                                 }
-                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                                className="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 text-sm text-right"
                                 placeholder="0.00"
                                 min="0"
                                 step="0.01"
                               />
                             </td>
-                            <td className="px-3 py-2 text-sm text-gray-500 text-right">
+                            <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 text-right">
                               {line.annualAmount
                                 ? fc(
                                     Math.round(
@@ -568,14 +568,14 @@ export default function BudgetsPage() {
                           </tr>
                         ))}
                         {budgetLines.length > 0 && (
-                          <tr className="bg-gray-50 font-medium">
-                            <td className="px-3 py-2 text-right text-sm text-gray-700">
+                          <tr className="bg-gray-50 dark:bg-gray-900 font-medium">
+                            <td className="px-3 py-2 text-right text-sm text-gray-700 dark:text-gray-300">
                               Total:
                             </td>
-                            <td className="px-3 py-2 text-right text-sm text-gray-900">
+                            <td className="px-3 py-2 text-right text-sm text-gray-900 dark:text-white">
                               {fc(linesTotalAnnual)}
                             </td>
-                            <td className="px-3 py-2 text-right text-sm text-gray-500">
+                            <td className="px-3 py-2 text-right text-sm text-gray-500 dark:text-gray-400">
                               {fc(
                                 Math.round(
                                   (linesTotalAnnual / 12) * 100

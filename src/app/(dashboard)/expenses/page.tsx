@@ -291,8 +291,8 @@ export default function ExpensesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-          <p className="text-gray-500">Track and manage business expenses</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Expenses</h1>
+          <p className="text-gray-500 dark:text-gray-400">Track and manage business expenses</p>
         </div>
         <div className="flex gap-2">
           <PermissionGate permission="expenses:create">
@@ -311,10 +311,10 @@ export default function ExpensesPage() {
 
       {/* Error State */}
       {fetchError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-red-800">Failed to load expenses. {fetchError instanceof Error ? fetchError.message : ''}</p>
+            <p className="text-sm text-red-800 dark:text-red-300">Failed to load expenses. {fetchError instanceof Error ? fetchError.message : ''}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <ArrowPathIcon className="w-4 h-4 mr-1" />
@@ -327,19 +327,19 @@ export default function ExpensesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Expenses</p>
-            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : fc(totalExpenses)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Expenses</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{isLoading ? '-' : fc(totalExpenses)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">This Month</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">This Month</p>
             <p className="text-2xl font-bold text-blue-600">{isLoading ? '-' : fc(thisMonthExpenses)}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Top Category</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Top Category</p>
             <p className="text-lg font-bold text-emerald-600 truncate">
               {isLoading ? '-' : topCategory ? getCategoryLabel(topCategory[0]) : 'N/A'}
             </p>
@@ -347,8 +347,8 @@ export default function ExpensesPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-sm text-gray-500">Total Records</p>
-            <p className="text-2xl font-bold text-gray-900">{isLoading ? '-' : allExpenses.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Records</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{isLoading ? '-' : allExpenses.length}</p>
           </div>
         </Card>
       </div>
@@ -362,7 +362,7 @@ export default function ExpensesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             rightIcon={searchQuery ? (
-              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             ) : undefined}
@@ -372,7 +372,7 @@ export default function ExpensesPage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-200 text-sm"
           >
             <option value="all">All Categories</option>
             {EXPENSE_CATEGORIES.map((cat) => (
@@ -399,7 +399,7 @@ export default function ExpensesPage() {
         <Card>
           <div className="p-12 text-center">
             <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Loading expenses...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading expenses...</p>
           </div>
         </Card>
       )}
@@ -422,7 +422,7 @@ export default function ExpensesPage() {
           <TableBody>
             {expenses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <p className="mb-4">No expenses found</p>
                   <PermissionGate permission="expenses:create">
                     <Button onClick={() => handleOpenModal()}>Add your first expense</Button>
@@ -432,12 +432,12 @@ export default function ExpensesPage() {
             ) : (
               expenses.map((expense) => (
                 <TableRow key={expense.id}>
-                  <TableCell className="text-gray-500">{formatDate(expense.date)}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{formatDate(expense.date)}</TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-gray-900">{expense.description}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{expense.description}</p>
                       {expense.reference && (
-                        <p className="text-sm text-gray-500">Ref: {expense.reference}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Ref: {expense.reference}</p>
                       )}
                       {expense.isRecurring && (
                         <Badge variant="info" className="mt-1">Recurring</Badge>
@@ -447,8 +447,8 @@ export default function ExpensesPage() {
                   <TableCell>
                     <Badge variant="default">{getCategoryLabel(expense.category)}</Badge>
                   </TableCell>
-                  <TableCell className="text-gray-500">{expense.vendor?.name || '-'}</TableCell>
-                  <TableCell className="text-gray-500">
+                  <TableCell className="text-gray-500 dark:text-gray-400">{expense.vendor?.name || '-'}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">
                     {expense.paymentMethod ? getPaymentLabel(expense.paymentMethod) : '-'}
                   </TableCell>
                   <TableCell className="font-medium text-red-600">
@@ -491,7 +491,7 @@ export default function ExpensesPage() {
         <ModalBody>
           <div className="space-y-4">
             {saveError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-300">
                 {saveError}
               </div>
             )}
@@ -518,11 +518,11 @@ export default function ExpensesPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category *</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="">Select category</option>
                   {EXPENSE_CATEGORIES.map((cat) => (
@@ -531,11 +531,11 @@ export default function ExpensesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>
                 <select
                   value={formData.paymentMethod}
                   onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   {PAYMENT_METHODS.map((pm) => (
                     <option key={pm.value} value={pm.value}>{pm.label}</option>
@@ -545,11 +545,11 @@ export default function ExpensesPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vendor</label>
                 <select
                   value={formData.vendorId}
                   onChange={(e) => setFormData({ ...formData, vendorId: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="">Select vendor (optional)</option>
                   {vendors.map((v: any) => (
@@ -565,11 +565,11 @@ export default function ExpensesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm resize-none"
                 rows={2}
               />
             </div>
@@ -581,13 +581,13 @@ export default function ExpensesPage() {
                   onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
                   className="rounded border-gray-300"
                 />
-                <span className="text-sm text-gray-700">Recurring Expense</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Recurring Expense</span>
               </label>
               {formData.isRecurring && (
                 <select
                   value={formData.recurringFrequency}
                   onChange={(e) => setFormData({ ...formData, recurringFrequency: e.target.value as any })}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2 text-sm"
                 >
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
@@ -618,12 +618,12 @@ export default function ExpensesPage() {
         <ModalBody>
           <div className="space-y-4">
             {scanError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-300">
                 {scanError}
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Upload Receipt Image
               </label>
               <input
@@ -633,12 +633,12 @@ export default function ExpensesPage() {
                   setScanFile(e.target.files?.[0] || null);
                   setScanError('');
                 }}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
               />
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-300">
               <p className="font-medium mb-1">What will be extracted:</p>
-              <ul className="list-disc list-inside space-y-0.5 text-blue-700">
+              <ul className="list-disc list-inside space-y-0.5 text-blue-700 dark:text-blue-300">
                 <li>Vendor / store name</li>
                 <li>Total amount</li>
                 <li>Date of purchase</li>

@@ -158,10 +158,10 @@ export default function CustomerProfitabilityPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Customer Profitability
           </h1>
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Rank customers by revenue and gross profit contribution
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function CustomerProfitabilityPage() {
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
-            <span className="text-gray-400">to</span>
+            <span className="text-gray-400 dark:text-gray-500">to</span>
             <Input
               type="date"
               value={endDate}
@@ -206,7 +206,7 @@ export default function CustomerProfitabilityPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
           <ExclamationTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm text-red-800 flex-1">
             Failed to load customer profitability.{' '}
@@ -222,8 +222,8 @@ export default function CustomerProfitabilityPage() {
       {isLoading && (
         <Card>
           <div className="p-12 text-center">
-            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 animate-spin" />
-            <p className="text-gray-500">Analyzing customer profitability...</p>
+            <ArrowPathIcon className="w-8 h-8 mx-auto mb-3 text-gray-400 dark:text-gray-500 animate-spin" />
+            <p className="text-gray-500 dark:text-gray-400">Analyzing customer profitability...</p>
           </div>
         </Card>
       )}
@@ -234,15 +234,15 @@ export default function CustomerProfitabilityPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Customers</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Customers</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {report.summary.totalCustomers}
                 </p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Total Revenue</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
                 <p className="text-xl font-bold text-emerald-700">
                   {fc(report.summary.totalRevenue)}
                 </p>
@@ -250,18 +250,18 @@ export default function CustomerProfitabilityPage() {
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Gross Profit</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Gross Profit</p>
                 <p className="text-xl font-bold text-blue-700">
                   {fc(report.summary.totalGrossProfit)}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
                   {report.summary.avgGrossMargin.toFixed(1)}% margin
                 </p>
               </div>
             </Card>
             <Card>
               <div className="p-4">
-                <p className="text-sm text-gray-500">Outstanding</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Outstanding</p>
                 <p
                   className={`text-xl font-bold ${
                     report.summary.totalOutstanding > 0
@@ -277,7 +277,7 @@ export default function CustomerProfitabilityPage() {
 
           {/* Pareto insight */}
           {report.summary.totalCustomers > 1 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-800">
               <ChartBarIcon className="w-4 h-4 inline mr-1" />
               <span className="font-medium">Pareto Insight:</span> Top 20% of
               customers account for{' '}
@@ -294,7 +294,7 @@ export default function CustomerProfitabilityPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-white z-10">
+                    <TableHead className="sticky left-0 bg-white dark:bg-gray-800 z-10">
                       Customer
                     </TableHead>
                     <TableHead className="text-right">Revenue</TableHead>
@@ -313,26 +313,26 @@ export default function CustomerProfitabilityPage() {
                     <TableRow>
                       <TableCell
                         colSpan={10}
-                        className="text-center py-12 text-gray-500"
+                        className="text-center py-12 text-gray-500 dark:text-gray-400"
                       >
-                        <UserGroupIcon className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                        <UserGroupIcon className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                         <p>No customer data for this period</p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     report.customers.map((cust, idx) => (
                       <TableRow key={cust.id}>
-                        <TableCell className="sticky left-0 bg-white z-10">
+                        <TableCell className="sticky left-0 bg-white dark:bg-gray-800 z-10">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-gray-400 w-5">
+                            <span className="text-xs font-mono text-gray-400 dark:text-gray-500 w-5">
                               {idx + 1}
                             </span>
                             <div>
-                              <p className="font-medium text-gray-900 text-sm">
+                              <p className="font-medium text-gray-900 dark:text-white text-sm">
                                 {cust.name}
                               </p>
                               {cust.email && (
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-gray-400 dark:text-gray-500">
                                   {cust.email}
                                 </p>
                               )}
@@ -342,10 +342,10 @@ export default function CustomerProfitabilityPage() {
                         <TableCell className="text-right font-mono text-sm font-medium">
                           {fc(cust.revenue)}
                         </TableCell>
-                        <TableCell className="text-right text-sm text-gray-500">
+                        <TableCell className="text-right text-sm text-gray-500 dark:text-gray-400">
                           {cust.revenueShare.toFixed(1)}%
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-gray-500">
+                        <TableCell className="text-right font-mono text-sm text-gray-500 dark:text-gray-400">
                           {fc(cust.cogs)}
                         </TableCell>
                         <TableCell
@@ -376,14 +376,14 @@ export default function CustomerProfitabilityPage() {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-gray-500">
+                        <TableCell className="text-right font-mono text-sm text-gray-500 dark:text-gray-400">
                           {fc(cust.avgInvoiceValue)}
                         </TableCell>
                         <TableCell
                           className={`text-right font-mono text-sm ${
                             cust.outstandingBalance > 0
                               ? 'text-amber-600 font-medium'
-                              : 'text-gray-400'
+                              : 'text-gray-400 dark:text-gray-500'
                           }`}
                         >
                           {cust.outstandingBalance > 0

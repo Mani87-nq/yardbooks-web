@@ -416,9 +416,9 @@ export function GlobalSearch() {
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleInputKeyDown}
             placeholder="Search invoices, customers, products..."
-            className="w-64 lg:w-96 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-20 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
+            className="w-64 lg:w-96 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2 pl-10 pr-20 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 rounded border border-gray-300 bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 select-none">
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:text-gray-400 select-none">
             <span className="text-xs">{typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent ?? '') ? '\u2318' : 'Ctrl'}</span>
             <span>K</span>
           </kbd>
@@ -427,7 +427,7 @@ export function GlobalSearch() {
 
       {/* ---- Mobile search button ---- */}
       <button
-        className="sm:hidden p-2 rounded-md hover:bg-gray-100"
+        className="sm:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
         onClick={() => {
           setIsOpen(true);
           setTimeout(() => inputRef.current?.focus(), 100);
@@ -438,8 +438,8 @@ export function GlobalSearch() {
 
       {/* ---- Mobile full-screen overlay ---- */}
       {isOpen && (
-        <div className="sm:hidden fixed inset-0 z-50 bg-white flex flex-col">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+        <div className="sm:hidden fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
             <input
               ref={inputRef}
@@ -449,7 +449,7 @@ export function GlobalSearch() {
               onKeyDown={handleInputKeyDown}
               placeholder="Search..."
               autoFocus
-              className="flex-1 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+              className="flex-1 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 bg-transparent focus:outline-none"
             />
             <button
               onClick={() => {
@@ -457,7 +457,7 @@ export function GlobalSearch() {
                 setQuery('');
                 setDebouncedQuery('');
               }}
-              className="p-1.5 rounded-md hover:bg-gray-100"
+              className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <XMarkIcon className="h-5 w-5 text-gray-500" />
             </button>
@@ -470,7 +470,7 @@ export function GlobalSearch() {
 
       {/* ---- Desktop dropdown panel ---- */}
       {showDropdown && (
-        <div className="hidden sm:block absolute left-0 top-full mt-2 w-[480px] lg:w-[560px] max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="hidden sm:block absolute left-0 top-full mt-2 w-[480px] lg:w-[560px] max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl dark:shadow-gray-900/40 ring-1 ring-black/5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
           {renderDropdownContent()}
         </div>
       )}
@@ -485,9 +485,9 @@ export function GlobalSearch() {
     if (!hasQuery) {
       return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <MagnifyingGlassIcon className="h-10 w-10 text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500">Type to search across customers, products, invoices, quotations, and expenses</p>
-          <p className="text-xs text-gray-400 mt-1">Minimum 2 characters</p>
+          <MagnifyingGlassIcon className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Type to search across customers, products, invoices, quotations, and expenses</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Minimum 2 characters</p>
         </div>
       );
     }
@@ -496,9 +496,9 @@ export function GlobalSearch() {
     if (!hasResults) {
       return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <MagnifyingGlassIcon className="h-10 w-10 text-gray-300 mb-3" />
-          <p className="text-sm font-medium text-gray-700">No results found</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <MagnifyingGlassIcon className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" />
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No results found</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Try a different search term or check for typos
           </p>
         </div>
@@ -538,15 +538,15 @@ export function GlobalSearch() {
                     onMouseEnter={() => setActiveIndex(idx)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                       isActive
-                        ? 'bg-emerald-50'
-                        : 'hover:bg-gray-50'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/30'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span
                           className={`text-sm font-medium truncate ${
-                            isActive ? 'text-emerald-700' : 'text-gray-900'
+                            isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-900 dark:text-white'
                           }`}
                         >
                           {item.primary}
@@ -560,13 +560,13 @@ export function GlobalSearch() {
                         )}
                       </div>
                       {item.secondary && (
-                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                           {item.secondary}
                         </p>
                       )}
                     </div>
                     {item.meta && (
-                      <span className="flex-shrink-0 text-xs font-medium text-gray-500">
+                      <span className="flex-shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
                         {item.meta}
                       </span>
                     )}
@@ -578,19 +578,19 @@ export function GlobalSearch() {
         })}
 
         {/* Footer hint */}
-        <div className="border-t border-gray-100 px-4 py-2 mt-1">
-          <div className="flex items-center justify-between text-[11px] text-gray-400">
+        <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-2 mt-1">
+          <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
             <span>
-              <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">&uarr;</kbd>{' '}
-              <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">&darr;</kbd>{' '}
+              <kbd className="rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1 py-0.5 font-mono text-[10px]">&uarr;</kbd>{' '}
+              <kbd className="rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1 py-0.5 font-mono text-[10px]">&darr;</kbd>{' '}
               to navigate
             </span>
             <span>
-              <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">Enter</kbd>{' '}
+              <kbd className="rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1 py-0.5 font-mono text-[10px]">Enter</kbd>{' '}
               to open
             </span>
             <span>
-              <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">Esc</kbd>{' '}
+              <kbd className="rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1 py-0.5 font-mono text-[10px]">Esc</kbd>{' '}
               to close
             </span>
           </div>

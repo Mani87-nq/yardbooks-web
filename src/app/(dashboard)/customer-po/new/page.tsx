@@ -130,35 +130,35 @@ export default function CreateCustomerPOPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/customer-po"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
-          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Create Customer PO</h1>
-          <p className="text-gray-500">Record a new customer purchase order</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create Customer PO</h1>
+          <p className="text-gray-500 dark:text-gray-400">Record a new customer purchase order</p>
         </div>
       </div>
 
       {submitError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-300 text-sm">
           {submitError}
         </div>
       )}
 
       <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
         {/* Customer & PO Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Order Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Customer <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.customerId}
                 onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 required
               >
                 <option value="">Select customer...</option>
@@ -171,7 +171,7 @@ export default function CreateCustomerPOPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 PO Number <span className="text-red-500">*</span>
               </label>
               <input
@@ -179,38 +179,38 @@ export default function CreateCustomerPOPage() {
                 value={formData.poNumber}
                 onChange={(e) => setFormData({ ...formData, poNumber: e.target.value })}
                 placeholder="Customer's PO number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Order Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 value={formData.orderDate}
                 onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Requested Delivery Date
               </label>
               <input
                 type="date"
                 value={formData.requestedDeliveryDate}
                 onChange={(e) => setFormData({ ...formData, requestedDeliveryDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Customer Reference / Attention To
               </label>
               <input
@@ -218,20 +218,20 @@ export default function CreateCustomerPOPage() {
                 value={formData.customerReference}
                 onChange={(e) => setFormData({ ...formData, customerReference: e.target.value })}
                 placeholder="Buyer name or reference"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
           </div>
         </div>
 
         {/* Line Items */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Line Items</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Line Items</h2>
             <button
               type="button"
               onClick={() => setShowProductSearch(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-sm font-medium"
             >
               <PlusIcon className="w-4 h-4" />
               Add Item
@@ -239,7 +239,7 @@ export default function CreateCustomerPOPage() {
           </div>
 
           {showProductSearch && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="relative mb-3">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -247,7 +247,7 @@ export default function CreateCustomerPOPage() {
                   value={searchProduct}
                   onChange={(e) => setSearchProduct(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   autoFocus
                 />
               </div>
@@ -257,10 +257,10 @@ export default function CreateCustomerPOPage() {
                     key={product.id}
                     type="button"
                     onClick={() => addItem(product)}
-                    className="w-full text-left px-3 py-2 hover:bg-white rounded-lg transition-colors"
+                    className="w-full text-left px-3 py-2 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors"
                   >
-                    <span className="font-medium text-gray-900">{product.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">
+                    <span className="font-medium text-gray-900 dark:text-white">{product.name}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
                       {product.sku} - ${product.unitPrice.toLocaleString()}
                     </span>
                   </button>
@@ -269,7 +269,7 @@ export default function CreateCustomerPOPage() {
               <button
                 type="button"
                 onClick={() => setShowProductSearch(false)}
-                className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+                className="mt-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 Cancel
               </button>
@@ -277,14 +277,14 @@ export default function CreateCustomerPOPage() {
           )}
 
           {items.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No items added yet. Click &quot;Add Item&quot; to start.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-xs uppercase text-gray-500 border-b border-gray-200">
+                  <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                     <th className="pb-3 font-medium">Item</th>
                     <th className="pb-3 font-medium w-24">Qty</th>
                     <th className="pb-3 font-medium w-20">UOM</th>
@@ -292,7 +292,7 @@ export default function CreateCustomerPOPage() {
                     <th className="pb-3 font-medium w-12"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {items.map((item, index) => (
                     <tr key={item.id}>
                       <td className="py-3">
@@ -300,7 +300,7 @@ export default function CreateCustomerPOPage() {
                           type="text"
                           value={item.description || ''}
                           onChange={(e) => updateItem(index, { description: e.target.value })}
-                          className="w-full px-2 py-1 border border-gray-200 rounded text-gray-900 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-1 focus:ring-emerald-500"
                         />
                       </td>
                       <td className="py-3">
@@ -309,7 +309,7 @@ export default function CreateCustomerPOPage() {
                           min="1"
                           value={item.orderedQuantity || 1}
                           onChange={(e) => updateItem(index, { orderedQuantity: parseInt(e.target.value) || 1 })}
-                          className="w-full px-2 py-1 border border-gray-200 rounded text-gray-900 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-1 focus:ring-emerald-500"
                         />
                       </td>
                       <td className="py-3">
@@ -317,7 +317,7 @@ export default function CreateCustomerPOPage() {
                           type="text"
                           value={item.uomShortCode || 'EA'}
                           onChange={(e) => updateItem(index, { uomShortCode: e.target.value })}
-                          className="w-full px-2 py-1 border border-gray-200 rounded text-gray-900 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-1 focus:ring-emerald-500"
                         />
                       </td>
                       <td className="py-3">
@@ -326,14 +326,14 @@ export default function CreateCustomerPOPage() {
                           step="0.01"
                           value={item.agreedUnitPrice || 0}
                           onChange={(e) => updateItem(index, { agreedUnitPrice: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-2 py-1 border border-gray-200 rounded text-gray-900 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-gray-900 dark:text-gray-200 dark:bg-gray-700 focus:ring-1 focus:ring-emerald-500"
                         />
                       </td>
                       <td className="py-3">
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>
@@ -347,30 +347,30 @@ export default function CreateCustomerPOPage() {
         </div>
 
         {/* Notes */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Notes</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Notes (visible to customer)
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="Special instructions..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Internal Notes
               </label>
               <textarea
                 value={formData.internalNotes}
                 onChange={(e) => setFormData({ ...formData, internalNotes: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 dark:bg-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="Internal notes..."
               />
             </div>
@@ -381,7 +381,7 @@ export default function CreateCustomerPOPage() {
         <div className="flex justify-end gap-3">
           <Link
             href="/customer-po"
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </Link>
@@ -389,7 +389,7 @@ export default function CreateCustomerPOPage() {
             type="button"
             onClick={(e) => handleSubmit(e, true)}
             disabled={isSubmitting}
-            className="px-4 py-2 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            className="px-4 py-2 border border-emerald-600 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors disabled:opacity-50"
           >
             Save as Draft
           </button>

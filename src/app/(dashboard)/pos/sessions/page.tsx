@@ -152,8 +152,8 @@ export default function SessionHistoryPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Session History</h1>
-          <p className="text-gray-500">View all cashier sessions and performance</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Session History</h1>
+          <p className="text-gray-500 dark:text-gray-400">View all cashier sessions and performance</p>
         </div>
       </div>
 
@@ -163,9 +163,9 @@ export default function SessionHistoryPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">{summaryStats.totalSessions}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Sessions</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{summaryStats.totalSessions}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {summaryStats.openSessions} active
                 </p>
               </div>
@@ -178,9 +178,9 @@ export default function SessionHistoryPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Sales</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Sales</p>
                 <p className="text-2xl font-bold text-emerald-600">{fc(summaryStats.totalSales)}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Avg: {fc(summaryStats.avgSessionSales)}
                 </p>
               </div>
@@ -193,7 +193,7 @@ export default function SessionHistoryPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Variance</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Variance</p>
                 <p className={cn(
                   "text-2xl font-bold",
                   summaryStats.totalVariance === 0 ? 'text-green-600' :
@@ -201,7 +201,7 @@ export default function SessionHistoryPage() {
                 )}>
                   {summaryStats.totalVariance >= 0 ? '+' : ''}{fc(summaryStats.totalVariance)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {summaryStats.sessionsWithVariance} sessions
                 </p>
               </div>
@@ -214,11 +214,11 @@ export default function SessionHistoryPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Perfect Sessions</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Perfect Sessions</p>
                 <p className="text-2xl font-bold text-green-600">
                   {summaryStats.closedSessions - summaryStats.sessionsWithVariance}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {summaryStats.closedSessions > 0
                     ? Math.round(((summaryStats.closedSessions - summaryStats.sessionsWithVariance) / summaryStats.closedSessions) * 100)
                     : 0}% accuracy
@@ -235,14 +235,14 @@ export default function SessionHistoryPage() {
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <UserIcon className="w-4 h-4 inline mr-1" />
                 Cashier
               </label>
               <select
                 value={selectedCashier || ''}
                 onChange={(e) => setSelectedCashier(e.target.value || null)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-gray-200"
               >
                 <option value="">All Cashiers</option>
                 {cashiers.map(cashier => (
@@ -252,7 +252,7 @@ export default function SessionHistoryPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <CalendarIcon className="w-4 h-4 inline mr-1" />
                 Period
               </label>
@@ -265,7 +265,7 @@ export default function SessionHistoryPage() {
                       "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                       dateFilter === period
                         ? "bg-emerald-600 text-white"
-                        : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                        : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     )}
                   >
                     {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -286,7 +286,7 @@ export default function SessionHistoryPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                   <th className="px-4 py-3 font-medium">Cashier</th>
                   <th className="px-4 py-3 font-medium text-right">Sessions</th>
                   <th className="px-4 py-3 font-medium text-right">Total Sales</th>
@@ -296,17 +296,17 @@ export default function SessionHistoryPage() {
                   <th className="px-4 py-3 font-medium text-right">Accuracy</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {cashierPerformance.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                       No sessions found
                     </td>
                   </tr>
                 ) : (
                   cashierPerformance.map(perf => (
-                    <tr key={perf.name} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{perf.name}</td>
+                    <tr key={perf.name} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{perf.name}</td>
                       <td className="px-4 py-3 text-right">{perf.sessions}</td>
                       <td className="px-4 py-3 text-right font-medium text-emerald-600">{fc(perf.totalSales)}</td>
                       <td className="px-4 py-3 text-right">{fc(perf.avgSales)}</td>
@@ -319,7 +319,7 @@ export default function SessionHistoryPage() {
                           {perf.totalVariance >= 0 ? '+' : ''}{fc(perf.totalVariance)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-600">
+                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                         {perf.avgVariance >= 0 ? '+' : ''}{fc(perf.avgVariance)}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -344,40 +344,40 @@ export default function SessionHistoryPage() {
         <CardContent>
           <div className="space-y-3">
             {filteredSessions.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No sessions found</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">No sessions found</p>
             ) : (
               filteredSessions.map((session: PosSession) => {
                 const VarianceIcon = getVarianceIcon(session.cashVariance);
                 return (
                   <div
                     key={session.id}
-                    className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                    className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-medium text-gray-900">{session.cashierEmployeeNumber ? `Cashier #${session.cashierEmployeeNumber}` : session.cashierName}</h3>
+                          <h3 className="font-medium text-gray-900 dark:text-white">{session.cashierEmployeeNumber ? `Cashier #${session.cashierEmployeeNumber}` : session.cashierName}</h3>
                           <Badge variant={session.status === 'open' ? 'info' : 'default'}>
                             {session.status}
                           </Badge>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                           <div>
-                            <p className="text-gray-500">Opened</p>
+                            <p className="text-gray-500 dark:text-gray-400">Opened</p>
                             <p className="font-medium">{format(new Date(session.openedAt), 'MMM dd, HH:mm')}</p>
                           </div>
                           {session.closedAt && (
                             <div>
-                              <p className="text-gray-500">Closed</p>
+                              <p className="text-gray-500 dark:text-gray-400">Closed</p>
                               <p className="font-medium">{format(new Date(session.closedAt), 'HH:mm')}</p>
                             </div>
                           )}
                           <div>
-                            <p className="text-gray-500">Net Sales</p>
+                            <p className="text-gray-500 dark:text-gray-400">Net Sales</p>
                             <p className="font-medium text-emerald-600">{fc(session.netSales)}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Orders</p>
+                            <p className="text-gray-500 dark:text-gray-400">Orders</p>
                             <p className="font-medium">{session.orderIds.length}</p>
                           </div>
                         </div>

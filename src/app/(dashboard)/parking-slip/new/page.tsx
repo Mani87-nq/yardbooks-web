@@ -73,32 +73,32 @@ export default function NewParkingSlipPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/parking-slip"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
-          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">New Parking Entry</h1>
-          <p className="text-gray-500">Record a vehicle entering the lot</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Parking Entry</h1>
+          <p className="text-gray-500 dark:text-gray-400">Record a vehicle entering the lot</p>
         </div>
       </div>
 
       {submitError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-300 text-sm">
           {submitError}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Vehicle Info */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-4">
             <TruckIcon className="w-6 h-6 text-emerald-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Vehicle Information</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Vehicle Information</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 License Plate <span className="text-red-500">*</span>
               </label>
               <input
@@ -106,19 +106,19 @@ export default function NewParkingSlipPage() {
                 value={formData.vehiclePlate}
                 onChange={(e) => setFormData({ ...formData, vehiclePlate: e.target.value.toUpperCase() })}
                 placeholder="e.g., ABC 1234"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 uppercase"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Vehicle Type
               </label>
               <select
                 value={formData.vehicleType}
                 onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               >
                 {VEHICLE_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -129,7 +129,7 @@ export default function NewParkingSlipPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Vehicle Color
               </label>
               <input
@@ -137,12 +137,12 @@ export default function NewParkingSlipPage() {
                 value={formData.vehicleColor}
                 onChange={(e) => setFormData({ ...formData, vehicleColor: e.target.value })}
                 placeholder="e.g., Black"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Vehicle Description
               </label>
               <input
@@ -150,18 +150,18 @@ export default function NewParkingSlipPage() {
                 value={formData.vehicleDescription}
                 onChange={(e) => setFormData({ ...formData, vehicleDescription: e.target.value })}
                 placeholder="e.g., Toyota Corolla"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
           </div>
         </div>
 
         {/* Driver Info */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Driver Information</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Driver Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Driver Name
               </label>
               <input
@@ -169,12 +169,12 @@ export default function NewParkingSlipPage() {
                 value={formData.driverName}
                 onChange={(e) => setFormData({ ...formData, driverName: e.target.value })}
                 placeholder="Driver's name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Driver Phone
               </label>
               <input
@@ -182,18 +182,18 @@ export default function NewParkingSlipPage() {
                 value={formData.driverPhone}
                 onChange={(e) => setFormData({ ...formData, driverPhone: e.target.value })}
                 placeholder="Phone number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
           </div>
         </div>
 
         {/* Parking Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Parking Details</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Parking Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Lot Name
               </label>
               <input
@@ -201,12 +201,12 @@ export default function NewParkingSlipPage() {
                 value={formData.lotName}
                 onChange={(e) => setFormData({ ...formData, lotName: e.target.value })}
                 placeholder="Parking lot name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Spot Number
               </label>
               <input
@@ -214,12 +214,12 @@ export default function NewParkingSlipPage() {
                 value={formData.spotNumber}
                 onChange={(e) => setFormData({ ...formData, spotNumber: e.target.value })}
                 placeholder="e.g., A-15"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Hourly Rate (JMD)
               </label>
               <input
@@ -228,13 +228,13 @@ export default function NewParkingSlipPage() {
                 step="50"
                 value={formData.hourlyRate}
                 onChange={(e) => setFormData({ ...formData, hourlyRate: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
           </div>
 
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Notes
             </label>
             <textarea
@@ -242,7 +242,7 @@ export default function NewParkingSlipPage() {
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
               placeholder="Additional notes..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function NewParkingSlipPage() {
         <div className="flex justify-end gap-3">
           <Link
             href="/parking-slip"
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </Link>

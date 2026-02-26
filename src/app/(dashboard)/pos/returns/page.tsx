@@ -116,22 +116,22 @@ function ProcessReturnModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Process Return</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Process Return</h2>
           <div className="flex flex-wrap gap-3 mt-2 text-sm">
-            <span className="flex items-center gap-1 text-gray-600">
+            <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
               <ReceiptRefundIcon className="w-4 h-4 text-blue-500" />
-              Receipt: <span className="font-medium text-gray-900">{order.orderNumber}</span>
+              Receipt: <span className="font-medium text-gray-900 dark:text-white">{order.orderNumber}</span>
             </span>
             {order.invoiceNumber && (
-              <span className="flex items-center gap-1 text-gray-600">
+              <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                 <DocumentTextIcon className="w-4 h-4 text-purple-500" />
                 Invoice: <span className="font-medium text-gray-900">{order.invoiceNumber}</span>
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mt-1">Customer: {order.customerName}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Customer: {order.customerName}</p>
         </div>
 
         {toastMessage && (
@@ -143,7 +143,7 @@ function ProcessReturnModal({
         <div className="p-6 space-y-6">
           {/* Items to return */}
           <div>
-            <h3 className="font-medium text-gray-900 mb-3">Select Items to Return</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white mb-3">Select Items to Return</h3>
             <div className="space-y-3">
               {order.items.map((item) => {
                 const returnableQty = getReturnableQuantity(order.id, item.id);
@@ -155,12 +155,12 @@ function ProcessReturnModal({
                 return (
                   <div
                     key={item.id}
-                    className={`p-3 rounded-lg ${isFullyReturned ? 'bg-gray-100 opacity-60' : 'bg-gray-50'}`}
+                    className={`p-3 rounded-lg ${isFullyReturned ? 'bg-gray-100 dark:bg-gray-700 opacity-60' : 'bg-gray-50 dark:bg-gray-900'}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{item.name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-medium text-gray-900 dark:text-white">{item.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           {fc(item.unitPrice)} x {item.quantity} = {fc(item.lineTotal)}
                         </p>
                         {alreadyReturned > 0 && (
@@ -179,7 +179,7 @@ function ProcessReturnModal({
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, selectedQty - 1, returnableQty, selectedCondition)}
-                              className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+                              className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
                               disabled={selectedQty <= 0}
                             >
                               -
@@ -188,7 +188,7 @@ function ProcessReturnModal({
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, selectedQty + 1, returnableQty, selectedCondition)}
-                              className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+                              className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
                               disabled={selectedQty >= returnableQty}
                             >
                               +
@@ -214,7 +214,7 @@ function ProcessReturnModal({
                                       ? cond === 'resellable' ? 'bg-green-100 text-green-700 font-medium'
                                         : cond === 'damaged' ? 'bg-orange-100 text-orange-700 font-medium'
                                         : 'bg-red-100 text-red-700 font-medium'
-                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                                   }`}
                                 >
                                   {cond.charAt(0).toUpperCase() + cond.slice(1)}
@@ -233,13 +233,13 @@ function ProcessReturnModal({
 
           {/* Return reason */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Return Reason <span className="text-red-500">*</span>
             </label>
             <select
               value={reasonCategory}
               onChange={(e) => setReasonCategory(e.target.value as typeof reasonCategory)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-gray-200"
             >
               {REASON_CATEGORIES.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
@@ -258,7 +258,7 @@ function ProcessReturnModal({
 
           {/* Refund method */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Refund Method</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Refund Method</label>
             <div className="grid grid-cols-3 gap-2">
               {(['cash', 'jam_dex', 'store_credit'] as PaymentMethodType[]).map((method) => (
                 <button
@@ -266,8 +266,8 @@ function ProcessReturnModal({
                   onClick={() => setRefundMethod(method)}
                   className={`p-3 rounded-lg border text-center ${
                     refundMethod === method
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                      : 'border-gray-300 hover:bg-gray-50'
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                      : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   {method === 'cash' ? 'Cash' : method === 'jam_dex' ? 'JAM-DEX' : 'Store Credit'}
@@ -277,7 +277,7 @@ function ProcessReturnModal({
           </div>
 
           {/* Refund summary */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+          <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <span className="text-emerald-800 font-medium">Total Refund Amount</span>
               <span className="text-2xl font-bold text-emerald-600">{fc(refundTotal)}</span>
@@ -288,7 +288,7 @@ function ProcessReturnModal({
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
             onClick={handleSubmit}
@@ -496,8 +496,8 @@ export default function ReturnsPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Returns &amp; Refunds</h1>
-            <p className="text-gray-500">Process returns and view refund history</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Returns &amp; Refunds</h1>
+            <p className="text-gray-500 dark:text-gray-400">Process returns and view refund history</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -546,7 +546,7 @@ export default function ReturnsPage() {
               placeholder="Search by receipt #, invoice #, customer name, product..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none bg-white"
+              className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none bg-white dark:bg-gray-800 dark:text-gray-200"
               autoComplete="off"
             />
             {searchTerm && (
@@ -560,28 +560,28 @@ export default function ReturnsPage() {
           </div>
 
           {searchResults.length > 0 && (
-            <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                <span className="text-xs font-medium text-gray-500">
+            <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                   Found {searchResults.length} transaction{searchResults.length !== 1 ? 's' : ''}
                 </span>
               </div>
-              <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+              <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-80 overflow-y-auto">
                 {searchResults.map((order) => (
                   <div
                     key={order.id}
-                    className="p-4 flex items-center justify-between hover:bg-emerald-50 cursor-pointer transition-colors"
+                    className="p-4 flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer transition-colors"
                     onClick={() => { setSelectedOrder(order); setShowReturnModal(true); }}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-900">{order.orderNumber}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{order.orderNumber}</span>
                         {order.invoiceNumber && (
-                          <span className="text-sm text-gray-600">{order.invoiceNumber}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{order.invoiceNumber}</span>
                         )}
                         <Badge variant="info" className="text-xs">{order.items.length} items</Badge>
                       </div>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {order.customerName} - {formatDate(new Date(order.completedAt || order.createdAt))}
                       </p>
                     </div>
@@ -610,7 +610,7 @@ export default function ReturnsPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-sm text-gray-600">Return History:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Return History:</span>
             <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="w-40" />
             <span className="text-gray-400">to</span>
             <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="w-40" />
@@ -621,19 +621,19 @@ export default function ReturnsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Returns</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Returns</p>
             <p className="text-2xl font-bold text-red-600">{returnSummary.totalReturns}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Refunded</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Refunded</p>
             <p className="text-2xl font-bold text-orange-600">{fc(returnSummary.totalRefundAmount)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Average Refund</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Average Refund</p>
             <p className="text-2xl font-bold text-purple-600">{fc(returnSummary.avgRefund)}</p>
           </CardContent>
         </Card>

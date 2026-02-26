@@ -62,7 +62,7 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <DocumentTextIcon className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Journal Entry Not Found</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Journal Entry Not Found</h2>
         <Link href="/accounting/journal" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
           Back to Journal
         </Link>
@@ -166,7 +166,7 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
     <div className="space-y-6">
       {/* Error Banner */}
       {actionError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-4 text-sm text-red-700 dark:text-red-400">
           {actionError}
         </div>
       )}
@@ -174,32 +174,32 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/accounting/journal" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <Link href="/accounting/journal" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">Journal Entry</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Journal Entry</h1>
               <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(entry.status)}`}>
                 {entry.status}
               </span>
             </div>
-            <p className="text-gray-500">{entry.entryNumber} • {format(new Date(entry.date), 'MMM dd, yyyy')}</p>
+            <p className="text-gray-500 dark:text-gray-400">{entry.entryNumber} • {format(new Date(entry.date), 'MMM dd, yyyy')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
             title="Print journal entry"
           >
-            <PrinterIcon className="w-5 h-5 text-gray-600" />
+            <PrinterIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
           {(entry.status === 'draft' || entry.status === 'DRAFT') && (
             <>
               <Link
                 href="/accounting/journal"
-                className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <PencilIcon className="w-4 h-4" />
                 Edit
@@ -227,50 +227,50 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
       </div>
 
       {/* Entry Details */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Entry Details</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Entry Details</h2>
         <dl className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <dt className="text-sm text-gray-500">Date</dt>
-            <dd className="font-medium text-gray-900">{format(new Date(entry.date), 'MMMM dd, yyyy')}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">Date</dt>
+            <dd className="font-medium text-gray-900 dark:text-white">{format(new Date(entry.date), 'MMMM dd, yyyy')}</dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500">Entry Number</dt>
-            <dd className="font-medium text-gray-900">{entry.entryNumber}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">Entry Number</dt>
+            <dd className="font-medium text-gray-900 dark:text-white">{entry.entryNumber}</dd>
           </div>
           {entry.sourceModule && (
             <div>
-              <dt className="text-sm text-gray-500">Source</dt>
-              <dd className="font-medium text-gray-900 capitalize">{entry.sourceModule.replace('_', ' ')}</dd>
+              <dt className="text-sm text-gray-500 dark:text-gray-400">Source</dt>
+              <dd className="font-medium text-gray-900 dark:text-white capitalize">{entry.sourceModule.replace('_', ' ')}</dd>
             </div>
           )}
         </dl>
         {entry.description && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <dt className="text-sm text-gray-500 mb-1">Description</dt>
-            <dd className="text-gray-900">{entry.description}</dd>
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <dt className="text-sm text-gray-500 dark:text-gray-400 mb-1">Description</dt>
+            <dd className="text-gray-900 dark:text-white">{entry.description}</dd>
           </div>
         )}
       </div>
 
       {/* Line Items */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Line Items</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-900 dark:text-white">Line Items</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
+              <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
                 <th className="px-4 py-3 font-medium">Account</th>
                 <th className="px-4 py-3 font-medium">Description</th>
                 <th className="px-4 py-3 font-medium text-right">Debit</th>
                 <th className="px-4 py-3 font-medium text-right">Credit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {entry.lines.map((line: any, index: number) => (
-                <tr key={line.id || index} className="hover:bg-gray-50">
+                <tr key={line.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-4 py-3">
                     <Link
                       href={`/accounting/chart/${line.accountId}`}
@@ -279,25 +279,25 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
                       {line.accountName || getAccountName(line.accountId)}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{line.description || '-'}</td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{line.description || '-'}</td>
+                  <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
                     {line.debit > 0 ? formatCurrency(line.debit) : '-'}
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">
+                  <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
                     {line.credit > 0 ? formatCurrency(line.credit) : '-'}
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-50 border-t border-gray-200">
+            <tfoot className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
               <tr>
-                <td colSpan={2} className="px-4 py-3 text-right font-semibold text-gray-900">
+                <td colSpan={2} className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
                   Total
                 </td>
-                <td className="px-4 py-3 text-right font-bold text-gray-900">
+                <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">
                   {formatCurrency(entry.totalDebits)}
                 </td>
-                <td className="px-4 py-3 text-right font-bold text-gray-900">
+                <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">
                   {formatCurrency(entry.totalCredits)}
                 </td>
               </tr>
@@ -334,23 +334,23 @@ export default function JournalEntryDetailPage({ params }: PageProps) {
       </div>
 
       {/* Audit Info */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Audit Trail</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Audit Trail</h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
-            <dt className="text-gray-500">Created</dt>
-            <dd className="text-gray-900">{format(new Date(entry.createdAt), 'MMM dd, yyyy HH:mm')}</dd>
+            <dt className="text-gray-500 dark:text-gray-400">Created</dt>
+            <dd className="text-gray-900 dark:text-white">{format(new Date(entry.createdAt), 'MMM dd, yyyy HH:mm')}</dd>
           </div>
           {entry.postedAt && (
             <div>
-              <dt className="text-gray-500">Posted</dt>
-              <dd className="text-gray-900">{format(new Date(entry.postedAt), 'MMM dd, yyyy HH:mm')}</dd>
+              <dt className="text-gray-500 dark:text-gray-400">Posted</dt>
+              <dd className="text-gray-900 dark:text-white">{format(new Date(entry.postedAt), 'MMM dd, yyyy HH:mm')}</dd>
             </div>
           )}
           {entry.createdBy && (
             <div>
-              <dt className="text-gray-500">Created By</dt>
-              <dd className="text-gray-900">{entry.createdBy}</dd>
+              <dt className="text-gray-500 dark:text-gray-400">Created By</dt>
+              <dd className="text-gray-900 dark:text-white">{entry.createdBy}</dd>
             </div>
           )}
         </dl>
