@@ -149,28 +149,109 @@ export async function POST(request: NextRequest) {
       ])
     );
 
+    // ── Fetch active loan deductions for all employees ──
+    const activeLoanDeductions = await prisma.loanDeduction.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        companyId: companyId!,
+        isActive: true,
+        remainingBalance: { gt: 0 },
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        monthlyDeduction: true,
+        remainingBalance: true,
+        description: true,
+      },
+    });
+
+    // Group loans by employee
+    const loansByEmployee = new Map<string, typeof activeLoanDeductions>();
+    for (const loan of activeLoanDeductions) {
+      const existing = loansByEmployee.get(loan.employeeId) ?? [];
+      existing.push(loan);
+      loansByEmployee.set(loan.employeeId, existing);
+    }
+
+    // ── Fetch pension plan info for employees enrolled in a plan ──
+    const employeesWithPension = await prisma.employee.findMany({
+      where: {
+        id: { in: employeeIds },
+        pensionPlanId: { not: null },
+      },
+      select: {
+        id: true,
+        pensionPlan: {
+          select: { employeeRate: true, employerRate: true, isApproved: true, isActive: true },
+        },
+      },
+    });
+    const pensionMap = new Map(
+      employeesWithPension
+        .filter(e => e.pensionPlan?.isActive)
+        .map(e => [e.id, e.pensionPlan!])
+    );
+
     // Calculate taxes server-side for each employee
     const calculations: Array<{
       employeeId: string;
       input: typeof employees[0];
       result: PayrollCalculation;
+      loanDeductions: number;
+      loanDetails: { loanId: string; amount: number; description: string }[];
+      pensionEmployee: number;
+      pensionEmployer: number;
     }> = [];
 
     for (const emp of employees) {
       const ytd = ytdMap.get(emp.employeeId) ?? { ytdGross: 0, ytdNis: 0 };
+
+      // Calculate loan deduction total for this employee
+      const empLoans = loansByEmployee.get(emp.employeeId) ?? [];
+      let loanDeductionTotal = 0;
+      const loanDetails: { loanId: string; amount: number; description: string }[] = [];
+      for (const loan of empLoans) {
+        const amount = Math.min(Number(loan.monthlyDeduction), Number(loan.remainingBalance));
+        if (amount > 0) {
+          loanDeductionTotal += amount;
+          loanDetails.push({ loanId: loan.id, amount, description: loan.description });
+        }
+      }
+
+      // Calculate pension contribution from plan (if enrolled)
+      const pension = pensionMap.get(emp.employeeId);
+      const grossForPension = emp.basicSalary + emp.overtime + emp.bonus + emp.commission;
+      const pensionEmployee = pension ? Math.round(grossForPension * Number(pension.employeeRate) * 100) / 100 : 0;
+      const pensionEmployer = pension ? Math.round(grossForPension * Number(pension.employerRate) * 100) / 100 : 0;
+
+      // Use the higher of: explicit pension contribution OR plan-calculated pension
+      const effectivePension = Math.max(emp.pensionContribution, pensionEmployee);
+
+      // Include loan deductions in otherDeductions
+      const totalOtherDeductions = emp.otherDeductions + loanDeductionTotal;
+
       const result = calculatePayroll({
         basicSalary: emp.basicSalary,
         overtime: emp.overtime,
         bonus: emp.bonus,
         commission: emp.commission,
         allowances: emp.allowances,
-        pensionContribution: emp.pensionContribution,
-        otherDeductions: emp.otherDeductions,
+        pensionContribution: effectivePension,
+        otherDeductions: totalOtherDeductions,
         frequency,
         ytdGross: ytd.ytdGross,
         ytdNis: ytd.ytdNis,
       });
-      calculations.push({ employeeId: emp.employeeId, input: emp, result });
+      calculations.push({
+        employeeId: emp.employeeId,
+        input: emp,
+        result,
+        loanDeductions: loanDeductionTotal,
+        loanDetails,
+        pensionEmployee: effectivePension,
+        pensionEmployer,
+      });
     }
 
     // Aggregate totals
@@ -250,6 +331,31 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+
+      // ── Update loan balances after payroll entries are created ──
+      for (const calc of calculations) {
+        for (const loan of calc.loanDetails) {
+          await tx.loanDeduction.update({
+            where: { id: loan.loanId },
+            data: {
+              totalPaid: { increment: loan.amount },
+              remainingBalance: { decrement: loan.amount },
+            },
+          });
+
+          // Auto-deactivate fully paid loans
+          const updated = await tx.loanDeduction.findUnique({
+            where: { id: loan.loanId },
+            select: { remainingBalance: true },
+          });
+          if (updated && Number(updated.remainingBalance) <= 0) {
+            await tx.loanDeduction.update({
+              where: { id: loan.loanId },
+              data: { isActive: false },
+            });
+          }
+        }
+      }
 
       return run;
     });
