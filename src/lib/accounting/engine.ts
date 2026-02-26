@@ -27,13 +27,14 @@ interface PostResult {
   error?: string;
 }
 
-type SourceModule =
+export type SourceModule =
   | 'INVOICE'
   | 'PAYMENT'
   | 'EXPENSE'
   | 'BILL'
   | 'BILL_PAYMENT'
   | 'PAYROLL'
+  | 'REMITTANCE'
   | 'INVENTORY'
   | 'FIXED_ASSET'
   | 'DEPRECIATION'
@@ -122,7 +123,7 @@ async function generateEntryNumber(companyId: string, tx: any = prisma): Promise
  * Creates a journal entry from a set of line drafts.
  * This is the central function all posting templates call.
  */
-async function postJournalEntry(params: {
+export async function postJournalEntry(params: {
   companyId: string;
   userId: string;
   date: Date;

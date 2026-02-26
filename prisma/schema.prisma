@@ -805,6 +805,7 @@ model Company {
   expenses         Expense[]
   employees        Employee[]
   payrollRuns      PayrollRun[]
+  statutoryRemittances StatutoryRemittance[]
   glAccounts       GLAccount[]
   journalEntries   JournalEntry[]
   accountingPeriods AccountingPeriod[]
@@ -1650,6 +1651,7 @@ model JournalEntry {
   expenses            Expense[]
   payments            Payment[]
   payrollRuns         PayrollRun[]
+  statutoryRemittances StatutoryRemittance[]
   fixedAssetDisposals FixedAssetDisposal[]
   depreciationRuns    DepreciationRun[]
   depreciationEntries FixedAssetDepreciationEntry[]
@@ -3109,6 +3111,38 @@ model WebhookEvent {
   processedAt DateTime @default(now())
 
   @@index([source, processedAt])
+}
+
+// ============================================
+// STATUTORY REMITTANCES
+// ============================================
+
+/// Tracks payments of statutory deductions (PAYE, NIS, NHT, etc.) to government agencies
+model StatutoryRemittance {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  remittanceType  String        // PAYE, NIS, NHT, EDUCATION_TAX, HEART_NTA
+  periodMonth     DateTime      @db.Date  // Which month this covers (1st of the month)
+  amountDue       Decimal       @db.Decimal(15, 2)
+  amountPaid      Decimal       @default(0) @db.Decimal(15, 2)
+  paymentDate     DateTime?
+  referenceNumber String?       // TAJ/NIS Board receipt number
+  status          String        @default("PENDING") // PENDING, PAID, OVERDUE
+  dueDate         DateTime
+
+  journalEntryId  String?
+  journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdBy       String?
+
+  @@unique([companyId, remittanceType, periodMonth])
+  @@index([companyId, status])
+  @@index([companyId, dueDate])
 }
 
 // ============================================
