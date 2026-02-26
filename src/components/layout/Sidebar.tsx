@@ -37,6 +37,7 @@ import {
   CalendarDaysIcon,
   ArrowsRightLeftIcon,
   QuestionMarkCircleIcon,
+  BuildingOffice2Icon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -99,12 +100,19 @@ const navigation: NavGroup[] = [
     name: 'HR & Payroll',
     items: [
       { name: 'Payroll', href: '/payroll', icon: UsersIcon, permission: 'payroll:read' },
+      { name: 'Pension Plans', href: '/payroll/pension-plans', icon: BuildingLibraryIcon, badge: 'NEW', permission: 'payroll:read' },
+      { name: 'Remittances', href: '/payroll/remittances', icon: BanknotesIcon, badge: 'NEW', permission: 'payroll:read' },
     ],
   },
   {
     name: 'Reports & AI',
     items: [
       { name: 'Reports', href: '/reports', icon: ChartBarIcon, permission: 'reports:read' },
+      { name: 'KPI Dashboard', href: '/reports/kpi', icon: ArrowTrendingUpIcon, badge: 'NEW', permission: 'reports:read' },
+      { name: 'Budget vs Actual', href: '/reports/budget-vs-actual', icon: ScaleIcon, badge: 'NEW', permission: 'reports:read' },
+      { name: 'Departmental P&L', href: '/reports/departmental-pl', icon: BuildingOffice2Icon, badge: 'NEW', permission: 'reports:read' },
+      { name: 'Customer Profitability', href: '/reports/customer-profitability', icon: UserGroupIcon, badge: 'NEW', permission: 'reports:read' },
+      { name: 'Stock Valuation', href: '/reports/stock-valuation', icon: CubeIcon, badge: 'NEW', permission: 'reports:read' },
       { name: 'Trial Balance', href: '/reports/trial-balance', icon: CalculatorIcon, permission: 'reports:read' },
       { name: 'General Ledger', href: '/reports/general-ledger', icon: BookOpenIcon, permission: 'reports:read' },
       { name: 'Cash Flow', href: '/reports/cash-flow', icon: ArrowTrendingUpIcon, permission: 'reports:read' },
