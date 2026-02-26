@@ -29,7 +29,11 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   UsersIcon,
+  PrinterIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import { printContent, downloadAsCSV, generateTable, generateStatCards } from '@/lib/print';
+import { useAppStore } from '@/store/appStore';
 import { PermissionGate } from '@/components/PermissionGate';
 
 interface PensionPlan {
@@ -46,6 +50,7 @@ interface PensionPlan {
 }
 
 export default function PensionPlansPage() {
+  const { activeCompany } = useAppStore();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [formError, setFormError] = useState('');
@@ -122,6 +127,61 @@ export default function PensionPlansPage() {
   const approvedPlans = plans.filter((p) => p.isApproved);
   const totalEnrolled = plans.reduce((sum, p) => sum + p.enrolledEmployees, 0);
 
+  const handlePrint = () => {
+    if (plans.length === 0) return;
+    const summaryHtml = generateStatCards([
+      { label: 'Total Plans', value: plans.length.toString() },
+      { label: 'Active', value: activePlans.length.toString(), color: '#059669' },
+      { label: 'TAJ Approved', value: approvedPlans.length.toString(), color: '#2563eb' },
+      { label: 'Enrolled Employees', value: totalEnrolled.toString(), color: '#7c3aed' },
+    ]);
+    const tableHtml = generateTable(
+      [
+        { key: 'name', label: 'Plan Name' },
+        { key: 'provider', label: 'Provider' },
+        { key: 'employeeRate', label: 'Employee Rate', align: 'right' },
+        { key: 'employerRate', label: 'Employer Rate', align: 'right' },
+        { key: 'enrolled', label: 'Enrolled', align: 'right' },
+        { key: 'approved', label: 'Approved' },
+        { key: 'status', label: 'Status' },
+      ],
+      plans.map((plan) => ({
+        name: plan.name,
+        provider: plan.providerName || '-',
+        employeeRate: `${(plan.employeeRate * 100).toFixed(1)}%`,
+        employerRate: `${(plan.employerRate * 100).toFixed(1)}%`,
+        enrolled: plan.enrolledEmployees,
+        approved: plan.isApproved ? 'TAJ Approved' : 'Not Approved',
+        status: plan.isActive ? 'Active' : 'Inactive',
+      })),
+    );
+    printContent({
+      title: 'Pension Plans',
+      subtitle: `As of ${new Date().toLocaleDateString()}`,
+      companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      content: summaryHtml + tableHtml,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (plans.length === 0) return;
+    downloadAsCSV(
+      plans.map((plan) => ({
+        'Plan Name': plan.name,
+        Provider: plan.providerName ?? '',
+        'Policy Number': plan.policyNumber ?? '',
+        'Employee Rate %': (plan.employeeRate * 100).toFixed(1),
+        'Employer Rate %': (plan.employerRate * 100).toFixed(1),
+        'Enrolled Employees': plan.enrolledEmployees,
+        'TAJ Approved': plan.isApproved ? 'Yes' : 'No',
+        Status: plan.isActive ? 'Active' : 'Inactive',
+        'Created At': plan.createdAt,
+      })),
+      'pension-plans'
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -144,6 +204,18 @@ export default function PensionPlansPage() {
           </Button>
         </PermissionGate>
       </div>
+
+      {/* Print / Export Toolbar */}
+      {plans.length > 0 && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <PrinterIcon className="w-4 h-4 mr-1" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <ArrowDownTrayIcon className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -21,7 +21,11 @@ import {
   ExclamationTriangleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  PrinterIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import { printContent, downloadAsCSV, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
+import { useAppStore } from '@/store/appStore';
 
 interface DepartmentReport {
   department: string;
@@ -63,6 +67,7 @@ interface DeptPLReport {
 
 export default function DepartmentalPLPage() {
   const { fc } = useCurrency();
+  const { activeCompany } = useAppStore();
   const now = new Date();
   const fyStart = now.getMonth() >= 3
     ? new Date(now.getFullYear(), 3, 1)
@@ -96,6 +101,86 @@ export default function DepartmentalPLPage() {
 
   const valueColor = (v: number) =>
     v >= 0 ? 'text-emerald-700' : 'text-red-700';
+
+  const handlePrint = () => {
+    if (!report) return;
+    const currency = report.currency ?? 'JMD';
+    const summaryHtml = generateStatCards([
+      { label: 'Revenue', value: formatPrintCurrency(report.companyTotals.revenue, currency) },
+      { label: 'COGS', value: formatPrintCurrency(report.companyTotals.cogs, currency) },
+      { label: 'Operating Income', value: formatPrintCurrency(report.companyTotals.operatingIncome, currency), color: report.companyTotals.operatingIncome >= 0 ? '#059669' : '#dc2626' },
+      { label: 'Net Income', value: formatPrintCurrency(report.companyTotals.netIncome, currency), color: report.companyTotals.netIncome >= 0 ? '#059669' : '#dc2626' },
+    ]);
+    const tableHtml = generateTable(
+      [
+        { key: 'department', label: 'Department' },
+        { key: 'revenue', label: 'Revenue', align: 'right' },
+        { key: 'cogs', label: 'COGS', align: 'right' },
+        { key: 'grossProfit', label: 'Gross Profit', align: 'right' },
+        { key: 'grossMargin', label: 'Margin', align: 'right' },
+        { key: 'payroll', label: 'Payroll', align: 'right' },
+        { key: 'opex', label: 'OpEx', align: 'right' },
+        { key: 'netIncome', label: 'Net Income', align: 'right' },
+      ],
+      report.departments.map((dept) => ({
+        department: dept.department,
+        revenue: dept.revenue,
+        cogs: dept.cogs,
+        grossProfit: dept.grossProfit,
+        grossMargin: `${dept.grossMargin.toFixed(1)}%`,
+        payroll: dept.payrollCost,
+        opex: dept.operatingExpenses,
+        netIncome: dept.netIncome,
+      })),
+      {
+        summaryRow: {
+          department: 'Grand Total',
+          revenue: report.companyTotals.revenue,
+          cogs: report.companyTotals.cogs,
+          grossProfit: report.companyTotals.grossProfit,
+          grossMargin: '',
+          payroll: report.companyTotals.payrollCost,
+          opex: report.companyTotals.operatingExpenses,
+          netIncome: report.companyTotals.netIncome,
+        },
+        formatters: {
+          revenue: (v: number) => formatPrintCurrency(v, currency),
+          cogs: (v: number) => formatPrintCurrency(v, currency),
+          grossProfit: (v: number) => formatPrintCurrency(v, currency),
+          payroll: (v: number) => formatPrintCurrency(v, currency),
+          opex: (v: number) => formatPrintCurrency(v, currency),
+          netIncome: (v: number) => formatPrintCurrency(v, currency),
+        },
+      }
+    );
+    printContent({
+      title: 'Departmental P&L',
+      subtitle: `${report.period.startDate} to ${report.period.endDate}`,
+      companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      content: summaryHtml + tableHtml,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!report) return;
+    downloadAsCSV(
+      report.departments.map((dept) => ({
+        Department: dept.department,
+        Revenue: dept.revenue,
+        COGS: dept.cogs,
+        'Gross Profit': dept.grossProfit,
+        'Gross Margin %': dept.grossMargin.toFixed(1),
+        'Payroll Cost': dept.payrollCost,
+        'Operating Expenses': dept.operatingExpenses,
+        'Operating Income': dept.operatingIncome,
+        'Other Expenses': dept.otherExpenses,
+        'Net Income': dept.netIncome,
+        'Net Margin %': dept.netMargin.toFixed(1),
+      })),
+      `departmental-pl-${startDate}-to-${endDate}`
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -135,6 +220,18 @@ export default function DepartmentalPLPage() {
           </Button>
         </div>
       </div>
+
+      {/* Print / Export Toolbar */}
+      {report && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <PrinterIcon className="w-4 h-4 mr-1" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <ArrowDownTrayIcon className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Error */}
       {error && (

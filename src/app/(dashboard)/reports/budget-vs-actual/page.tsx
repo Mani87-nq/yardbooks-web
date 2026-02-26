@@ -21,7 +21,11 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
+  PrinterIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import { printContent, downloadAsCSV, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
+import { useAppStore } from '@/store/appStore';
 
 interface MonthlyData {
   month: number;
@@ -73,6 +77,7 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
 
 export default function BudgetVsActualPage() {
   const { fc } = useCurrency();
+  const { activeCompany } = useAppStore();
   const now = new Date();
   const currentFY = now.getMonth() >= 3 ? now.getFullYear() + 1 : now.getFullYear();
   const [fiscalYear, setFiscalYear] = useState(currentFY.toString());
@@ -98,6 +103,71 @@ export default function BudgetVsActualPage() {
     ) : (
       <ArrowTrendingDownIcon className="w-3 h-3 inline mr-0.5" />
     );
+
+  const handlePrint = () => {
+    if (!report) return;
+    const summaryHtml = generateStatCards([
+      { label: 'Total Budget (YTD)', value: formatPrintCurrency(report.totals.budget) },
+      { label: 'Total Actual (YTD)', value: formatPrintCurrency(report.totals.actual) },
+      { label: 'Total Variance', value: formatPrintCurrency(report.totals.variance), color: report.totals.variance >= 0 ? '#059669' : '#dc2626' },
+    ]);
+    const tableHtml = generateTable(
+      [
+        { key: 'account', label: 'Account' },
+        { key: 'type', label: 'Type' },
+        { key: 'budget', label: 'Budget (YTD)', align: 'right' },
+        { key: 'actual', label: 'Actual (YTD)', align: 'right' },
+        { key: 'variance', label: 'Variance', align: 'right' },
+        { key: 'variancePercent', label: 'Var %', align: 'right' },
+      ],
+      report.lines.map((line) => ({
+        account: `${line.accountNumber} - ${line.accountName}`,
+        type: line.accountType,
+        budget: line.ytd.budget,
+        actual: line.ytd.actual,
+        variance: line.ytd.variance,
+        variancePercent: line.ytd.variancePercent !== null ? `${line.ytd.variancePercent.toFixed(1)}%` : '-',
+      })),
+      {
+        summaryRow: {
+          account: 'Grand Total',
+          type: '',
+          budget: report.totals.budget,
+          actual: report.totals.actual,
+          variance: report.totals.variance,
+          variancePercent: '',
+        },
+        formatters: {
+          budget: (v: number) => formatPrintCurrency(v),
+          actual: (v: number) => formatPrintCurrency(v),
+          variance: (v: number) => formatPrintCurrency(v),
+        },
+      }
+    );
+    printContent({
+      title: 'Budget vs Actual',
+      subtitle: `FY ${fiscalYear} | Through Month ${throughMonth} | ${report.budgetName}`,
+      companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      content: summaryHtml + tableHtml,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!report) return;
+    downloadAsCSV(
+      report.lines.map((line) => ({
+        'Account Number': line.accountNumber,
+        'Account Name': line.accountName,
+        'Account Type': line.accountType,
+        'Budget (YTD)': line.ytd.budget,
+        'Actual (YTD)': line.ytd.actual,
+        Variance: line.ytd.variance,
+        'Variance %': line.ytd.variancePercent !== null ? line.ytd.variancePercent.toFixed(1) : '',
+      })),
+      `budget-vs-actual-FY${fiscalYear}`
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -152,6 +222,18 @@ export default function BudgetVsActualPage() {
           </Button>
         </div>
       </div>
+
+      {/* Print / Export Toolbar */}
+      {report && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <PrinterIcon className="w-4 h-4 mr-1" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <ArrowDownTrayIcon className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Error */}
       {error && (

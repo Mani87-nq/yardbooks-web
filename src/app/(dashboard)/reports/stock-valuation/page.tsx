@@ -20,7 +20,10 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon,
   ArrowDownTrayIcon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline';
+import { printContent, downloadAsCSV, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
+import { useAppStore } from '@/store/appStore';
 
 interface StockItem {
   id: string;
@@ -67,6 +70,7 @@ interface StockReport {
 
 export default function StockValuationPage() {
   const { fc } = useCurrency();
+  const { activeCompany } = useAppStore();
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -78,6 +82,75 @@ export default function StockValuationPage() {
   });
 
   const report: StockReport | null = (data as any) ?? null;
+
+  const handlePrint = () => {
+    if (!report) return;
+    const currency = report.currency ?? 'JMD';
+    const summaryHtml = generateStatCards([
+      { label: 'Total Products', value: report.summary.totalProducts.toString() },
+      { label: 'Cost Value', value: formatPrintCurrency(report.summary.totalCostValue, currency) },
+      { label: 'Retail Value', value: formatPrintCurrency(report.summary.totalRetailValue, currency) },
+      { label: 'Potential Margin', value: `${report.summary.potentialGrossMargin.toFixed(1)}%` },
+      { label: 'Low Stock Items', value: report.summary.lowStockItems.toString(), color: report.summary.lowStockItems > 0 ? '#dc2626' : '#059669' },
+    ]);
+    const tableHtml = generateTable(
+      [
+        { key: 'name', label: 'Product' },
+        { key: 'sku', label: 'SKU' },
+        { key: 'category', label: 'Category' },
+        { key: 'quantity', label: 'Qty', align: 'right' },
+        { key: 'averageCost', label: 'Avg Cost', align: 'right' },
+        { key: 'totalValue', label: 'Total Value', align: 'right' },
+        { key: 'unitPrice', label: 'Retail', align: 'right' },
+        { key: 'margin', label: 'Margin', align: 'right' },
+      ],
+      report.items.map((item) => ({
+        name: item.name,
+        sku: item.sku,
+        category: item.category,
+        quantity: `${item.quantity} ${item.unit}`,
+        averageCost: item.averageCost,
+        totalValue: item.totalValue,
+        unitPrice: item.unitPrice,
+        margin: `${item.potentialMargin.toFixed(1)}%`,
+      })),
+      {
+        formatters: {
+          averageCost: (v: number) => formatPrintCurrency(v, currency),
+          totalValue: (v: number) => formatPrintCurrency(v, currency),
+          unitPrice: (v: number) => formatPrintCurrency(v, currency),
+        },
+      }
+    );
+    printContent({
+      title: 'Stock Valuation Report',
+      subtitle: `As of ${report.asOfDate}`,
+      companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      content: summaryHtml + tableHtml,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!report) return;
+    downloadAsCSV(
+      report.items.map((item) => ({
+        Product: item.name,
+        SKU: item.sku,
+        Category: item.category,
+        Quantity: item.quantity,
+        Unit: item.unit,
+        'Average Cost': item.averageCost,
+        'Total Value': item.totalValue,
+        'Unit Price': item.unitPrice,
+        'Retail Value': item.retailValue,
+        'Potential Margin %': item.potentialMargin.toFixed(1),
+        'Low Stock': item.isLowStock ? 'Yes' : 'No',
+        'Reorder Level': item.reorderLevel,
+      })),
+      `stock-valuation-${report.asOfDate}`
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -116,6 +189,18 @@ export default function StockValuationPage() {
           </Button>
         </div>
       </div>
+
+      {/* Print / Export Toolbar */}
+      {report && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <PrinterIcon className="w-4 h-4 mr-1" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <ArrowDownTrayIcon className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Error */}
       {error && (

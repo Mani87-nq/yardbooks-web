@@ -21,7 +21,11 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon,
   ChartBarIcon,
+  PrinterIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import { printContent, downloadAsCSV, generateTable, generateStatCards, formatPrintCurrency } from '@/lib/print';
+import { useAppStore } from '@/store/appStore';
 
 interface CustomerRow {
   id: string;
@@ -58,6 +62,7 @@ interface ProfitabilityReport {
 
 export default function CustomerProfitabilityPage() {
   const { fc } = useCurrency();
+  const { activeCompany } = useAppStore();
   const now = new Date();
   const fyStart = now.getMonth() >= 3
     ? new Date(now.getFullYear(), 3, 1)
@@ -80,6 +85,73 @@ export default function CustomerProfitabilityPage() {
   });
 
   const report: ProfitabilityReport | null = (data as any) ?? null;
+
+  const handlePrint = () => {
+    if (!report) return;
+    const currency = report.currency ?? 'JMD';
+    const summaryHtml = generateStatCards([
+      { label: 'Total Customers', value: report.summary.totalCustomers.toString() },
+      { label: 'Total Revenue', value: formatPrintCurrency(report.summary.totalRevenue, currency) },
+      { label: 'Gross Profit', value: formatPrintCurrency(report.summary.totalGrossProfit, currency) },
+      { label: 'Avg Gross Margin', value: `${report.summary.avgGrossMargin.toFixed(1)}%` },
+    ]);
+    const tableHtml = generateTable(
+      [
+        { key: 'name', label: 'Customer' },
+        { key: 'revenue', label: 'Revenue', align: 'right' },
+        { key: 'revenueShare', label: 'Share', align: 'right' },
+        { key: 'grossProfit', label: 'Gross Profit', align: 'right' },
+        { key: 'grossMargin', label: 'Margin', align: 'right' },
+        { key: 'invoiceCount', label: 'Invoices', align: 'right' },
+        { key: 'outstanding', label: 'Outstanding', align: 'right' },
+      ],
+      report.customers.map((cust) => ({
+        name: cust.name,
+        revenue: cust.revenue,
+        revenueShare: `${cust.revenueShare.toFixed(1)}%`,
+        grossProfit: cust.grossProfit,
+        grossMargin: `${cust.grossMargin.toFixed(1)}%`,
+        invoiceCount: cust.invoiceCount,
+        outstanding: cust.outstandingBalance,
+      })),
+      {
+        formatters: {
+          revenue: (v: number) => formatPrintCurrency(v, currency),
+          grossProfit: (v: number) => formatPrintCurrency(v, currency),
+          outstanding: (v: number) => formatPrintCurrency(v, currency),
+        },
+      }
+    );
+    printContent({
+      title: 'Customer Profitability',
+      subtitle: `${report.period.startDate} to ${report.period.endDate}`,
+      companyName: activeCompany?.businessName,
+      companyTrn: activeCompany?.trnNumber,
+      content: summaryHtml + tableHtml,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!report) return;
+    downloadAsCSV(
+      report.customers.map((cust) => ({
+        Customer: cust.name,
+        Email: cust.email ?? '',
+        Revenue: cust.revenue,
+        'Revenue Share %': cust.revenueShare.toFixed(1),
+        COGS: cust.cogs,
+        'Gross Profit': cust.grossProfit,
+        'Gross Margin %': cust.grossMargin.toFixed(1),
+        Invoices: cust.invoiceCount,
+        'Avg Invoice Value': cust.avgInvoiceValue,
+        'Paid Invoices': cust.paidInvoices,
+        'Overdue Invoices': cust.overdueInvoices,
+        'Outstanding Balance': cust.outstandingBalance,
+        'Payment Rate %': cust.paymentRate.toFixed(1),
+      })),
+      `customer-profitability-${startDate}-to-${endDate}`
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -119,6 +191,18 @@ export default function CustomerProfitabilityPage() {
           </Button>
         </div>
       </div>
+
+      {/* Print / Export Toolbar */}
+      {report && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <PrinterIcon className="w-4 h-4 mr-1" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <ArrowDownTrayIcon className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
