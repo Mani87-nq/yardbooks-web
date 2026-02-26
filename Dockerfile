@@ -8,7 +8,9 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci
+# Use npm install instead of npm ci to resolve platform-specific
+# optional dependencies (lightningcss, swc) for Alpine Linux (musl)
+RUN npm install
 
 # Copy source code
 COPY . .
