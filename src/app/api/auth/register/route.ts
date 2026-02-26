@@ -189,7 +189,50 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return { user, company, membership };
+      // ── Auto-accept pending invites for this email ──
+      const pendingInvites = await tx.pendingInvite.findMany({
+        where: {
+          email: email.toLowerCase(),
+          acceptedAt: null,
+          expiresAt: { gt: new Date() }, // Only accept non-expired invites
+        },
+      });
+
+      const acceptedCompanyIds: string[] = [];
+
+      for (const invite of pendingInvites) {
+        // Check if already a member (e.g., from company creation above)
+        const existingMember = await tx.companyMember.findUnique({
+          where: { companyId_userId: { companyId: invite.companyId, userId: user.id } },
+        });
+
+        if (!existingMember) {
+          await tx.companyMember.create({
+            data: {
+              userId: user.id,
+              companyId: invite.companyId,
+              role: invite.role,
+            },
+          });
+          acceptedCompanyIds.push(invite.companyId);
+        }
+
+        // Mark invite as accepted
+        await tx.pendingInvite.update({
+          where: { id: invite.id },
+          data: { acceptedAt: new Date() },
+        });
+      }
+
+      // If no company was created but invites were accepted, set first invited company as active
+      if (!company && acceptedCompanyIds.length > 0) {
+        await tx.user.update({
+          where: { id: user.id },
+          data: { activeCompanyId: acceptedCompanyIds[0] },
+        });
+      }
+
+      return { user, company, membership, acceptedInvites: acceptedCompanyIds };
     });
 
     // Send verification email
@@ -226,13 +269,17 @@ export async function POST(request: NextRequest) {
       }),
     }).catch((err) => console.error('[Register] Failed to send welcome email:', err));
 
-    // Generate access token
-    const companies = result.company ? [result.company.id] : [];
+    // Generate access token (include both owned company and accepted invite companies)
+    const companies = [
+      ...(result.company ? [result.company.id] : []),
+      ...(result.acceptedInvites ?? []),
+    ];
+    const activeCompanyId = result.company?.id ?? result.acceptedInvites?.[0] ?? null;
     const accessToken = await signAccessToken({
       sub: result.user.id,
       email: result.user.email,
       role: result.membership?.role ?? 'STAFF',
-      activeCompanyId: result.company?.id ?? null,
+      activeCompanyId,
       companies,
     });
 
@@ -266,11 +313,12 @@ export async function POST(request: NextRequest) {
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
-          activeCompanyId: result.company?.id ?? null,
+          activeCompanyId,
         },
         company: result.company
           ? { id: result.company.id, businessName: result.company.businessName }
           : null,
+        acceptedInvites: result.acceptedInvites?.length ?? 0,
         accessToken,
       },
       { status: 201 }

@@ -2,8 +2,9 @@
  * POST /api/v1/team/invite — Invite a user to the company.
  *
  * - If the user already exists, create a CompanyMember record directly.
- * - If the user does not exist, still create the record as "pending" (the user
- *   will need to register first and the membership will be associated then).
+ * - If the user does not exist, create a PendingInvite record and send
+ *   an invite email with a registration link. The invite will be
+ *   auto-accepted when the user registers.
  *
  * Security:
  * - Requires `users:create` permission (ADMIN or OWNER only).
@@ -11,12 +12,15 @@
  * - Enforces plan user-limit via checkPlanLimits.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, conflict, forbidden, internalError } from '@/lib/api-error';
 import { compareRoles, type Role } from '@/lib/auth/rbac';
 import { checkPlanLimits } from '@/lib/billing/service';
+import { sendEmail } from '@/lib/email/service';
+import { teamInviteEmail } from '@/lib/email/templates';
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -47,6 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, role } = parsed.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     // 4. Role hierarchy check — inviter cannot assign a role higher than their own
     const inviterRole = user!.role as Role;
@@ -61,10 +66,10 @@ export async function POST(request: NextRequest) {
       return forbidden('OWNER role cannot be assigned through invitations');
     }
 
-    // 5. Check plan limits
+    // 5. Check plan limits (count current members + pending invites)
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { subscriptionPlan: true },
+      select: { subscriptionPlan: true, businessName: true },
     });
 
     const planMap: Record<string, string> = {
@@ -88,69 +93,135 @@ export async function POST(request: NextRequest) {
 
     // 6. Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
       select: { id: true, firstName: true, lastName: true, email: true },
     });
 
-    if (!existingUser) {
-      // User doesn't exist yet — return a note that the user needs to register.
-      // In a production system we would send an invite email and store a pending invite record.
-      return badRequest(
-        'No account found with this email address. The user must register for a YaadBooks account first, then you can add them to your team.'
+    if (existingUser) {
+      // ── User already registered: create CompanyMember directly ──
+
+      // Check if already a member
+      const existingMember = await prisma.companyMember.findUnique({
+        where: {
+          companyId_userId: {
+            companyId,
+            userId: existingUser.id,
+          },
+        },
+      });
+
+      if (existingMember) {
+        return conflict('This user is already a member of your company');
+      }
+
+      // Create the membership
+      const membership = await prisma.companyMember.create({
+        data: {
+          companyId,
+          userId: existingUser.id,
+          role: targetRole,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              avatarUrl: true,
+              lastLoginAt: true,
+              isActive: true,
+            },
+          },
+        },
+      });
+
+      return NextResponse.json(
+        {
+          data: {
+            id: membership.id,
+            userId: membership.user.id,
+            firstName: membership.user.firstName,
+            lastName: membership.user.lastName,
+            email: membership.user.email,
+            avatarUrl: membership.user.avatarUrl,
+            role: membership.role,
+            isActive: membership.user.isActive,
+            lastLoginAt: membership.user.lastLoginAt,
+            joinedAt: membership.createdAt,
+          },
+          message: `${existingUser.firstName} ${existingUser.lastName} has been added to your team as ${role}.`,
+        },
+        { status: 201 }
       );
     }
 
-    // 7. Check if already a member
-    const existingMember = await prisma.companyMember.findUnique({
-      where: {
-        companyId_userId: {
-          companyId,
-          userId: existingUser.id,
-        },
-      },
+    // ── User does NOT exist: create PendingInvite ──
+
+    // Check if there's already a pending invite for this email
+    const existingInvite = await prisma.pendingInvite.findUnique({
+      where: { companyId_email: { companyId, email: normalizedEmail } },
     });
 
-    if (existingMember) {
-      return conflict('This user is already a member of your company');
+    if (existingInvite && !existingInvite.acceptedAt) {
+      // Invite still pending — check if expired
+      if (existingInvite.expiresAt > new Date()) {
+        return conflict('An invitation has already been sent to this email address. It expires ' +
+          existingInvite.expiresAt.toLocaleDateString('en-JM', { year: 'numeric', month: 'long', day: 'numeric' }) + '.');
+      }
+      // Expired — delete and re-create
+      await prisma.pendingInvite.delete({ where: { id: existingInvite.id } });
+    } else if (existingInvite?.acceptedAt) {
+      // Already accepted — check if they're a member
+      return conflict('This invitation was already accepted. The user is a member of your company.');
     }
 
-    // 8. Create the membership
-    const membership = await prisma.companyMember.create({
+    // Generate secure invite token
+    const inviteToken = crypto.randomBytes(32).toString('hex');
+
+    // Create the pending invite (7-day expiry)
+    const invite = await prisma.pendingInvite.create({
       data: {
         companyId,
-        userId: existingUser.id,
+        email: normalizedEmail,
         role: targetRole,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            avatarUrl: true,
-            lastLoginAt: true,
-            isActive: true,
-          },
-        },
+        token: inviteToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        invitedBy: user!.sub,
       },
     });
+
+    // Get inviter name
+    const inviter = await prisma.user.findUnique({
+      where: { id: user!.sub },
+      select: { firstName: true, lastName: true },
+    });
+    const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : 'A team member';
+
+    // Send invite email (fire and forget)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://yaadbooks.com';
+    const inviteLink = `${appUrl}/signup?invite=${inviteToken}`;
+
+    sendEmail({
+      to: normalizedEmail,
+      ...teamInviteEmail({
+        inviterName,
+        companyName: company?.businessName ?? 'a company',
+        inviteLink,
+        role: targetRole,
+      }),
+    }).catch((err) => console.error('[Invite] Failed to send invite email:', err));
 
     return NextResponse.json(
       {
         data: {
-          id: membership.id,
-          userId: membership.user.id,
-          firstName: membership.user.firstName,
-          lastName: membership.user.lastName,
-          email: membership.user.email,
-          avatarUrl: membership.user.avatarUrl,
-          role: membership.role,
-          isActive: membership.user.isActive,
-          lastLoginAt: membership.user.lastLoginAt,
-          joinedAt: membership.createdAt,
+          id: invite.id,
+          email: normalizedEmail,
+          role: targetRole,
+          status: 'PENDING',
+          expiresAt: invite.expiresAt,
         },
-        message: `${existingUser.firstName} ${existingUser.lastName} has been added to your team as ${role}.`,
+        message: `Invitation sent to ${normalizedEmail}. They will be added as ${role} when they register.`,
       },
       { status: 201 }
     );

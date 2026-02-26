@@ -793,3 +793,60 @@ export function customerStatementEmail(params: CustomerStatementEmailParams) {
 
   return { subject, html: layout(subject, body, { companyName, companyLogoUrl }), text };
 }
+
+// ─── Team Invite Email ─────────────────────────────────────────────
+
+/**
+ * Email sent when an admin invites someone to join their company on YaadBooks.
+ * The recipient may or may not have an existing account.
+ */
+export function teamInviteEmail(params: {
+  inviterName: string;
+  companyName: string;
+  inviteLink: string;
+  role: string;
+}): { subject: string; html: string; text: string } {
+  const { inviterName, companyName, inviteLink, role } = params;
+
+  const roleLabels: Record<string, string> = {
+    ADMIN: 'Administrator',
+    ACCOUNTANT: 'Accountant',
+    STAFF: 'Staff Member',
+    READ_ONLY: 'Read-Only Viewer',
+  };
+  const roleLabel = roleLabels[role] ?? role;
+
+  const subject = `You're invited to join ${companyName} on YaadBooks`;
+
+  const body = `
+    <h2 style="margin:0 0 16px 0;font-size:20px;color:${TEXT_COLOR};">You've Been Invited!</h2>
+    <p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(companyName)}</strong> on YaadBooks as a <strong>${escapeHtml(roleLabel)}</strong>.</p>
+    <p>YaadBooks is a Jamaica-first cloud accounting platform that helps businesses manage their finances, payroll, invoicing, and more.</p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${escapeHtml(inviteLink)}" style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;">Accept Invitation</a>
+    </div>
+    <p style="color:${MUTED_COLOR};font-size:13px;">If you already have a YaadBooks account, log in and you'll be automatically added to <strong>${escapeHtml(companyName)}</strong>.</p>
+    <p style="color:${MUTED_COLOR};font-size:13px;">This invitation expires in 7 days. If you didn't expect this email, you can safely ignore it.</p>
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+    <p style="color:${MUTED_COLOR};font-size:12px;">
+      <strong>What is YaadBooks?</strong><br />
+      Jamaica's leading cloud accounting platform. Manage invoicing, payroll with NIS/NHT/PAYE compliance, expenses, inventory, POS, and financial reports — all in one place.
+    </p>
+  `;
+
+  const text = [
+    `You've been invited to join ${companyName} on YaadBooks!`,
+    '',
+    `${inviterName} has invited you to join ${companyName} as a ${roleLabel}.`,
+    '',
+    `Accept the invitation by visiting: ${inviteLink}`,
+    '',
+    `This invitation expires in 7 days.`,
+    '',
+    `If you already have a YaadBooks account, log in and you'll be automatically added.`,
+    '',
+    `Sent via YaadBooks (https://yaadbooks.com)`,
+  ].join('\n');
+
+  return { subject, html: layout(subject, body), text };
+}
