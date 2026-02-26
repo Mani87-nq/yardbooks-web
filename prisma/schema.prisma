@@ -839,6 +839,7 @@ model Company {
   referralCodes    ReferralCode[]
   referralRedemptions ReferralRedemption[] @relation("ReferralRedemptions")
   pendingInvites   PendingInvite[]
+  budgets          Budget[]
 
   @@index([ownerId])
   @@index([trnNumber])
@@ -1606,7 +1607,8 @@ model GLAccount {
   // Relations
   journalLines          JournalLine[]
   accountBalances       AccountBalance[]
-  
+  budgetLines           BudgetLine[]
+
   @@unique([companyId, accountNumber])
   @@index([companyId])
   @@index([companyId, type])
@@ -3132,6 +3134,59 @@ model WebhookEvent {
   processedAt DateTime @default(now())
 
   @@index([source, processedAt])
+}
+
+// ============================================
+// BUDGETS
+// ============================================
+
+/// Budget for a fiscal year — container for budget lines
+model Budget {
+  id          String       @id @default(cuid())
+  companyId   String
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name        String       // e.g., "FY 2026/2027 Operating Budget"
+  fiscalYear  Int          // e.g., 2026
+  status      String       @default("DRAFT") // DRAFT, ACTIVE, CLOSED
+  notes       String?
+
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  lines       BudgetLine[]
+
+  @@unique([companyId, fiscalYear])
+  @@index([companyId])
+}
+
+/// Budget line — monthly budget amount for a specific GL account
+model BudgetLine {
+  id          String    @id @default(cuid())
+  budgetId    String
+  budget      Budget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     GLAccount @relation(fields: [accountId], references: [id])
+
+  month1      Decimal   @default(0) @db.Decimal(15, 2)
+  month2      Decimal   @default(0) @db.Decimal(15, 2)
+  month3      Decimal   @default(0) @db.Decimal(15, 2)
+  month4      Decimal   @default(0) @db.Decimal(15, 2)
+  month5      Decimal   @default(0) @db.Decimal(15, 2)
+  month6      Decimal   @default(0) @db.Decimal(15, 2)
+  month7      Decimal   @default(0) @db.Decimal(15, 2)
+  month8      Decimal   @default(0) @db.Decimal(15, 2)
+  month9      Decimal   @default(0) @db.Decimal(15, 2)
+  month10     Decimal   @default(0) @db.Decimal(15, 2)
+  month11     Decimal   @default(0) @db.Decimal(15, 2)
+  month12     Decimal   @default(0) @db.Decimal(15, 2)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([budgetId, accountId])
+  @@index([budgetId])
 }
 
 // ============================================
