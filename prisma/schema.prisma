@@ -2520,6 +2520,7 @@ model PosSession {
 
   // Relations
   cashMovements   CashMovement[]
+  cashDrawerCounts CashDrawerCount[]
   orders          PosOrder[]
   returns         PosReturn[]
 
@@ -2542,6 +2543,27 @@ model CashMovement {
   performedBy String
   performedAt DateTime         @default(now())
   
+  @@index([sessionId])
+}
+
+/// Cash drawer count — formal count at open/mid-day/close with denomination breakdown
+model CashDrawerCount {
+  id              String    @id @default(cuid())
+  sessionId       String
+  session         PosSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  countType       String    // OPENING, MID_DAY, CLOSING
+  expectedAmount  Decimal   @db.Decimal(15, 2)
+  actualAmount    Decimal   @db.Decimal(15, 2)
+  variance        Decimal   @db.Decimal(15, 2)
+
+  // Jamaica denomination breakdown (JSON: { "5000": 2, "1000": 5, "500": 3, ... })
+  denominations   Json?
+
+  notes           String?
+  countedBy       String
+  countedAt       DateTime  @default(now())
+
   @@index([sessionId])
 }
 
