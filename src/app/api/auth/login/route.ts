@@ -62,6 +62,19 @@ export async function POST(request: NextRequest) {
       return unauthorized('Invalid email or password');
     }
 
+    // Check if account is deactivated
+    if (!user.isActive) {
+      return NextResponse.json(
+        {
+          type: 'account_deactivated',
+          title: 'Account deactivated',
+          status: 403,
+          detail: 'Your account has been deactivated. Please contact your administrator.',
+        },
+        { status: 403 }
+      );
+    }
+
     // Check if account is locked
     const lockStatus = await checkAccountLocked(user.id);
     if (lockStatus.locked) {

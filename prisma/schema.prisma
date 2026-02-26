@@ -838,10 +838,31 @@ model Company {
   goodsReceivedNotes GoodsReceivedNote[]
   referralCodes    ReferralCode[]
   referralRedemptions ReferralRedemption[] @relation("ReferralRedemptions")
+  pendingInvites   PendingInvite[]
 
   @@index([ownerId])
   @@index([trnNumber])
   @@index([gctNumber])
+}
+
+/// Pending team invitations for users who haven't registered yet
+model PendingInvite {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email       String                    // Invited email (lowercase)
+  role        UserRole  @default(STAFF)
+  token       String    @unique         // Secure invite token (for link)
+  expiresAt   DateTime                  // 7-day expiry
+  invitedBy   String                    // User ID of the inviter
+  acceptedAt  DateTime?                 // When the invite was accepted
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([companyId, email])
+  @@index([email])
+  @@index([token])
 }
 
 /// Company membership - links users to companies with roles
