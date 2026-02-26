@@ -35,7 +35,7 @@ export function Modal({
     <Fragment>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-50 bg-black/50 dark:bg-gray-900/80 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -43,27 +43,27 @@ export function Modal({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className={cn(
-            'relative w-full bg-white rounded-xl shadow-xl',
+            'relative w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl',
             sizes[size]
           )}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {(title || description) && (
-            <div className="flex items-start justify-between p-6 border-b border-gray-100">
+            <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-700">
               <div>
                 {title && (
-                  <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
                 )}
                 {description && (
-                  <p className="mt-1 text-sm text-gray-500">{description}</p>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="p-1 rounded-md hover:bg-gray-100 transition-colors"
+                className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <XMarkIcon className="h-5 w-5 text-gray-400" />
+                <XMarkIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </button>
             </div>
           )}
@@ -90,7 +90,7 @@ export function ModalFooter({ className, children, ...props }: React.HTMLAttribu
   return (
     <div
       className={cn(
-        'flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50 rounded-b-xl',
+        'flex items-center justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-xl',
         className
       )}
       {...props}

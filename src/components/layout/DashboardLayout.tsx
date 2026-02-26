@@ -14,7 +14,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const sidebarOpen = useAppStore((state) => state.sidebarOpen);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       <Sidebar />
       <div className={cn(
         'flex-1 flex flex-col overflow-hidden transition-all duration-300',

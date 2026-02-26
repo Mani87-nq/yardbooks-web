@@ -16,7 +16,7 @@ export function Card({ className, padding = 'md', children, ...props }: CardProp
   return (
     <div
       className={cn(
-        'bg-white rounded-xl border border-gray-200 shadow-sm',
+        'bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm',
         paddings[padding],
         className
       )}
@@ -37,7 +37,7 @@ export function CardHeader({ className, children, ...props }: React.HTMLAttribut
 
 export function CardTitle({ className, children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={cn('text-lg font-semibold text-gray-900', className)} {...props}>
+    <h3 className={cn('text-lg font-semibold text-gray-900 dark:text-white', className)} {...props}>
       {children}
     </h3>
   );
@@ -45,7 +45,7 @@ export function CardTitle({ className, children, ...props }: React.HTMLAttribute
 
 export function CardDescription({ className, children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn('text-sm text-gray-500', className)} {...props}>
+    <p className={cn('text-sm text-gray-500 dark:text-gray-400', className)} {...props}>
       {children}
     </p>
   );
@@ -61,7 +61,7 @@ export function CardContent({ className, children, ...props }: React.HTMLAttribu
 
 export function CardFooter({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('mt-4 pt-4 border-t border-gray-100 flex items-center justify-end gap-3', className)} {...props}>
+    <div className={cn('mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-3', className)} {...props}>
       {children}
     </div>
   );

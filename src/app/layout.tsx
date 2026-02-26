@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from 'next-themes';
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { PostHogProvider } from "@/components/PostHogProvider";
 
@@ -82,14 +83,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <PostHogProvider>
-          {children}
-        </PostHogProvider>
-        <ServiceWorkerRegistration />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <PostHogProvider>
+            {children}
+          </PostHogProvider>
+          <ServiceWorkerRegistration />
+        </ThemeProvider>
       </body>
     </html>
   );

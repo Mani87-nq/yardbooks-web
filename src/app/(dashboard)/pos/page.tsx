@@ -42,6 +42,8 @@ import {
   ExclamationCircleIcon,
   ReceiptRefundIcon,
   PrinterIcon,
+  NoSymbolIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 
 // ---- Local cart types (client-only, not persisted to API until order creation) ----
@@ -80,6 +82,34 @@ function nextTempId() {
   return `tmp_${++tempIdCounter}_${Date.now()}`;
 }
 
+const VOID_REASONS = [
+  'Customer Changed Mind',
+  'Pricing Error',
+  'Duplicate Order',
+  'Out of Stock',
+  'Damaged Goods',
+  'System Error',
+  'Other',
+];
+
+// Cash drawer trigger utility
+function triggerCashDrawer() {
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    if (doc) {
+      doc.write('<html><body></body></html>');
+      doc.close();
+      iframe.contentWindow?.print();
+    }
+    setTimeout(() => iframe.remove(), 2000);
+  } catch {
+    console.log('Cash drawer: manual open required');
+  }
+}
+
 // Payment method icons
 const PaymentMethodIcon = ({ method }: { method: string }) => {
   switch (method) {
@@ -106,13 +136,13 @@ function ProductCard({
   return (
     <button
       onClick={onAdd}
-      className="p-3 sm:p-4 bg-white rounded-xl border border-gray-200 hover:border-emerald-400 active:border-emerald-500 active:scale-[0.97] hover:shadow-md transition-all text-left group touch-manipulation select-none min-h-[100px]"
+      className="p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-emerald-400 dark:hover:border-emerald-500 active:border-emerald-500 active:scale-[0.97] hover:shadow-md transition-all text-left group touch-manipulation select-none min-h-[100px]"
     >
-      <div className="aspect-square mb-2 sm:mb-3 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
-        <ShoppingCartIcon className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400 group-hover:text-emerald-500" />
+      <div className="aspect-square mb-2 sm:mb-3 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30 transition-colors">
+        <ShoppingCartIcon className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400 dark:text-gray-500 group-hover:text-emerald-500" />
       </div>
-      <h3 className="font-medium text-gray-900 text-sm leading-tight truncate">{product.name}</h3>
-      <p className="text-xs text-gray-500 mb-1 sm:mb-2 truncate">{product.sku}</p>
+      <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm leading-tight truncate">{product.name}</h3>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 truncate">{product.sku}</p>
       <div className="flex items-center justify-between gap-1">
         <span className="font-bold text-emerald-600 text-sm">{fc(product.unitPrice)}</span>
         <span className={cn(
@@ -142,28 +172,28 @@ function CartItemRow({
   const total = item.quantity * item.unitPrice;
 
   return (
-    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-gray-900 text-sm truncate">{item.name}</h4>
-        <p className="text-xs text-gray-500">{fc(item.unitPrice)} / {item.uomCode}</p>
+        <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.name}</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{fc(item.unitPrice)} / {item.uomCode}</p>
       </div>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onUpdateQuantity(Math.max(1, item.quantity - 1))}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-100 active:bg-gray-200 touch-manipulation select-none"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500 active:bg-gray-200 touch-manipulation select-none"
         >
           <MinusIcon className="w-4 h-4" />
         </button>
-        <span className="w-8 text-center font-semibold tabular-nums">{item.quantity}</span>
+        <span className="w-8 text-center font-semibold tabular-nums dark:text-gray-100">{item.quantity}</span>
         <button
           onClick={() => onUpdateQuantity(item.quantity + 1)}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-100 active:bg-gray-200 touch-manipulation select-none"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500 active:bg-gray-200 touch-manipulation select-none"
         >
           <PlusIcon className="w-4 h-4" />
         </button>
       </div>
       <div className="text-right min-w-[72px]">
-        <p className="font-medium text-gray-900 text-sm tabular-nums">{fc(total)}</p>
+        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm tabular-nums">{fc(total)}</p>
       </div>
       <button
         onClick={onRemove}
@@ -188,6 +218,24 @@ export default function POSPage() {
 
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [lastReceiptData, setLastReceiptData] = useState<ReceiptData | null>(null);
+
+  // Receipt prompt state
+  const [receiptCopies, setReceiptCopies] = useState(1);
+  const [receiptEmail, setReceiptEmail] = useState('');
+  const [showCopiesInput, setShowCopiesInput] = useState(false);
+  const [showEmailInput, setShowEmailInput] = useState(false);
+
+  // Void order state
+  const [showVoidModal, setShowVoidModal] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const [voidCustomReason, setVoidCustomReason] = useState('');
+
+  // Hold order modal state
+  const [showHoldModal, setShowHoldModal] = useState(false);
+  const [holdNote, setHoldNote] = useState('');
+
+  // Card terminal flow state
+  const [awaitingTerminal, setAwaitingTerminal] = useState(false);
 
   // ---- Session gate state ----
   const [showStartSession, setShowStartSession] = useState(false);
@@ -357,8 +405,16 @@ export default function POSPage() {
   };
 
   // Process payment: create order via API, then add payment via API
+  // For non-cash payments, first show terminal waiting UI
   const handleProcessPayment = async () => {
     if (processingPayment) return;
+
+    // For non-cash payments, show terminal waiting UI first
+    if (paymentMethod !== 'cash' && !awaitingTerminal) {
+      setAwaitingTerminal(true);
+      return;
+    }
+
     setProcessingPayment(true);
 
     try {
@@ -447,6 +503,14 @@ export default function POSPage() {
       setLastReceiptData(receiptData);
       setShowReceiptModal(true);
 
+      // Trigger cash drawer for cash payments
+      if (paymentMethod === 'cash') {
+        triggerCashDrawer();
+      }
+
+      // Reset terminal state
+      setAwaitingTerminal(false);
+
       // Reset cart
       setShowPaymentModal(false);
       setCashTendered('');
@@ -461,7 +525,7 @@ export default function POSPage() {
   };
 
   // Hold order: create order via API, then hold it
-  const handleHoldOrder = async () => {
+  const handleHoldOrder = async (reason?: string) => {
     if (currentCart.items.length === 0) return;
 
     try {
@@ -488,10 +552,12 @@ export default function POSPage() {
 
       await holdOrderMutation.mutateAsync({
         id: order.id,
-        heldReason: 'Parked from POS',
+        heldReason: reason || 'Parked from POS',
       });
 
       setCurrentCart(EMPTY_CART);
+      setShowHoldModal(false);
+      setHoldNote('');
     } catch (err) {
       console.error('Hold order failed:', err);
     }
@@ -541,11 +607,11 @@ export default function POSPage() {
           <Card>
             <CardHeader>
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <PlayIcon className="w-8 h-8 text-emerald-600" />
+                <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center">
+                  <PlayIcon className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <CardTitle>Start a Session</CardTitle>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   You need to open a POS session before you can start ringing sales.
                 </p>
               </div>
@@ -746,11 +812,11 @@ export default function POSPage() {
       </div>
 
       {/* Cart Section */}
-      <div className="w-full lg:w-96 lg:max-w-96 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden min-h-[300px] lg:min-h-0">
+      <div className="w-full lg:w-96 lg:max-w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[300px] lg:min-h-0">
         {/* Cart Header */}
-        <div className="p-4 border-b border-gray-100">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-gray-900">Current Order</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Current Order</h2>
             <div className="flex gap-2">
               <Link href="/pos/held" title="Held Orders">
                 <Button variant="ghost" size="sm">
@@ -779,13 +845,13 @@ export default function POSPage() {
           {/* Customer Selection */}
           <button
             onClick={() => setShowCustomerModal(true)}
-            className="w-full flex items-center gap-2 p-3 bg-gray-50 rounded-lg text-left hover:bg-gray-100 transition-colors"
+            className="w-full flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-left hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           >
-            <UserIcon className="w-5 h-5 text-gray-400" />
-            <span className="flex-1 text-sm text-gray-600">
+            <UserIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <span className="flex-1 text-sm text-gray-600 dark:text-gray-300">
               {currentCart.customerName || 'Walk-in Customer'}
             </span>
-            <span className="text-xs text-emerald-600">Change</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400">Change</span>
           </button>
         </div>
 
@@ -811,30 +877,30 @@ export default function POSPage() {
         </div>
 
         {/* Cart Summary */}
-        <div className="border-t border-gray-100 p-4 space-y-3">
+        <div className="border-t border-gray-100 dark:border-gray-700 p-4 space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Subtotal</span>
-            <span className="text-gray-900">{fc(cartTotals.subtotal)}</span>
+            <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
+            <span className="text-gray-900 dark:text-gray-100">{fc(cartTotals.subtotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">GCT ({Math.round(gctRate * 100)}%)</span>
-            <span className="text-gray-900">{fc(cartTotals.gctAmount)}</span>
+            <span className="text-gray-500 dark:text-gray-400">GCT ({Math.round(gctRate * 100)}%)</span>
+            <span className="text-gray-900 dark:text-gray-100">{fc(cartTotals.gctAmount)}</span>
           </div>
           {cartTotals.discountAmount > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Discount</span>
-              <span className="text-red-600">-{fc(cartTotals.discountAmount)}</span>
+              <span className="text-gray-500 dark:text-gray-400">Discount</span>
+              <span className="text-red-600 dark:text-red-400">-{fc(cartTotals.discountAmount)}</span>
             </div>
           )}
-          <div className="flex justify-between font-semibold text-lg pt-2 border-t border-gray-100">
-            <span>Total</span>
-            <span className="text-emerald-600">{fc(cartTotals.total)}</span>
+          <div className="flex justify-between font-semibold text-lg pt-2 border-t border-gray-100 dark:border-gray-700">
+            <span className="dark:text-gray-100">Total</span>
+            <span className="text-emerald-600 dark:text-emerald-400">{fc(cartTotals.total)}</span>
           </div>
         </div>
 
         {/* Cart Actions */}
-        <div className="p-4 border-t border-gray-100 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button
               variant="outline"
               onClick={clearCart}
@@ -845,7 +911,7 @@ export default function POSPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={handleHoldOrder}
+              onClick={() => setShowHoldModal(true)}
               disabled={currentCart.items.length === 0 || holdOrderMutation.isPending}
             >
               {holdOrderMutation.isPending ? (
@@ -855,6 +921,16 @@ export default function POSPage() {
               )}
               Hold
             </Button>
+            {currentCart.items.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowVoidModal(true)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
+              >
+                <NoSymbolIcon className="w-4 h-4 mr-1" />
+                Void
+              </Button>
+            )}
           </div>
           <Button
             className="w-full touch-manipulation min-h-[52px]"
@@ -878,14 +954,14 @@ export default function POSPage() {
         <ModalBody>
           <div className="space-y-6">
             {/* Amount Due */}
-            <div className="text-center py-4 bg-gray-50 rounded-xl">
-              <p className="text-sm text-gray-500 mb-1">Amount Due</p>
-              <p className="text-4xl font-bold text-emerald-600">{fc(cartTotals.total)}</p>
+            <div className="text-center py-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Amount Due</p>
+              <p className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">{fc(cartTotals.total)}</p>
             </div>
 
             {/* Payment Methods */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
                 Payment Method
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -900,17 +976,17 @@ export default function POSPage() {
                     className={cn(
                       "flex flex-col items-center gap-2 p-4 sm:p-5 rounded-xl border-2 transition-all touch-manipulation select-none min-h-[80px]",
                       paymentMethod === method.id
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-gray-200 hover:border-gray-300 active:bg-gray-50"
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
+                        : "border-gray-200 dark:border-gray-600 hover:border-gray-300 active:bg-gray-50 dark:active:bg-gray-700"
                     )}
                   >
                     <method.icon className={cn(
                       "w-7 h-7",
-                      paymentMethod === method.id ? "text-emerald-600" : "text-gray-400"
+                      paymentMethod === method.id ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 dark:text-gray-500"
                     )} />
                     <span className={cn(
                       "text-sm font-medium",
-                      paymentMethod === method.id ? "text-emerald-700" : "text-gray-700"
+                      paymentMethod === method.id ? "text-emerald-700 dark:text-emerald-300" : "text-gray-700 dark:text-gray-300"
                     )}>
                       {method.label}
                     </span>
@@ -922,7 +998,7 @@ export default function POSPage() {
             {/* Cash Tendered */}
             {paymentMethod === 'cash' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Cash Tendered
                 </label>
                 <Input
@@ -937,7 +1013,7 @@ export default function POSPage() {
                     <button
                       key={amount}
                       onClick={() => setCashTendered(amount.toString())}
-                      className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-sm font-medium text-gray-700 transition-colors touch-manipulation select-none"
+                      className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 active:bg-gray-300 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors touch-manipulation select-none"
                     >
                       {fc(amount)}
                     </button>
@@ -964,16 +1040,50 @@ export default function POSPage() {
                 </p>
               </div>
             )}
+
+            {/* Terminal Waiting Overlay (non-cash payments) */}
+            {awaitingTerminal && (
+              <div className="p-6 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                  <CreditCardIcon className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Waiting for Terminal...</h4>
+                  <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                    Present card or complete payment on the terminal device
+                  </p>
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={() => {
+                      setAwaitingTerminal(false);
+                      handleProcessPayment();
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    Payment Confirmed
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setAwaitingTerminal(false)}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    Payment Failed
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setShowPaymentModal(false)}>
+          <Button variant="outline" onClick={() => { setShowPaymentModal(false); setAwaitingTerminal(false); }}>
             Cancel
           </Button>
           <Button
             onClick={handleProcessPayment}
             disabled={
               processingPayment ||
+              awaitingTerminal ||
               (paymentMethod === 'cash' && (!cashTendered || parseFloat(cashTendered) < cartTotals.total))
             }
           >
@@ -1034,46 +1144,302 @@ export default function POSPage() {
       {/* Receipt Confirmation Modal (post-payment) */}
       <Modal
         isOpen={showReceiptModal}
-        onClose={() => { setShowReceiptModal(false); setLastReceiptData(null); }}
+        onClose={() => {
+          setShowReceiptModal(false);
+          setLastReceiptData(null);
+          setShowCopiesInput(false);
+          setShowEmailInput(false);
+          setReceiptCopies(1);
+          setReceiptEmail('');
+        }}
         title="Payment Successful"
-        size="sm"
+        size="md"
       >
         <ModalBody>
-          <div className="text-center py-6">
-            <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-4">
+            <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Order Complete!</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Order Complete!</h3>
             {lastReceiptData && (
-              <p className="text-2xl font-bold text-emerald-600 mb-1">{fc(Number(lastReceiptData.total))}</p>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{fc(Number(lastReceiptData.total))}</p>
             )}
             {lastReceiptData && Number(lastReceiptData.changeGiven || 0) > 0 && (
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Change: <span className="font-semibold">{fc(Number(lastReceiptData.changeGiven))}</span>
               </p>
+            )}
+          </div>
+
+          {/* Receipt Actions Grid */}
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            {/* Print Receipt (1 copy) */}
+            <button
+              onClick={() => {
+                if (lastReceiptData) printReceipt(lastReceiptData, 1);
+                setShowReceiptModal(false);
+                setLastReceiptData(null);
+                setShowCopiesInput(false);
+                setShowEmailInput(false);
+              }}
+              className="flex flex-col items-center gap-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all touch-manipulation"
+            >
+              <PrinterIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Print Receipt</span>
+            </button>
+
+            {/* Print Multiple Copies */}
+            <button
+              onClick={() => {
+                setShowCopiesInput(!showCopiesInput);
+                setShowEmailInput(false);
+              }}
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all touch-manipulation",
+                showCopiesInput
+                  ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-400 dark:border-emerald-600"
+                  : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+              )}
+            >
+              <DocumentTextIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Multiple Copies</span>
+            </button>
+
+            {/* Email Receipt */}
+            <button
+              onClick={() => {
+                setShowEmailInput(!showEmailInput);
+                setShowCopiesInput(false);
+              }}
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all touch-manipulation",
+                showEmailInput
+                  ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-400 dark:border-emerald-600"
+                  : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+              )}
+            >
+              <EnvelopeIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Email Receipt</span>
+            </button>
+
+            {/* No Receipt */}
+            <button
+              onClick={() => {
+                setShowReceiptModal(false);
+                setLastReceiptData(null);
+                setShowCopiesInput(false);
+                setShowEmailInput(false);
+              }}
+              className="flex flex-col items-center gap-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all touch-manipulation"
+            >
+              <XMarkIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">No Receipt</span>
+            </button>
+          </div>
+
+          {/* Copies Input */}
+          {showCopiesInput && (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl space-y-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Number of Copies
+              </label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="number"
+                  min={1}
+                  max={5}
+                  value={receiptCopies.toString()}
+                  onChange={(e) => setReceiptCopies(Math.min(5, Math.max(1, parseInt(e.target.value) || 1)))}
+                />
+                <Button
+                  onClick={() => {
+                    if (lastReceiptData) printReceipt(lastReceiptData, receiptCopies);
+                    setShowReceiptModal(false);
+                    setLastReceiptData(null);
+                    setShowCopiesInput(false);
+                    setReceiptCopies(1);
+                  }}
+                >
+                  <PrinterIcon className="w-4 h-4 mr-2" />
+                  Print {receiptCopies} {receiptCopies === 1 ? 'Copy' : 'Copies'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Email Input */}
+          {showEmailInput && (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl space-y-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Email Address
+              </label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="email"
+                  placeholder="customer@example.com"
+                  value={receiptEmail}
+                  onChange={(e) => setReceiptEmail(e.target.value)}
+                  leftIcon={<EnvelopeIcon className="w-4 h-4" />}
+                />
+                <Button
+                  onClick={() => {
+                    if (receiptEmail) {
+                      console.log('Email receipt to:', receiptEmail, lastReceiptData);
+                      // TODO: Implement email receipt API call
+                    }
+                    setShowReceiptModal(false);
+                    setLastReceiptData(null);
+                    setShowEmailInput(false);
+                    setReceiptEmail('');
+                  }}
+                  disabled={!receiptEmail || !receiptEmail.includes('@')}
+                >
+                  <EnvelopeIcon className="w-4 h-4 mr-2" />
+                  Send
+                </Button>
+              </div>
+            </div>
+          )}
+        </ModalBody>
+      </Modal>
+
+      {/* Void Order Modal */}
+      <Modal
+        isOpen={showVoidModal}
+        onClose={() => { setShowVoidModal(false); setVoidReason(''); setVoidCustomReason(''); }}
+        title="Void Order"
+        size="sm"
+      >
+        <ModalBody>
+          <div className="space-y-4">
+            <div className="text-center py-2">
+              <div className="w-12 h-12 mx-auto mb-3 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
+                <NoSymbolIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                This will clear the current order. Select a reason for voiding.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Void Reason
+              </label>
+              <select
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="">Select a reason...</option>
+                {VOID_REASONS.map((reason) => (
+                  <option key={reason} value={reason}>{reason}</option>
+                ))}
+              </select>
+            </div>
+
+            {voidReason === 'Other' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Custom Reason
+                </label>
+                <Input
+                  placeholder="Enter reason..."
+                  value={voidCustomReason}
+                  onChange={(e) => setVoidCustomReason(e.target.value)}
+                />
+              </div>
             )}
           </div>
         </ModalBody>
         <ModalFooter>
           <Button
             variant="outline"
-            onClick={() => { setShowReceiptModal(false); setLastReceiptData(null); }}
-            className="flex-1"
+            onClick={() => { setShowVoidModal(false); setVoidReason(''); setVoidCustomReason(''); }}
           >
-            No Receipt
+            Cancel
           </Button>
           <Button
             onClick={() => {
-              if (lastReceiptData) printReceipt(lastReceiptData);
-              setShowReceiptModal(false);
-              setLastReceiptData(null);
+              const reason = voidReason === 'Other' ? voidCustomReason : voidReason;
+              console.log('Order voided. Reason:', reason);
+              clearCart();
+              setShowVoidModal(false);
+              setVoidReason('');
+              setVoidCustomReason('');
             }}
-            className="flex-1"
+            disabled={!voidReason || (voidReason === 'Other' && !voidCustomReason)}
+            className="bg-red-600 hover:bg-red-700 text-white"
           >
-            <PrinterIcon className="w-4 h-4 mr-2" />
-            Print Receipt
+            <NoSymbolIcon className="w-4 h-4 mr-2" />
+            Void Order
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Hold Order Modal */}
+      <Modal
+        isOpen={showHoldModal}
+        onClose={() => { setShowHoldModal(false); setHoldNote(''); }}
+        title="Hold Order"
+        size="sm"
+      >
+        <ModalBody>
+          <div className="space-y-4">
+            <div className="text-center py-2">
+              <div className="w-12 h-12 mx-auto mb-3 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center">
+                <PauseIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Park this order for later. Add an optional note to remember why.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Note / Reason (optional)
+              </label>
+              <textarea
+                value={holdNote}
+                onChange={(e) => setHoldNote(e.target.value)}
+                placeholder="e.g. Customer went to get more items..."
+                rows={3}
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+              />
+            </div>
+
+            {/* Order summary */}
+            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500 dark:text-gray-400">{cartTotals.itemCount} items</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{fc(cartTotals.total)}</span>
+              </div>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="outline"
+            onClick={() => { setShowHoldModal(false); setHoldNote(''); }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => handleHoldOrder(holdNote || undefined)}
+            disabled={holdOrderMutation.isPending}
+          >
+            {holdOrderMutation.isPending ? (
+              <>
+                <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
+                Holding...
+              </>
+            ) : (
+              <>
+                <PauseIcon className="w-4 h-4 mr-2" />
+                Hold Order
+              </>
+            )}
           </Button>
         </ModalFooter>
       </Modal>
