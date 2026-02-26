@@ -835,6 +835,7 @@ model Company {
   revaluations     RevaluationEntry[]
   leaveBalances    LeaveBalance[]
   loanDeductions   LoanDeduction[]
+  pensionPlans     PensionPlan[]
   purchaseOrders   PurchaseOrder[]
   goodsReceivedNotes GoodsReceivedNote[]
   referralCodes    ReferralCode[]
@@ -1507,6 +1508,10 @@ model Employee {
   deletedAt        DateTime?
   createdBy        String?
   
+  // Pension
+  pensionPlanId    String?
+  pensionPlan      PensionPlan? @relation("EmployeePensionPlan", fields: [pensionPlanId], references: [id])
+
   // Relations
   payrollEntries   PayrollEntry[]
   leaveBalances    LeaveBalance[]
@@ -3433,6 +3438,33 @@ model LoanDeduction {
 
   @@index([companyId, employeeId])
   @@index([employeeId, isActive])
+}
+
+// ============================================
+// PENSION PLANS
+// ============================================
+
+model PensionPlan {
+  id               String    @id @default(cuid())
+  companyId        String
+  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name             String    // e.g., "Company Pension Fund"
+  providerName     String?   // e.g., "Sagicor Life Jamaica", "NCB Insurance"
+  policyNumber     String?
+
+  employeeRate     Decimal   @db.Decimal(5, 4) // e.g., 0.05 = 5%
+  employerRate     Decimal   @db.Decimal(5, 4) // e.g., 0.05 = 5%
+
+  isApproved       Boolean   @default(false)  // TAJ-approved pension — qualifies for tax relief
+  isActive         Boolean   @default(true)
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  employees        Employee[] @relation("EmployeePensionPlan")
+
+  @@index([companyId])
 }
 
 // ============================================
