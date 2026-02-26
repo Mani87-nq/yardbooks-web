@@ -1,21 +1,24 @@
 /**
  * POST /api/v1/expenses/scan-receipt
  *
- * Scans a receipt image and extracts expense data using OCR.
- * Uses a simple regex-based extraction for common receipt formats.
- * Can be upgraded to use Claude Vision API, Google Cloud Vision, or
- * AWS Textract for production-grade OCR.
+ * Scans a receipt image and extracts expense data using Claude Vision API.
+ * Falls back to regex-based extraction for client-side OCR text.
+ *
+ * Gated: Requires user's own API key for server-side OCR (Vision).
+ * System API key only supports client-side OCR text extraction.
  *
  * Accepts multipart form data with:
- *   - image: The receipt image (JPEG, PNG)
+ *   - image: The receipt image (JPEG, PNG, WebP, PDF)
+ *   - ocrText: Pre-extracted text from client-side OCR
  *
  * Returns extracted data that can be used to pre-fill an expense form.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
+import { resolveAIProvider, createAnthropicClient } from '@/lib/ai/providers';
 
-// ─── Simple receipt text parser (regex-based) ─────────────────────
+// ─── Simple receipt text parser (regex-based fallback) ──────────
 
 interface ExtractedReceipt {
   vendor?: string;
@@ -111,7 +114,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Option 2: Server-side OCR with image upload
+    // Option 2: Server-side OCR with Claude Vision
     if (!image) {
       return badRequest('Either image file or ocrText is required');
     }
@@ -133,38 +136,116 @@ export async function POST(request: NextRequest) {
       return badRequest(`Invalid file type "${image.type}". Accepted: JPEG, PNG, WebP, PDF.`);
     }
 
-    // For now, return instructions for integration.
-    // In production, this would call Claude Vision API or Google Cloud Vision:
-    //
-    // const imageBuffer = Buffer.from(await image.arrayBuffer());
-    // const base64 = imageBuffer.toString('base64');
-    //
-    // Claude Vision API example:
-    // const response = await anthropic.messages.create({
-    //   model: 'claude-sonnet-4-20250514',
-    //   messages: [{
-    //     role: 'user',
-    //     content: [{
-    //       type: 'image',
-    //       source: { type: 'base64', media_type: image.type, data: base64 }
-    //     }, {
-    //       type: 'text',
-    //       text: 'Extract vendor name, date, subtotal, GCT amount, total, and payment method from this receipt. Return as JSON.'
-    //     }]
-    //   }]
-    // });
+    // ── Resolve AI provider — require user's own API key for Vision ──
+    const providerConfig = await resolveAIProvider(companyId!);
+
+    if (!providerConfig || providerConfig.source !== 'user') {
+      return NextResponse.json({
+        message: 'AI-powered receipt scanning requires your own API key.',
+        hint: 'Add your Anthropic API key in Settings > Integrations to unlock receipt scanning, image analysis, and other advanced AI features.',
+        extracted: { confidence: 'low' as const },
+        requiresApiKey: true,
+      }, { status: 402 });
+    }
+
+    if (providerConfig.provider !== 'anthropic') {
+      return NextResponse.json({
+        message: 'Receipt scanning currently requires an Anthropic (Claude) API key for Vision capabilities.',
+        hint: 'Add an Anthropic API key in Settings > Integrations.',
+        extracted: { confidence: 'low' as const },
+        requiresApiKey: true,
+      }, { status: 402 });
+    }
+
+    // ── Process image with Claude Vision ──
+    const imageBuffer = Buffer.from(await image.arrayBuffer());
+    const base64 = imageBuffer.toString('base64');
+
+    // Map MIME type to Claude's supported media types
+    const mediaType = image.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+
+    const client = createAnthropicClient(providerConfig.apiKey);
+
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-20250514',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: mediaType,
+              data: base64,
+            },
+          },
+          {
+            type: 'text',
+            text: `You are a receipt scanner for a Jamaican accounting application. Extract the following fields from this receipt image. Return ONLY a valid JSON object with these fields (omit any you can't find):
+
+{
+  "vendor": "Business/vendor name",
+  "date": "YYYY-MM-DD format",
+  "subtotal": 0.00,
+  "gctAmount": 0.00,
+  "total": 0.00,
+  "items": [{"description": "item name", "amount": 0.00}],
+  "paymentMethod": "CASH|CREDIT_CARD|DEBIT_CARD|BANK_TRANSFER|MOBILE_MONEY|CHEQUE",
+  "currency": "JMD|USD",
+  "receiptNumber": "receipt/invoice number if visible"
+}
+
+Notes:
+- GCT = General Consumption Tax (Jamaica's VAT, usually 15%)
+- Look for JMD/$ amounts. If currency isn't clear, assume JMD.
+- For payment method, look for words like cash, visa, mastercard, debit, lynk, jamdex
+- Extract line items if visible
+- Return ONLY the JSON, no additional text`,
+          },
+        ],
+      }],
+    });
+
+    // Parse Claude's response
+    const responseText = response.content
+      .filter(b => b.type === 'text')
+      .map(b => (b as unknown as { text: string }).text)
+      .join('');
+
+    let extracted: ExtractedReceipt & { currency?: string; receiptNumber?: string };
+    try {
+      // Try to parse as JSON — Claude should return clean JSON
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        extracted = {
+          vendor: parsed.vendor || undefined,
+          date: parsed.date || undefined,
+          subtotal: parsed.subtotal ? Number(parsed.subtotal) : undefined,
+          gctAmount: parsed.gctAmount ? Number(parsed.gctAmount) : undefined,
+          total: parsed.total ? Number(parsed.total) : undefined,
+          items: parsed.items || undefined,
+          paymentMethod: parsed.paymentMethod || undefined,
+          currency: parsed.currency || 'JMD',
+          receiptNumber: parsed.receiptNumber || undefined,
+          confidence: 'high',
+        };
+      } else {
+        extracted = { confidence: 'low' };
+      }
+    } catch {
+      // If JSON parsing fails, fall back to regex extraction on the text
+      extracted = { ...extractReceiptData(responseText), confidence: 'medium' };
+    }
 
     return NextResponse.json({
-      message: 'Receipt image received. Server-side OCR requires an AI Vision API key.',
-      hint: 'Set ANTHROPIC_API_KEY in environment to enable Claude Vision receipt scanning.',
-      fileName: image.name,
-      fileSize: image.size,
-      fileType: image.type,
-      extracted: {
-        confidence: 'low' as const,
-      },
+      message: 'Receipt scanned successfully with AI Vision',
+      source: 'claude-vision',
+      extracted,
     });
   } catch (error) {
+    console.error('[Scan Receipt] Error:', error);
     return internalError(error instanceof Error ? error.message : 'Failed to scan receipt');
   }
 }
