@@ -4,12 +4,15 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Install OpenSSL for Prisma
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy package.json only (not lockfile — macOS lockfile lacks Linux native deps)
+COPY package.json ./
 COPY prisma ./prisma/
 
-# Install dependencies (including devDependencies for build)
-# npm install (not npm ci) to resolve platform-specific optional deps
+# Fresh install resolves correct platform-specific optional deps
+# (lightningcss-linux-x64-gnu, @tailwindcss/oxide-linux-x64-gnu, etc.)
 RUN npm install
 
 # Copy source code
