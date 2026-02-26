@@ -224,6 +224,7 @@ enum PaymentMethod {
   DEBIT_CARD
   MOBILE_MONEY
   WIPAY
+  STRIPE
 }
 
 enum ExpenseCategory {
