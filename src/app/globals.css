@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Override Tailwind v4 dark variant to use class-based (not media query) */
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #ffffff;
