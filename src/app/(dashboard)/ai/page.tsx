@@ -17,6 +17,9 @@ import {
   WrenchScrewdriverIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  PhotoIcon,
+  XMarkIcon,
+  CameraIcon,
 } from '@heroicons/react/24/outline';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -26,6 +29,13 @@ interface ToolUsed {
   input: unknown;
 }
 
+interface ImageAttachment {
+  data: string; // base64
+  mediaType: string;
+  preview: string; // data URL for preview
+  name: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -33,6 +43,7 @@ interface Message {
   timestamp: Date;
   toolsUsed?: ToolUsed[];
   apiKeySource?: 'user' | 'system';
+  images?: ImageAttachment[];
 }
 
 // ─── Tool Display Helpers ───────────────────────────────────────
@@ -137,13 +148,31 @@ function ToolsBadge({ tools }: { tools: ToolUsed[] }) {
   );
 }
 
+// ─── Image Thumbnail Preview ────────────────────────────────────
+
+function ImageThumbnails({ images }: { images: ImageAttachment[] }) {
+  if (!images || images.length === 0) return null;
+  return (
+    <div className="flex gap-2 mt-2">
+      {images.map((img, i) => (
+        <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={img.preview} alt={img.name} className="w-full h-full object-cover" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main Page Component ────────────────────────────────────────
 
 export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -153,26 +182,85 @@ export default function AIAssistantPage() {
     scrollToBottom();
   }, [messages]);
 
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const maxFiles = 3;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+    const newImages: ImageAttachment[] = [];
+
+    for (let i = 0; i < Math.min(files.length, maxFiles - pendingImages.length); i++) {
+      const file = files[i];
+      if (!allowedTypes.includes(file.type)) continue;
+      if (file.size > maxSize) continue;
+
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      newImages.push({
+        data: base64,
+        mediaType: file.type,
+        preview: URL.createObjectURL(file),
+        name: file.name,
+      });
+    }
+
+    setPendingImages(prev => [...prev, ...newImages].slice(0, maxFiles));
+
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removePendingImage = (index: number) => {
+    setPendingImages(prev => {
+      const newArr = [...prev];
+      URL.revokeObjectURL(newArr[index].preview);
+      newArr.splice(index, 1);
+      return newArr;
+    });
+  };
+
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
-    if (!messageText) return;
+    if (!messageText && pendingImages.length === 0) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: messageText,
+      content: messageText || '(image attached)',
       timestamp: new Date(),
+      images: pendingImages.length > 0 ? [...pendingImages] : undefined,
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    const imagesToSend = [...pendingImages];
+    setPendingImages([]);
     setIsLoading(true);
 
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const res = await api.post<{ response: string; toolsUsed?: ToolUsed[]; apiKeySource?: string }>(
+      const payload: Record<string, unknown> = {
+        message: messageText || 'Please analyze the attached image(s).',
+        conversationHistory: history,
+      };
+
+      // Include images if present
+      if (imagesToSend.length > 0) {
+        payload.images = imagesToSend.map(img => ({
+          data: img.data,
+          mediaType: img.mediaType,
+        }));
+      }
+
+      const res = await api.post<{ response: string; toolsUsed?: ToolUsed[]; apiKeySource?: string; requiresApiKey?: boolean }>(
         '/api/v1/ai/chat',
-        { message: messageText, conversationHistory: history }
+        payload
       );
 
       const assistantMessage: Message = {
@@ -209,7 +297,7 @@ export default function AIAssistantPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">AI Business Assistant</h1>
             <p className="text-gray-500">
-              Ask questions, run reports, look up data, and get actionable business insights
+              Ask questions, run reports, look up data, analyze images, and get actionable business insights
             </p>
           </div>
         </div>
@@ -225,7 +313,7 @@ export default function AIAssistantPage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">How can I help you today?</h2>
               <p className="text-gray-500 mb-6 max-w-md">
-                I can query your real business data, run financial reports, look up customers and inventory, create draft invoices, and provide actionable advice.
+                I can query your real business data, run financial reports, look up customers and inventory, create draft invoices, analyze receipts and images, and provide actionable advice.
               </p>
               <div className="grid grid-cols-2 gap-3 max-w-2xl">
                 {QUICK_PROMPTS.map((prompt, i) => {
@@ -262,6 +350,17 @@ export default function AIAssistantPage() {
                         : 'bg-gray-100 text-gray-900'
                     }`}
                   >
+                    {/* Show attached images for user messages */}
+                    {message.role === 'user' && message.images && message.images.length > 0 && (
+                      <div className="flex gap-2 mb-2">
+                        {message.images.map((img, i) => (
+                          <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-white/20">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img.preview} alt={img.name} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="text-sm leading-relaxed">
                       {message.role === 'assistant'
                         ? renderContent(message.content)
@@ -301,22 +400,71 @@ export default function AIAssistantPage() {
           )}
         </div>
 
+        {/* Pending Image Previews */}
+        {pendingImages.length > 0 && (
+          <div className="border-t border-gray-200 px-4 pt-3">
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <PhotoIcon className="w-3.5 h-3.5" />
+                {pendingImages.length} image{pendingImages.length > 1 ? 's' : ''} attached
+              </span>
+              <div className="flex gap-2">
+                {pendingImages.map((img, i) => (
+                  <div key={i} className="relative group">
+                    <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.preview} alt={img.name} className="w-full h-full object-cover" />
+                    </div>
+                    <button
+                      onClick={() => removePendingImage(i)}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <XMarkIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="border-t border-gray-200 p-4">
           <div className="flex gap-2">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+
+            {/* Image upload button */}
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || pendingImages.length >= 3}
+              title="Attach image (requires your own API key)"
+              className="flex-shrink-0"
+            >
+              <CameraIcon className="w-5 h-5" />
+            </Button>
+
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your business, run a report, or look up data..."
+              placeholder={pendingImages.length > 0 ? 'Describe what you want to know about this image...' : 'Ask about your business, run a report, or look up data...'}
               onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
               className="flex-1"
             />
-            <Button onClick={() => handleSend()} disabled={!input.trim() || isLoading}>
+            <Button onClick={() => handleSend()} disabled={(!input.trim() && pendingImages.length === 0) || isLoading}>
               <PaperAirplaneIcon className="w-5 h-5" />
             </Button>
           </div>
           <p className="text-xs text-gray-400 mt-2 text-center">
-            Powered by Claude AI with real-time access to your business data
+            Powered by Claude AI with real-time access to your business data • Image analysis requires your own API key
           </p>
         </div>
       </Card>

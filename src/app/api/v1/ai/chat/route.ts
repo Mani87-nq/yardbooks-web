@@ -2,8 +2,10 @@
  * POST /api/v1/ai/chat — AI Business Assistant powered by Claude
  *
  * Agentic AI that fetches real business data via tool_use and provides
- * contextual financial advice. Supports user API keys and multi-turn
- * tool execution.
+ * contextual financial advice. Supports user API keys, multi-turn
+ * tool execution, and image analysis (Vision).
+ *
+ * Image support is gated behind user's own API key.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
@@ -23,7 +25,11 @@ export async function POST(request: NextRequest) {
     if (companyError) return companyError;
 
     const body = await request.json();
-    const { message, conversationHistory = [] } = body;
+    const { message, conversationHistory = [], images } = body as {
+      message: string;
+      conversationHistory?: Array<{ role: string; content: string }>;
+      images?: Array<{ data: string; mediaType: string }>;
+    };
 
     if (!message) return badRequest('Message is required');
 
@@ -42,6 +48,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ── Gate image support behind user's own API key ──
+    if (images && images.length > 0 && providerConfig.source !== 'user') {
+      return NextResponse.json({
+        response: 'Image analysis requires your own API key. Add your Anthropic API key in **Settings > Integrations** to unlock image analysis, receipt scanning, and other advanced AI features.',
+        requiresApiKey: true,
+      });
+    }
+
     const client = createAnthropicClient(providerConfig.apiKey);
 
     // ── Build enhanced system prompt ──
@@ -54,8 +68,33 @@ export async function POST(request: NextRequest) {
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
       })),
-      { role: 'user', content: message },
     ];
+
+    // Build the current user message — with optional images
+    if (images && images.length > 0) {
+      // Multi-modal message with images + text
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contentBlocks: any[] = [];
+
+      // Add images first
+      for (const img of images.slice(0, 3)) { // Max 3 images per message
+        contentBlocks.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: img.mediaType,
+            data: img.data,
+          },
+        });
+      }
+
+      // Add text message
+      contentBlocks.push({ type: 'text', text: message });
+
+      messages.push({ role: 'user', content: contentBlocks });
+    } else {
+      messages.push({ role: 'user', content: message });
+    }
 
     const toolResults: Array<{ tool: string; input: unknown; summary?: string }> = [];
     let iterations = 0;
