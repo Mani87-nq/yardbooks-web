@@ -2,8 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui';
+import { useTour } from '@/hooks/useTour';
 import {
   MagnifyingGlassIcon,
   ChevronDownIcon,
@@ -27,6 +29,7 @@ import {
   HomeIcon,
   BanknotesIcon,
   SparklesIcon,
+  PlayIcon,
 } from '@heroicons/react/24/outline';
 
 // ---------------------------------------------------------------------------
@@ -411,6 +414,8 @@ export default function HelpPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const { startTour, resetTour } = useTour();
+  const router = useRouter();
 
   // Filtered FAQ list based on search + active category
   const filteredFAQ = useMemo(() => {
@@ -581,6 +586,32 @@ export default function HelpPage() {
               </Card>
             </Link>
           ))}
+        </div>
+      </div>
+
+      {/* ── Product Tour ─────────────────────────────────────────────── */}
+      <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl p-6 border border-emerald-200 dark:border-emerald-500/20">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">
+              Platform Tour
+            </h2>
+            <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-1">
+              Take a guided tour of YaadBooks to learn where everything is.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              resetTour('welcome');
+              router.push('/dashboard');
+              // Small delay to let navigation complete before starting tour
+              setTimeout(() => startTour('welcome'), 600);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm flex-shrink-0"
+          >
+            <PlayIcon className="h-4 w-4" />
+            Restart Tour
+          </button>
         </div>
       </div>
 

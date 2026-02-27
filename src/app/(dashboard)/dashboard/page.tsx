@@ -81,16 +81,19 @@ function QuickAction({
   href,
   bgColor,
   hoverBorder,
+  tourTarget,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   href: string;
   bgColor: string;
   hoverBorder: string;
+  tourTarget?: string;
 }) {
   return (
     <Link
       href={href}
+      {...(tourTarget ? { 'data-tour': tourTarget } : {})}
       className={`group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 ${hoverBorder} hover:shadow-lg dark:shadow-gray-900/30 transition-all duration-300 overflow-hidden`}
     >
       {/* Subtle background glow on hover */}
@@ -187,7 +190,7 @@ export default function DashboardPage() {
 
       <div className="space-y-8 pb-8">
         {/* ─── WELCOME HEADER ─────────────────────────────────────────── */}
-        <div style={fadeSlideUpStyle(0)} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 p-8 lg:p-10 shadow-lg dark:shadow-gray-900/30">
+        <div data-tour="dashboard-welcome" style={fadeSlideUpStyle(0)} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 p-8 lg:p-10 shadow-lg dark:shadow-gray-900/30">
           {/* Background decorative elements */}
           <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-1/3 w-48 h-48 rounded-full bg-white/5 translate-y-1/2" />
@@ -238,6 +241,7 @@ export default function DashboardPage() {
               href="/pos"
               bgColor="bg-gradient-to-br from-emerald-500 to-emerald-600"
               hoverBorder="hover:border-emerald-200"
+              tourTarget="quick-action-pos"
             />
             <QuickAction
               icon={DocumentPlusIcon}
@@ -245,6 +249,7 @@ export default function DashboardPage() {
               href="/invoices/new"
               bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
               hoverBorder="hover:border-blue-200"
+              tourTarget="quick-action-invoice"
             />
             <QuickAction
               icon={UserPlusIcon}

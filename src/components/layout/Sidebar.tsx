@@ -42,50 +42,9 @@ import {
   BuildingOffice2Icon,
   PrinterIcon,
   CreditCardIcon,
-  StarIcon,
-  TagIcon,
-  IdentificationIcon,
-  Squares2X2Icon,
-  FireIcon,
-  BuildingStorefrontIcon,
-  ShoppingBagIcon,
-  ScissorsIcon,
-  ArrowRightStartOnRectangleIcon,
-  Square3Stack3DIcon,
-  MapPinIcon,
   PuzzlePieceIcon,
 } from '@heroicons/react/24/outline';
-
-// Map HeroIcon string names from module manifests to actual components
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  HomeIcon,
-  ShoppingCartIcon,
-  DocumentTextIcon,
-  UserGroupIcon,
-  CubeIcon,
-  BanknotesIcon,
-  BookOpenIcon,
-  WrenchScrewdriverIcon,
-  UsersIcon,
-  BuildingLibraryIcon,
-  ChartBarIcon,
-  SparklesIcon,
-  Cog6ToothIcon,
-  ClockIcon,
-  CalendarDaysIcon,
-  StarIcon,
-  TagIcon,
-  IdentificationIcon,
-  Squares2X2Icon,
-  FireIcon,
-  BuildingStorefrontIcon,
-  ShoppingBagIcon,
-  ScissorsIcon,
-  ArrowRightStartOnRectangleIcon,
-  Square3Stack3DIcon,
-  MapPinIcon,
-  PuzzlePieceIcon,
-};
+import { ICON_MAP } from '@/lib/icon-map';
 
 interface NavItem {
   name: string;
@@ -172,6 +131,7 @@ const navigation: NavGroup[] = [
   {
     name: 'System',
     items: [
+      { name: 'Modules', href: '/modules', icon: PuzzlePieceIcon, badge: 'NEW', permission: null },
       { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, permission: 'settings:read' },
       { name: 'Billing', href: '/billing', icon: CreditCardIcon, permission: null },
       { name: 'Receipt Printer', href: '/settings/receipt-printer', icon: PrinterIcon, badge: 'NEW', permission: null },
@@ -312,6 +272,7 @@ export function Sidebar() {
 
       {/* Sidebar — light: clean white | dark: rich dark gradient */}
       <aside
+        data-tour="sidebar"
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 lg:relative',
           'bg-white dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-900 dark:to-gray-950',
@@ -424,10 +385,20 @@ export function Sidebar() {
                       const isActive =
                         pathname === item.href || pathname?.startsWith(item.href + '/');
 
+                      // Tour target attributes for guided product tour
+                      const tourTarget =
+                        item.href === '/modules' ? 'sidebar-modules' :
+                        item.href === '/settings' ? 'sidebar-settings' :
+                        item.href === '/help' ? 'sidebar-help' :
+                        item.href === '/invoices' ? 'sidebar-invoices' :
+                        item.href === '/pos' ? 'sidebar-pos' :
+                        undefined;
+
                       return (
                         <li key={item.name}>
                           <Link
                             href={item.href}
+                            {...(tourTarget ? { 'data-tour': tourTarget } : {})}
                             className={cn(
                               'group/item relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
                               isActive

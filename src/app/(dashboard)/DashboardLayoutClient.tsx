@@ -6,6 +6,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { useDataHydration } from '@/hooks/useDataHydration';
 import { useAppStore } from '@/store/appStore';
+import { TourProvider } from '@/components/tour/TourProvider';
+import { TourAutoLauncher } from '@/components/tour/TourAutoLauncher';
 
 export function DashboardLayoutClient({
   children,
@@ -77,7 +79,10 @@ export function DashboardLayoutClient({
   // ── Hydrated — render the full dashboard ───────────────────────────
   return (
     <QueryProvider>
-      <DashboardLayout>{children}</DashboardLayout>
+      <TourProvider>
+        <DashboardLayout>{children}</DashboardLayout>
+        <TourAutoLauncher />
+      </TourProvider>
     </QueryProvider>
   );
 }

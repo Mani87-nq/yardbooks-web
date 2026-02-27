@@ -21,7 +21,7 @@ export interface User {
 // ============================================
 // COMPANY (Multi-Company Support)
 // ============================================
-export type SubscriptionPlanType = 'STARTER' | 'BUSINESS' | 'PRO' | 'ENTERPRISE';
+export type SubscriptionPlanType = 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'BUSINESS' | 'ENTERPRISE' | 'SOLO' | 'TEAM' | 'PRO';
 export type SubscriptionStatusType = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'INACTIVE';
 
 export interface Company {

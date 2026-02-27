@@ -131,6 +131,9 @@ export default function OnboardingPage() {
         });
       }
 
+      // Flag for the dashboard to auto-launch the welcome product tour
+      sessionStorage.setItem('yb-start-tour', 'welcome');
+
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
