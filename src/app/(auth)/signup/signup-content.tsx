@@ -49,8 +49,14 @@ const BUSINESS_TYPES = [
 ];
 
 const PLANS: Record<string, { name: string; priceMonthly: string; priceAnnual: string }> = {
-  solo: { name: 'Solo', priceMonthly: '$19.99/mo after trial', priceAnnual: '$199.99/yr after trial' },
-  team: { name: 'Team', priceMonthly: '$14.99/user/mo after trial', priceAnnual: '$149.99/user/yr after trial' },
+  free: { name: 'Free', priceMonthly: 'Free forever', priceAnnual: 'Free forever' },
+  starter: { name: 'Starter', priceMonthly: 'J$3,499/mo after trial', priceAnnual: 'J$34,990/yr after trial' },
+  professional: { name: 'Professional', priceMonthly: 'J$7,499/mo after trial', priceAnnual: 'J$74,990/yr after trial' },
+  business: { name: 'Business', priceMonthly: 'J$13,999/mo after trial', priceAnnual: 'J$139,990/yr after trial' },
+  enterprise: { name: 'Enterprise', priceMonthly: 'J$22,999/mo after trial', priceAnnual: 'J$229,990/yr after trial' },
+  // Legacy aliases — redirect to new names
+  solo: { name: 'Starter', priceMonthly: 'J$3,499/mo after trial', priceAnnual: 'J$34,990/yr after trial' },
+  team: { name: 'Professional', priceMonthly: 'J$7,499/mo after trial', priceAnnual: 'J$74,990/yr after trial' },
 };
 
 // Google Icon SVG
@@ -97,9 +103,9 @@ export default function SignupContent() {
   const [referralValidated, setReferralValidated] = useState(false); // Tracks if the current value has been validated
 
   // Get selected plan and billing interval from URL
-  const selectedPlan = searchParams.get('plan') || 'solo';
+  const selectedPlan = searchParams.get('plan') || 'free';
   const billingInterval = searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
-  const planData = PLANS[selectedPlan] || PLANS.solo;
+  const planData = PLANS[selectedPlan] || PLANS.free;
   const planInfo = {
     name: planData.name,
     price: billingInterval === 'annual' ? planData.priceAnnual : planData.priceMonthly,

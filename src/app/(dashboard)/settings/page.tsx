@@ -263,12 +263,15 @@ function TeamTab() {
   const atUserLimit = meta.maxMembers !== -1 && meta.totalMembers >= meta.maxMembers;
 
   const planDisplayName: Record<string, string> = {
-    solo: 'Solo',
-    team: 'Team',
+    free: 'Free',
     starter: 'Starter',
+    professional: 'Professional',
     business: 'Business',
-    pro: 'Pro',
     enterprise: 'Enterprise',
+    // Legacy aliases
+    solo: 'Starter',
+    team: 'Professional',
+    pro: 'Professional',
   };
 
   return (

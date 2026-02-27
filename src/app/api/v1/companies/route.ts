@@ -58,27 +58,33 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
-    // Enforce company limit: Solo plan allows only 1 company
+    // Enforce company limit based on subscription plan
     const existingMemberships = await prisma.companyMember.findMany({
       where: { userId: user!.sub, role: 'OWNER' },
       include: { company: { select: { subscriptionPlan: true } } },
     });
 
-    // Check if user owns any Solo-plan companies (Solo = max 1 company)
+    // Check company limit: Free/Starter = 1, Professional = 1, Business = 3, Enterprise = unlimited
     const ownedCompanyCount = existingMemberships.length;
     if (ownedCompanyCount >= 1) {
-      // Check if any of their companies is on the Team plan (unlimited companies)
-      const hasTeamPlan = existingMemberships.some(
-        (m) => m.company.subscriptionPlan === 'TEAM'
+      const plans = existingMemberships.map((m) => m.company.subscriptionPlan?.toUpperCase());
+      const hasMultiCompanyPlan = plans.some(
+        (p) => p === 'BUSINESS' || p === 'ENTERPRISE'
       );
-      if (!hasTeamPlan) {
+      const hasEnterprisePlan = plans.some((p) => p === 'ENTERPRISE');
+      if (!hasMultiCompanyPlan) {
         return forbidden(
-          'Solo plan allows only 1 company. Upgrade to Team plan for unlimited companies.'
+          'Your current plan allows only 1 company. Upgrade to Business or Enterprise for multiple companies.'
+        );
+      }
+      if (hasMultiCompanyPlan && !hasEnterprisePlan && ownedCompanyCount >= 3) {
+        return forbidden(
+          'Business plan allows up to 3 companies. Upgrade to Enterprise for unlimited companies.'
         );
       }
     }
 
-    // 14-day free trial: new companies start on SOLO plan with TRIALING status
+    // 14-day free trial: new companies start on STARTER plan with TRIALING status
     const now = new Date();
     const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
@@ -86,7 +92,7 @@ export async function POST(request: NextRequest) {
       const company = await tx.company.create({
         data: {
           ...parsed.data,
-          subscriptionPlan: 'SOLO',
+          subscriptionPlan: 'STARTER',
           subscriptionStatus: 'TRIALING',
           subscriptionStartDate: now,
           subscriptionEndDate: trialEnd,

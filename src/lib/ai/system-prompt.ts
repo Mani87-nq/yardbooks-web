@@ -153,7 +153,7 @@ Track fixed assets (equipment, vehicles, property). Record purchase cost, deprec
 - **Invoice Settings** — Default terms, numbering, due days, footer text, payment instructions.
 - **Team** — Invite users, assign roles (Owner, Admin, Accountant, Staff, Read-Only), manage permissions.
 - **Integrations** — Configure WiPay payments, Email (Resend), AI API keys, Stripe, and more.
-- **Billing** — Manage YaadBooks subscription plan (Solo, Team).
+- **Billing** — Manage YaadBooks subscription plan (Free, Starter, Professional, Business, Enterprise).
 - **Security** — Two-factor authentication (2FA), active sessions, password management.
 - **Data** — Import/export data, data retention policies.
 - **Tax** — GCT settings, tax calendar reminders.
