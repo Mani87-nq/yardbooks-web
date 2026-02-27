@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { internalError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'retail');
+    if (modErr) return modErr;
 
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get('cursor') ?? undefined;

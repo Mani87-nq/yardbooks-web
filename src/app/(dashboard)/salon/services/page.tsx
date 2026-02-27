@@ -421,8 +421,8 @@ export default function ServicesPage() {
       {/* ── Service Modal ── */}
       {showServiceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
+            <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingService ? 'Edit Service' : 'Add Service'}
               </h2>
@@ -433,7 +433,8 @@ export default function ServicesPage() {
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleServiceSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleServiceSubmit} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {serviceFormError && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
                   {serviceFormError}
@@ -517,7 +518,8 @@ export default function ServicesPage() {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              </div>
+              <div className="flex-shrink-0 flex justify-end gap-3 p-5 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => { setShowServiceModal(false); setServiceFormError(null); }}
@@ -541,8 +543,8 @@ export default function ServicesPage() {
       {/* ── Category Modal ── */}
       {showCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
+            <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingCategory ? 'Edit Category' : 'Add Category'}
               </h2>
@@ -553,7 +555,8 @@ export default function ServicesPage() {
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCategorySubmit} className="p-5 space-y-4">
+            <form onSubmit={handleCategorySubmit} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {categoryFormError && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
                   {categoryFormError}
@@ -583,7 +586,8 @@ export default function ServicesPage() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              </div>
+              <div className="flex-shrink-0 flex justify-end gap-3 p-5 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => { setShowCategoryModal(false); setCategoryFormError(null); }}

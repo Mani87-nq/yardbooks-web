@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { internalError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
@@ -25,6 +26,8 @@ export async function GET(request: NextRequest) {
 
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'restaurant');
+    if (modErr) return modErr;
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'month';

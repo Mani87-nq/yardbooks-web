@@ -89,12 +89,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const now = new Date();
 
     const invoice = await prisma.$transaction(async (tx) => {
-      // Generate invoice number: INV-YYYYMM-XXXX
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const count = await tx.invoice.count({ where: { companyId: companyId! } });
-      const seq = String(count + 1).padStart(4, '0');
-      const invoiceNumber = `INV-${year}${month}-${seq}`;
+      // Generate invoice number
+      const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
 
       // Map POS order items to invoice items
       const invoiceItems = order.items.map((item, idx) => {

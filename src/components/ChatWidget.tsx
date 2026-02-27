@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, FormEvent } from 'react';
+import DOMPurify from 'dompurify';
 
 // ---- Types ----
 interface Message {
@@ -373,7 +374,7 @@ function AssistantMessage({ content }: { content: string }) {
           return (
             <div key={i} className="flex gap-2 ml-1">
               <span className="text-emerald-600 flex-shrink-0">•</span>
-              <span dangerouslySetInnerHTML={{ __html: formatInline(bulletMatch[1]) }} />
+              <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatInline(bulletMatch[1])) }} />
             </div>
           );
         }
@@ -384,14 +385,14 @@ function AssistantMessage({ content }: { content: string }) {
           return (
             <div key={i} className="flex gap-2 ml-1">
               <span className="text-emerald-600 font-medium flex-shrink-0">{numMatch[1]}.</span>
-              <span dangerouslySetInnerHTML={{ __html: formatInline(numMatch[2]) }} />
+              <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatInline(numMatch[2])) }} />
             </div>
           );
         }
 
         // Regular paragraph
         return (
-          <p key={i} dangerouslySetInnerHTML={{ __html: formatInline(line) }} />
+          <p key={i} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatInline(line)) }} />
         );
       })}
     </div>

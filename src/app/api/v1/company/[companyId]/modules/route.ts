@@ -1,12 +1,15 @@
 /**
- * GET  /api/v1/company/[companyId]/modules — List active module IDs for a company
- * POST /api/v1/company/[companyId]/modules — Activate a module for a company
+ * GET    /api/v1/company/[companyId]/modules — List active module IDs for a company
+ * POST   /api/v1/company/[companyId]/modules — Activate a module for a company
  * DELETE /api/v1/company/[companyId]/modules — Deactivate a module for a company
+ *
+ * POST and DELETE delegate to the activation layer which handles
+ * dependency validation, event bus lifecycle, and caching.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/db';
-import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requireAuth } from '@/lib/auth/middleware';
 import { forbidden, badRequest, internalError } from '@/lib/api-error';
+import { getActiveModules, activateModule, deactivateModule } from '@/modules/activation';
 
 // ─── GET: List active modules ────────────────────────────────
 
@@ -25,14 +28,9 @@ export async function GET(
   }
 
   try {
-    const rows = await prisma.companyModule.findMany({
-      where: { companyId, isActive: true },
-      select: { moduleId: true },
-    });
+    const modules = await getActiveModules(companyId);
 
-    return NextResponse.json({
-      modules: rows.map((r: { moduleId: string }) => r.moduleId),
-    });
+    return NextResponse.json({ modules });
   } catch (err) {
     console.error('[CompanyModules] GET error:', err);
     return internalError('Failed to fetch active modules');
@@ -67,14 +65,21 @@ export async function POST(
       return badRequest('moduleId is required');
     }
 
-    const row = await prisma.companyModule.upsert({
-      where: { companyId_moduleId: { companyId, moduleId } },
-      create: { companyId, moduleId, isActive: true },
-      update: { isActive: true, deactivatedAt: null },
-    });
+    await activateModule(companyId, moduleId);
 
-    return NextResponse.json({ success: true, module: row });
+    return NextResponse.json({ success: true, moduleId });
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to activate module';
+
+    // The activation layer throws descriptive errors for known issues
+    // (unknown module, missing dependencies) — surface them as 400s
+    if (
+      message.includes('Unknown module') ||
+      message.includes('missing dependencies')
+    ) {
+      return badRequest(message);
+    }
+
     console.error('[CompanyModules] POST error:', err);
     return internalError('Failed to activate module');
   }
@@ -107,13 +112,17 @@ export async function DELETE(
       return badRequest('moduleId is required');
     }
 
-    await prisma.companyModule.updateMany({
-      where: { companyId, moduleId },
-      data: { isActive: false, deactivatedAt: new Date() },
-    });
+    await deactivateModule(companyId, moduleId);
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to deactivate module';
+
+    // The deactivation layer throws if another module depends on this one
+    if (message.includes('Cannot deactivate module')) {
+      return badRequest(message);
+    }
+
     console.error('[CompanyModules] DELETE error:', err);
     return internalError('Failed to deactivate module');
   }

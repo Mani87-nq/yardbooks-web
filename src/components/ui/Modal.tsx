@@ -43,14 +43,14 @@ export function Modal({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className={cn(
-            'relative w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl',
+            'relative w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl flex flex-col max-h-[90vh]',
             sizes[size]
           )}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {(title || description) && (
-            <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex-shrink-0 flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-700">
               <div>
                 {title && (
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
@@ -68,8 +68,8 @@ export function Modal({
             </div>
           )}
 
-          {/* Content */}
-          <div className={cn(!title && !description && 'pt-6')}>
+          {/* Content — ModalBody scrolls, ModalFooter stays fixed */}
+          <div className={cn('flex-1 flex flex-col overflow-hidden', !title && !description && 'pt-6')}>
             {children}
           </div>
         </div>
@@ -80,7 +80,7 @@ export function Modal({
 
 export function ModalBody({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('p-6', className)} {...props}>
+    <div className={cn('flex-1 overflow-y-auto p-6', className)} {...props}>
       {children}
     </div>
   );
@@ -90,7 +90,7 @@ export function ModalFooter({ className, children, ...props }: React.HTMLAttribu
   return (
     <div
       className={cn(
-        'flex items-center justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-xl',
+        'flex-shrink-0 flex items-center justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-xl',
         className
       )}
       {...props}

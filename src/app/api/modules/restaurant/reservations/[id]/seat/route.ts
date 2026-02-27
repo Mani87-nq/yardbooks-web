@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { notFound, conflict, internalError } from '@/lib/api-error';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -15,6 +16,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'restaurant');
+    if (modErr) return modErr;
 
     const reservation = await (prisma as any).reservation.findFirst({
       where: { id, companyId: companyId! },

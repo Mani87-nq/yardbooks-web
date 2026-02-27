@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { notFound, badRequest, internalError } from '@/lib/api-error';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'restaurant');
+    if (modErr) return modErr;
 
     const reservation = await (prisma as any).reservation.findFirst({
       where: { id, companyId: companyId! },
@@ -49,6 +52,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'restaurant');
+    if (modErr) return modErr;
 
     const existing = await (prisma as any).reservation.findFirst({
       where: { id, companyId: companyId! },
@@ -83,6 +88,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr3 } = await requireModule(companyId!, 'restaurant');
+    if (modErr3) return modErr3;
 
     const existing = await (prisma as any).reservation.findFirst({
       where: { id, companyId: companyId! },

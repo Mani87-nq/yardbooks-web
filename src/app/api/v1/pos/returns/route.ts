@@ -133,11 +133,9 @@ export async function POST(request: NextRequest) {
     const totalRefund = Math.round((subtotal + gctAmount) * 100) / 100;
 
     const result = await prisma.$transaction(async (tx) => {
-      // Generate return number: RTN-{YYYYMMDD}-XXXX
-      const count = await tx.posReturn.count({ where: { companyId: companyId! } });
+      // Generate return number
       const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-      const returnNumber = `RTN-${dateStr}-${String(count + 1).padStart(4, '0')}`;
+      const returnNumber = `RTN-${Date.now().toString(36).toUpperCase()}`;
 
       // Create return record
       const posReturn = await tx.posReturn.create({

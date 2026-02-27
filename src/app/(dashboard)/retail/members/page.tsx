@@ -129,7 +129,7 @@ function EnrollModal({
     const timeout = setTimeout(async () => {
       try {
         setSearchLoading(true);
-        const res = await fetch(`/api/customers?search=${encodeURIComponent(customerSearch)}&limit=10`);
+        const res = await fetch(`/api/v1/customers?search=${encodeURIComponent(customerSearch)}&limit=10`);
         if (res.ok) {
           const json = await res.json();
           setCustomerResults(json.data || json.customers || []);
@@ -184,123 +184,124 @@ function EnrollModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+        <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Enroll New Member</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
             <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded-lg p-3">
-              {error}
-            </div>
-          )}
-
-          {activePrograms.length === 0 ? (
-            <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm rounded-lg p-3">
-              No active loyalty programs found. Create a loyalty program first.
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Loyalty Program *
-                </label>
-                <select value={programId} onChange={(e) => setProgramId(e.target.value)} required className={inputCls}>
-                  <option value="">Select a program...</option>
-                  {activePrograms.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded-lg p-3">
+                {error}
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Customer *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={customerSearch}
-                    onChange={(e) => { setCustomerSearch(e.target.value); setCustomerId(''); }}
-                    className={inputCls}
-                    placeholder="Search by name or email..."
-                  />
-                  {searchLoading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <ArrowPathIcon className="w-4 h-4 text-gray-400 animate-spin" />
+            {activePrograms.length === 0 ? (
+              <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm rounded-lg p-3">
+                No active loyalty programs found. Create a loyalty program first.
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Loyalty Program *
+                  </label>
+                  <select value={programId} onChange={(e) => setProgramId(e.target.value)} required className={inputCls}>
+                    <option value="">Select a program...</option>
+                    {activePrograms.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Customer *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={customerSearch}
+                      onChange={(e) => { setCustomerSearch(e.target.value); setCustomerId(''); }}
+                      className={inputCls}
+                      placeholder="Search by name or email..."
+                    />
+                    {searchLoading && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <ArrowPathIcon className="w-4 h-4 text-gray-400 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  {customerId && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                      Customer selected: {customerResults.find((c) => c.id === customerId)?.name || customerId}
+                    </p>
+                  )}
+                  {customerResults.length > 0 && !customerId && (
+                    <div className="mt-1 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
+                      {customerResults.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => { setCustomerId(c.id); setCustomerSearch(c.name); }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                        >
+                          <p className="font-medium text-gray-900 dark:text-white">{c.name}</p>
+                          {c.email && <p className="text-xs text-gray-500 dark:text-gray-400">{c.email}</p>}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
-                {customerId && (
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                    Customer selected: {customerResults.find((c) => c.id === customerId)?.name || customerId}
-                  </p>
-                )}
-                {customerResults.length > 0 && !customerId && (
-                  <div className="mt-1 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
-                    {customerResults.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => { setCustomerId(c.id); setCustomerSearch(c.name); }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                      >
-                        <p className="font-medium text-gray-900 dark:text-white">{c.name}</p>
-                        {c.email && <p className="text-xs text-gray-500 dark:text-gray-400">{c.email}</p>}
-                      </button>
-                    ))}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Card Number
+                    </label>
+                    <input
+                      type="text"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      className={inputCls}
+                      placeholder="Auto-generated"
+                    />
                   </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Card Number
-                  </label>
-                  <input
-                    type="text"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    className={inputCls}
-                    placeholder="Auto-generated"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Starting Tier
+                    </label>
+                    <select value={tier} onChange={(e) => setTier(e.target.value)} className={inputCls}>
+                      <option value="BRONZE">Bronze</option>
+                      <option value="SILVER">Silver</option>
+                      <option value="GOLD">Gold</option>
+                      <option value="PLATINUM">Platinum</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Starting Tier
-                  </label>
-                  <select value={tier} onChange={(e) => setTier(e.target.value)} className={inputCls}>
-                    <option value="BRONZE">Bronze</option>
-                    <option value="SILVER">Silver</option>
-                    <option value="GOLD">Gold</option>
-                    <option value="PLATINUM">Platinum</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || !customerId || !programId}
-                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? 'Enrolling...' : 'Enroll Member'}
-                </button>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
+          <div className="flex-shrink-0 flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !customerId || !programId}
+              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Enrolling...' : 'Enroll Member'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

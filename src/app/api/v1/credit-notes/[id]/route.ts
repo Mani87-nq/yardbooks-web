@@ -69,8 +69,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         const total = Number(creditNote.total);
 
         // Generate entry number
-        const count = await prisma.journalEntry.count({ where: { companyId: companyId! } });
-        const entryNumber = `JE-${String(count + 1).padStart(5, '0')}`;
+        const entryNumber = `JE-${Date.now().toString(36).toUpperCase()}`;
 
         const result = await prisma.$transaction(async (tx) => {
           // Create the reversing journal entry

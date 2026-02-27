@@ -322,10 +322,6 @@ export async function POST(request: NextRequest) {
 // Helpers
 // ============================================
 
-async function generateAssetNumber(companyId: string): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await prisma.fixedAsset.count({
-    where: { companyId, createdAt: { gte: new Date(`${year}-01-01`) } },
-  });
-  return `FA-${year}-${String(count + 1).padStart(5, '0')}`;
+async function generateAssetNumber(_companyId: string): Promise<string> {
+  return `FA-${Date.now().toString(36).toUpperCase()}`;
 }

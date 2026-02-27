@@ -91,9 +91,9 @@ export default function ManagerOverrideModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 px-6 py-4">
+        <div className="flex-shrink-0 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -128,7 +128,7 @@ export default function ManagerOverrideModal({
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {!selectedManager ? (
             <>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 text-center">
@@ -242,7 +242,7 @@ export default function ManagerOverrideModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl">
           <button
             onClick={onClose}
             className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors touch-manipulation"

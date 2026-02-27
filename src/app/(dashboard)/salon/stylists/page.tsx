@@ -474,8 +474,8 @@ export default function StylistsPage() {
       {/* ── Add/Edit Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
+            <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingStylist ? 'Edit Stylist' : 'Add Stylist'}
               </h2>
@@ -486,7 +486,8 @@ export default function StylistsPage() {
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {formError && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
                   {formError}
@@ -598,7 +599,8 @@ export default function StylistsPage() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              </div>
+              <div className="flex-shrink-0 flex justify-end gap-3 p-5 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); setFormError(null); }}

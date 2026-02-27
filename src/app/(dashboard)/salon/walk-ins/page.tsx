@@ -19,14 +19,16 @@ interface WalkIn {
   id: string;
   customerName: string;
   customerPhone: string | null;
-  requestedService: string;
-  status: 'WAITING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'REMOVED';
-  position: number;
-  stylistId: string | null;
-  stylist?: Stylist | null;
-  notes: string | null;
-  createdAt: string;
-  assignedAt: string | null;
+  requestedServices: any;
+  status: 'WAITING' | 'ASSIGNED' | 'IN_SERVICE' | 'COMPLETED' | 'LEFT';
+  queuePosition: number;
+  estimatedWait: number | null;
+  preferredStylistId: string | null;
+  assignedStylistId: string | null;
+  assignedStylist?: Stylist | null;
+  joinedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
 interface Stylist {
@@ -47,14 +49,14 @@ interface SalonService {
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   WAITING: { label: 'Waiting', bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400' },
   ASSIGNED: { label: 'Assigned', bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
-  IN_PROGRESS: { label: 'In Progress', bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400' },
+  IN_SERVICE: { label: 'In Service', bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400' },
   COMPLETED: { label: 'Completed', bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
-  REMOVED: { label: 'Removed', bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-400' },
+  LEFT: { label: 'Left', bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-400' },
 };
 
-function getWaitTime(createdAt: string): string {
+function getWaitTime(joinedAt: string): string {
   const now = new Date();
-  const created = new Date(createdAt);
+  const created = new Date(joinedAt);
   const diffMs = now.getTime() - created.getTime();
   const diffMins = Math.floor(diffMs / 60000);
 
@@ -63,6 +65,15 @@ function getWaitTime(createdAt: string): string {
   const hours = Math.floor(diffMins / 60);
   const mins = diffMins % 60;
   return `${hours}h ${mins}m`;
+}
+
+function getServiceDisplay(requestedServices: any): string {
+  if (!requestedServices) return 'Walk-in';
+  if (Array.isArray(requestedServices)) {
+    return requestedServices.join(', ');
+  }
+  if (typeof requestedServices === 'string') return requestedServices;
+  return 'Walk-in';
 }
 
 // ─── Component ────────────────────────────────────────────
@@ -81,6 +92,7 @@ export default function WalkInsPage() {
     customerName: '',
     customerPhone: '',
     requestedService: '',
+    preferredStylistId: '',
     notes: '',
   });
   const [formError, setFormError] = useState<string | null>(null);
@@ -92,39 +104,34 @@ export default function WalkInsPage() {
 
   // ── Polling for real-time feel ──
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isInitialLoad = useRef(true);
 
   // ── Fetch data ──
   const fetchWalkIns = useCallback(async () => {
     try {
-      if (!loading) {
-        // Don't set loading on poll refreshes to avoid flicker
-      } else {
+      if (isInitialLoad.current) {
         setLoading(true);
       }
       setError(null);
 
-      const today = new Date().toISOString().split('T')[0];
-      const res = await fetch(`/api/modules/salon/appointments?from=${today}&to=${today}&status=WAITING,ASSIGNED,IN_PROGRESS`);
+      const res = await fetch('/api/modules/salon/walk-ins');
 
       if (!res.ok) {
-        // If the walk-in endpoint doesn't exist, fall back to showing
-        // appointments that came from walk-ins. We'll manage state locally.
-        setWalkIns([]);
-        return;
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to fetch walk-ins');
       }
 
       const data = await res.json();
-      // Filter for walk-in type appointments or just show all for the queue
-      // Since there's no dedicated walk-in API, we'll manage state locally
       setWalkIns(data.data || []);
     } catch (err) {
-      if (loading) {
+      if (isInitialLoad.current) {
         setError(err instanceof Error ? err.message : 'Failed to load walk-ins');
       }
     } finally {
       setLoading(false);
+      isInitialLoad.current = false;
     }
-  }, [loading]);
+  }, []);
 
   const fetchStylists = useCallback(async () => {
     try {
@@ -164,10 +171,7 @@ export default function WalkInsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Local walk-in queue (client-managed for now) ──
-  const [localQueue, setLocalQueue] = useState<WalkIn[]>([]);
-
-  // ── Add to queue ──
+  // ── Add to queue via API ──
   const handleAddToQueue = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.customerName.trim()) {
@@ -183,31 +187,33 @@ export default function WalkInsPage() {
       setFormLoading(true);
       setFormError(null);
 
-      // Create as a walk-in appointment
       const selectedService = services.find((s) => s.id === formData.requestedService);
       const serviceName = selectedService?.name || formData.requestedService;
 
-      // Add to local queue with a temporary entry
-      const newWalkIn: WalkIn = {
-        id: `local-${Date.now()}`,
-        customerName: formData.customerName.trim(),
-        customerPhone: formData.customerPhone.trim() || null,
-        requestedService: serviceName,
-        status: 'WAITING',
-        position: localQueue.length + 1,
-        stylistId: null,
-        stylist: null,
-        notes: formData.notes.trim() || null,
-        createdAt: new Date().toISOString(),
-        assignedAt: null,
-      };
+      const res = await fetch('/api/modules/salon/walk-ins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: formData.customerName.trim(),
+          customerPhone: formData.customerPhone.trim() || null,
+          requestedServices: [serviceName],
+          preferredStylistId: formData.preferredStylistId || null,
+        }),
+      });
 
-      setLocalQueue((prev) => [...prev, newWalkIn]);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to add to queue');
+      }
+
+      const newWalkIn = await res.json();
+      setWalkIns((prev) => [...prev, newWalkIn]);
       setShowModal(false);
       setFormData({
         customerName: '',
         customerPhone: '',
         requestedService: '',
+        preferredStylistId: '',
         notes: '',
       });
     } catch (err) {
@@ -217,23 +223,30 @@ export default function WalkInsPage() {
     }
   };
 
-  // ── Assign to stylist ──
+  // ── Assign to stylist via API ──
   const handleAssign = async () => {
     if (!assigningWalkIn || !assignStylistId) return;
 
     try {
       setActionLoading(assigningWalkIn.id);
 
-      const stylist = stylists.find((s) => s.id === assignStylistId);
+      const res = await fetch('/api/modules/salon/walk-ins', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: assigningWalkIn.id,
+          assignedStylistId: assignStylistId,
+          status: 'ASSIGNED',
+        }),
+      });
 
-      setLocalQueue((prev) =>
-        prev.map((w) =>
-          w.id === assigningWalkIn.id
-            ? { ...w, status: 'ASSIGNED' as const, stylistId: assignStylistId, stylist: stylist || null, assignedAt: new Date().toISOString() }
-            : w
-        )
-      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to assign stylist');
+      }
 
+      // Refresh the list to get server state
+      await fetchWalkIns();
       setAssigningWalkIn(null);
       setAssignStylistId('');
     } catch {
@@ -243,13 +256,35 @@ export default function WalkInsPage() {
     }
   };
 
-  // ── Remove from queue ──
-  const handleRemove = (id: string) => {
-    setLocalQueue((prev) => prev.filter((w) => w.id !== id));
+  // ── Remove from queue via API ──
+  const handleRemove = async (id: string) => {
+    try {
+      setActionLoading(id);
+
+      const res = await fetch('/api/modules/salon/walk-ins', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          status: 'LEFT',
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to remove from queue');
+      }
+
+      setWalkIns((prev) => prev.filter((w) => w.id !== id));
+    } catch {
+      alert('Failed to remove from queue');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  // ── Active queue (not completed/removed) ──
-  const activeQueue = localQueue.filter((w) => ['WAITING', 'ASSIGNED'].includes(w.status));
+  // ── Active queue (not completed/left) ──
+  const activeQueue = walkIns.filter((w) => ['WAITING', 'ASSIGNED', 'IN_SERVICE'].includes(w.status));
 
   // ─── Render ──────────────────────────────────────────────
 
@@ -292,7 +327,7 @@ export default function WalkInsPage() {
           <ExclamationCircleIcon className="w-10 h-10 text-red-400" />
           <p className="text-gray-500 dark:text-gray-400">{error}</p>
           <button
-            onClick={() => { setLoading(true); fetchWalkIns(); }}
+            onClick={() => { isInitialLoad.current = true; fetchWalkIns(); }}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
           >
             Retry
@@ -331,7 +366,7 @@ export default function WalkInsPage() {
                   {/* Position Number */}
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                     <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">
-                      {index + 1}
+                      {walkIn.queuePosition || index + 1}
                     </span>
                   </div>
 
@@ -348,26 +383,26 @@ export default function WalkInsPage() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                       <span className="inline-flex items-center gap-1">
                         <UserIcon className="w-4 h-4" />
-                        {walkIn.requestedService}
+                        {getServiceDisplay(walkIn.requestedServices)}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <ClockIcon className="w-4 h-4" />
-                        {getWaitTime(walkIn.createdAt)} wait
+                        {getWaitTime(walkIn.joinedAt)} wait
                       </span>
-                      {walkIn.stylist && (
+                      {walkIn.estimatedWait != null && walkIn.status === 'WAITING' && (
+                        <span className="text-xs text-gray-400">
+                          ~{walkIn.estimatedWait} min est.
+                        </span>
+                      )}
+                      {walkIn.assignedStylist && (
                         <span className="text-gray-700 dark:text-gray-300">
-                          Assigned to: <span className="font-medium">{walkIn.stylist.displayName}</span>
+                          Assigned to: <span className="font-medium">{walkIn.assignedStylist.displayName}</span>
                         </span>
                       )}
                     </div>
                     {walkIn.customerPhone && (
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         {walkIn.customerPhone}
-                      </p>
-                    )}
-                    {walkIn.notes && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
-                        {walkIn.notes}
                       </p>
                     )}
                   </div>
@@ -403,8 +438,8 @@ export default function WalkInsPage() {
       {/* ── Add to Queue Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
+            <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add to Queue</h2>
               <button
                 onClick={() => { setShowModal(false); setFormError(null); }}
@@ -413,7 +448,8 @@ export default function WalkInsPage() {
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddToQueue} className="p-5 space-y-4">
+            <form onSubmit={handleAddToQueue} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {formError && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
                   {formError}
@@ -477,17 +513,23 @@ export default function WalkInsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Preferred Stylist
+                </label>
+                <select
+                  value={formData.preferredStylistId}
+                  onChange={(e) => setFormData({ ...formData, preferredStylistId: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  rows={2}
-                  placeholder="Any special requests..."
-                />
+                >
+                  <option value="">No preference</option>
+                  {stylists.map((s) => (
+                    <option key={s.id} value={s.id}>{s.displayName}</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              </div>
+              <div className="flex-shrink-0 flex justify-end gap-3 p-5 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); setFormError(null); }}
@@ -511,8 +553,8 @@ export default function WalkInsPage() {
       {/* ── Assign Stylist Modal ── */}
       {assigningWalkIn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-sm mx-4">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-sm mx-4 flex flex-col max-h-[90vh]">
+            <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Assign Stylist</h2>
               <button
                 onClick={() => setAssigningWalkIn(null)}
@@ -521,7 +563,7 @@ export default function WalkInsPage() {
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Assign <span className="font-medium text-gray-900 dark:text-white">{assigningWalkIn.customerName}</span> to a stylist.
               </p>
@@ -539,23 +581,22 @@ export default function WalkInsPage() {
                   ))}
                 </select>
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setAssigningWalkIn(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAssign}
-                  disabled={!assignStylistId}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium disabled:opacity-50 transition-colors"
-                >
-                  Assign
-                </button>
-              </div>
+            </div>
+            <div className="flex-shrink-0 flex justify-end gap-3 p-5 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setAssigningWalkIn(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssign}
+                disabled={!assignStylistId}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium disabled:opacity-50 transition-colors"
+              >
+                Assign
+              </button>
             </div>
           </div>
         </div>

@@ -10,8 +10,8 @@
 3. Wait for the build to complete and verify health check passes
 
 ### Coolify Dashboard:
-- **URL:** `http://178.156.226.84:8000`
-- **App page:** `http://178.156.226.84:8000/project/jg4w4swss8oss0w8swk4ww40/environment/xgccw0wc4c8s8kkow84kogw8/application/n4cgkowssk0www0sss04ggg0`
+- **URL:** `[REDACTED - see Coolify dashboard]`
+- **App page:** `[REDACTED - see Coolify dashboard]`
 - **Logs tab:** Append `/logs` to the app page URL
 - **Deployments tab:** Append `/deployment` to the app page URL
 
@@ -28,7 +28,7 @@
 - **Auth:** JWT (jose library) + Google OAuth + 2FA (TOTP)
 - **State:** Zustand stores (appStore, posStore)
 - **Testing:** Vitest (`npm test`)
-- **Server:** Coolify on `178.156.226.84`
+- **Server:** Coolify on `[REDACTED - see Coolify dashboard]`
 - **Domain:** yaadbooks.com
 
 ## KNOWN GOTCHAS

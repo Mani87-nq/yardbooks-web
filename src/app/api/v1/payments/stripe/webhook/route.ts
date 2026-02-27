@@ -119,7 +119,11 @@ export async function POST(request: NextRequest) {
       }
       console.log('[Stripe Webhook] Signature verified', logContext);
     } else {
-      console.warn('[Stripe Webhook] No webhook secret configured — skipping signature verification', logContext);
+      console.error('[Stripe Webhook] No webhook secret configured — cannot verify signature', logContext);
+      return NextResponse.json(
+        { error: 'Webhook secret not configured. Cannot verify signature.' },
+        { status: 400 }
+      );
     }
 
     // ── Record payment and update invoice ──

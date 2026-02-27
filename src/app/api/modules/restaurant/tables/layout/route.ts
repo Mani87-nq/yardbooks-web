@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 
 const layoutItemSchema = z.object({
@@ -25,6 +26,8 @@ export async function PUT(request: NextRequest) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'restaurant');
+    if (modErr) return modErr;
 
     const body = await request.json();
     const parsed = layoutSchema.safeParse(body);

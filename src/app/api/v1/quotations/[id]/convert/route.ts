@@ -40,12 +40,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // Generate invoice number
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    const count = await prisma.invoice.count({
-      where: { companyId: companyId!, createdAt: { gte: new Date(`${year}-01-01`) } },
-    });
-    const invoiceNumber = `INV-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+    const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
 
     // Calculate GCT amount (use taxAmount from quotation as gctAmount)
     const subtotal = Number(quotation.subtotal);

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { badRequest, notFound, internalError } from '@/lib/api-error';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -20,6 +21,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'retail');
+    if (modErr) return modErr;
 
     const { id: segmentId } = await context.params;
 

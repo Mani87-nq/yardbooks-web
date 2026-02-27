@@ -44,11 +44,42 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const { companyId, userId, planId } = session.metadata || {};
+        const { companyId, userId, planId, billingInterval } = session.metadata || {};
         if (companyId && planId) {
           // Normalize plan ID to new tier structure
           const normalizedPlan = migrateLegacyPlanId(planId);
           const dbPlan = normalizedPlan.toUpperCase() as any;
+
+          // Get accurate subscription period end from Stripe
+          let subscriptionEndDate: Date | null = null;
+          const subscriptionId = session.subscription;
+          if (subscriptionId) {
+            try {
+              const stripeKey = process.env.STRIPE_SECRET_KEY;
+              if (stripeKey) {
+                const subResponse = await fetch(
+                  `https://api.stripe.com/v1/subscriptions/${subscriptionId}`,
+                  {
+                    headers: { 'Authorization': `Bearer ${stripeKey}` },
+                  }
+                );
+                if (subResponse.ok) {
+                  const subData = await subResponse.json();
+                  if (subData.current_period_end) {
+                    subscriptionEndDate = new Date(subData.current_period_end * 1000);
+                  }
+                }
+              }
+            } catch {
+              console.error(`Failed to fetch subscription ${subscriptionId} from Stripe`);
+            }
+
+            // Fallback: use billing interval from metadata
+            if (!subscriptionEndDate) {
+              const days = billingInterval === 'year' ? 365 : 30;
+              subscriptionEndDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+            }
+          }
 
           await prisma.company.update({
             where: { id: companyId },
@@ -56,10 +87,8 @@ export async function POST(request: NextRequest) {
               subscriptionPlan: dbPlan,
               subscriptionStatus: 'ACTIVE',
               stripeCustomerId: session.customer ?? null,
-              stripeSubscriptionId: session.subscription ?? null,
-              subscriptionEndDate: session.subscription
-                ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // ~30 days
-                : null,
+              stripeSubscriptionId: subscriptionId ?? null,
+              subscriptionEndDate,
             },
           });
           console.log(`Checkout completed - Company: ${companyId}, Plan: ${normalizedPlan} (raw: ${planId})`);

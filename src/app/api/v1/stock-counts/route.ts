@@ -112,12 +112,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateCountNumber(companyId: string): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const count = await prisma.stockCount.count({
-    where: { companyId, createdAt: { gte: new Date(`${year}-01-01`) } },
-  });
-  return `SC-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+async function generateCountNumber(_companyId: string): Promise<string> {
+  return `SC-${Date.now().toString(36).toUpperCase()}`;
 }

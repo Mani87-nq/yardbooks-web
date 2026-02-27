@@ -82,8 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate credit note number
-    const count = await prisma.creditNote.count({ where: { companyId: companyId! } });
-    const creditNoteNumber = `CN-${String(count + 1).padStart(5, '0')}`;
+    const creditNoteNumber = `CN-${Date.now().toString(36).toUpperCase()}`;
 
     // Create credit note and update invoice balance in a transaction
     const result = await prisma.$transaction(async (tx) => {

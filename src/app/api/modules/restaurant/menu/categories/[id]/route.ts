@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { notFound, badRequest, internalError } from '@/lib/api-error';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -24,6 +25,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'restaurant');
+    if (modErr) return modErr;
 
     const existing = await (prisma as any).menuCategory.findFirst({
       where: { id, companyId: companyId! },
@@ -52,6 +55,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr2 } = await requireModule(companyId!, 'restaurant');
+    if (modErr2) return modErr2;
 
     const existing = await (prisma as any).menuCategory.findFirst({
       where: { id, companyId: companyId! },

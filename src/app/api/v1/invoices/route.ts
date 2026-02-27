@@ -175,11 +175,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateInvoiceNumber(companyId: string): Promise<string> {
-  const year = new Date().getFullYear();
-  const month = String(new Date().getMonth() + 1).padStart(2, '0');
-  const count = await prisma.invoice.count({
-    where: { companyId, createdAt: { gte: new Date(`${year}-01-01`) } },
-  });
-  return `INV-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+async function generateInvoiceNumber(_companyId: string): Promise<string> {
+  return `INV-${Date.now().toString(36).toUpperCase()}`;
 }

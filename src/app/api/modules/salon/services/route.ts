@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 
 // ---- GET (List) ----
@@ -17,6 +18,8 @@ export async function GET(request: NextRequest) {
 
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'salon');
+    if (modErr) return modErr;
 
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId') ?? undefined;
@@ -75,6 +78,8 @@ export async function POST(request: NextRequest) {
 
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'salon');
+    if (modErr) return modErr;
 
     const body = await request.json();
     const parsed = createServiceSchema.safeParse(body);

@@ -84,8 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { items, ...quotationData } = parsed.data;
-    const count = await prisma.quotation.count({ where: { companyId: companyId! } });
-    const quotationNumber = `QUO-${String(count + 1).padStart(4, '0')}`;
+    const quotationNumber = `QUO-${Date.now().toString(36).toUpperCase()}`;
 
     const quotation = await prisma.quotation.create({
       data: {

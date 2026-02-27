@@ -14,7 +14,7 @@ import { badRequest, forbidden, notFound, internalError } from '@/lib/api-error'
 type RouteContext = { params: Promise<{ id: string }> };
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif'];
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return badRequest(`Invalid file type "${file.type}". Accepted: JPEG, PNG, WebP, SVG, GIF.`);
+      return badRequest(`Invalid file type "${file.type}". Accepted: JPEG, PNG, WebP, GIF.`);
     }
 
     // Read file and convert to base64 data URL

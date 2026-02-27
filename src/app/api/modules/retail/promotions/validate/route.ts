@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requireModule } from '@/modules/middleware';
 import { badRequest, notFound, internalError } from '@/lib/api-error';
 
 const validateSchema = z.object({
@@ -30,6 +31,8 @@ export async function POST(request: NextRequest) {
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
+    const { error: modErr } = await requireModule(companyId!, 'retail');
+    if (modErr) return modErr;
 
     const body = await request.json();
     const parsed = validateSchema.safeParse(body);
@@ -124,6 +127,12 @@ export async function POST(request: NextRequest) {
 
     // Round to 2 decimal places
     discountAmount = Math.round(discountAmount * 100) / 100;
+
+    // Increment usage counter
+    await (prisma as any).promotion.update({
+      where: { id: promotion.id },
+      data: { currentUses: { increment: 1 } },
+    });
 
     return NextResponse.json({
       valid: true,

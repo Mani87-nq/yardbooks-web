@@ -119,12 +119,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateSlipNumber(companyId: string): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const count = await prisma.parkingSlip.count({
-    where: { companyId, createdAt: { gte: new Date(`${year}-01-01`) } },
-  });
-  return `PKG-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+async function generateSlipNumber(_companyId: string): Promise<string> {
+  return `PKG-${Date.now().toString(36).toUpperCase()}`;
 }

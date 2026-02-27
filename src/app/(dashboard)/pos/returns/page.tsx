@@ -116,8 +116,8 @@ function ProcessReturnModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+        <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Process Return</h2>
           <div className="flex flex-wrap gap-3 mt-2 text-sm">
             <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
@@ -134,6 +134,7 @@ function ProcessReturnModal({
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Customer: {order.customerName}</p>
         </div>
 
+        <div className="flex-1 overflow-y-auto">
         {toastMessage && (
           <div className="mx-6 mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-600">
             {toastMessage}
@@ -288,7 +289,8 @@ function ProcessReturnModal({
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+        </div>
+        <div className="flex-shrink-0 p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
             onClick={handleSubmit}

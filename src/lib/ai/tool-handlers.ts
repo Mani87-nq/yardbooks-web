@@ -752,7 +752,7 @@ const createDraftInvoice: ToolHandler = async (companyId, input) => {
     const rateStr = (item.gctRate && validRates.includes(item.gctRate as string)) ? item.gctRate as string : 'STANDARD';
     const rate: GCTRate = rateStr as GCTRate;
     const lineGCT = rate === 'STANDARD' ? lineTotal * GCT_RATE
-      : rate === 'TELECOM' ? lineTotal * 0.15
+      : rate === 'TELECOM' ? lineTotal * 0.25
       : rate === 'TOURISM' ? lineTotal * 0.10
       : 0; // ZERO_RATED and EXEMPT
     subtotal += lineTotal;

@@ -77,8 +77,7 @@ export async function POST(request: NextRequest) {
     // Auto-generate employee number if not provided
     let employeeNumber = parsed.data.employeeNumber;
     if (!employeeNumber) {
-      const count = await prisma.employee.count({ where: { companyId: companyId! } });
-      employeeNumber = `EMP-${String(count + 1).padStart(4, '0')}`;
+      employeeNumber = `EMP-${Date.now().toString(36).toUpperCase()}`;
     }
 
     const { dateOfBirth, ...restData } = parsed.data;

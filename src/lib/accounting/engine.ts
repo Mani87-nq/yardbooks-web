@@ -112,9 +112,8 @@ async function resolveAccounts(
 
 // ─── Entry Number Generation ─────────────────────────────────────
 
-async function generateEntryNumber(companyId: string, tx: any = prisma): Promise<string> {
-  const count = await tx.journalEntry.count({ where: { companyId } });
-  return `JE-${String(count + 1).padStart(5, '0')}`;
+async function generateEntryNumber(_companyId: string, _tx: any = prisma): Promise<string> {
+  return `JE-${Date.now().toString(36).toUpperCase()}`;
 }
 
 // ─── Core Posting Function ───────────────────────────────────────

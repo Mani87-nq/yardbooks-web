@@ -141,6 +141,10 @@ export async function activateModule(
 
   // 5. Emit lifecycle event
   await eventBus.emit('module.activated', { moduleId, companyId });
+
+  // 6. Flush any queued async event handlers so they execute
+  //    before the response is sent back to the client.
+  await eventBus.flush();
 }
 
 /**
@@ -189,4 +193,8 @@ export async function deactivateModule(
 
   // Emit lifecycle event
   await eventBus.emit('module.deactivated', { moduleId, companyId });
+
+  // Flush any queued async event handlers so they execute
+  // before the response is sent back to the client.
+  await eventBus.flush();
 }

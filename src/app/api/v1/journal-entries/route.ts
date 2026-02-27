@@ -84,8 +84,7 @@ export async function POST(request: NextRequest) {
     const { lines, ...entryData } = parsed.data;
 
     // Generate entry number
-    const count = await prisma.journalEntry.count({ where: { companyId: companyId! } });
-    const entryNumber = `JE-${String(count + 1).padStart(5, '0')}`;
+    const entryNumber = `JE-${Date.now().toString(36).toUpperCase()}`;
 
     const entry = await prisma.journalEntry.create({
       data: {
