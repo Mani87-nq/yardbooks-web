@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import prisma from '@/lib/db';
+import { migrateLegacyPlanId } from '@/lib/billing/service';
 
 // Stripe webhook handler for subscription events
 export async function POST(request: NextRequest) {
@@ -45,10 +46,14 @@ export async function POST(request: NextRequest) {
         const session = event.data.object;
         const { companyId, userId, planId } = session.metadata || {};
         if (companyId && planId) {
+          // Normalize plan ID to new tier structure
+          const normalizedPlan = migrateLegacyPlanId(planId);
+          const dbPlan = normalizedPlan.toUpperCase() as any;
+
           await prisma.company.update({
             where: { id: companyId },
             data: {
-              subscriptionPlan: planId.toUpperCase() as any,
+              subscriptionPlan: dbPlan,
               subscriptionStatus: 'ACTIVE',
               stripeCustomerId: session.customer ?? null,
               stripeSubscriptionId: session.subscription ?? null,
@@ -57,7 +62,7 @@ export async function POST(request: NextRequest) {
                 : null,
             },
           });
-          console.log(`Checkout completed - Company: ${companyId}, Plan: ${planId}`);
+          console.log(`Checkout completed - Company: ${companyId}, Plan: ${normalizedPlan} (raw: ${planId})`);
         }
         break;
       }
@@ -92,7 +97,7 @@ export async function POST(request: NextRequest) {
             where: { id: company.id },
             data: {
               subscriptionStatus: 'CANCELLED' as const,
-              subscriptionPlan: 'SOLO' as const,
+              subscriptionPlan: 'FREE' as const,
             },
           });
           console.log(`Subscription cancelled - Company: ${company.id}`);

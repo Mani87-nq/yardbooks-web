@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
+import { useModuleStore } from '@/modules/store';
 import { api } from '@/lib/api-client';
 import type { Company, Customer, Product, Invoice, Expense } from '@/types';
 import type { Notification } from '@/types/notifications';
@@ -144,6 +145,9 @@ export function useDataHydration() {
         store.getState().setOnboarded(activeCompany.onboardingCompleted === true);
 
         // ── Step 3: Fetch company-scoped data in parallel ────────────
+        // Also hydrate module store with active modules for this company
+        const modulesFetchPromise = useModuleStore.getState().fetchActiveModules(activeCompany.id);
+
         const [
           customersRes,
           productsRes,
@@ -175,6 +179,9 @@ export function useDataHydration() {
           api.get<PaginatedResponse<any>>('/api/v1/banking/transactions?limit=200').catch(() => ({ data: [] })),
           api.get<{ theme?: string; language?: string; currency?: string; dateFormat?: string; compactMode?: boolean }>('/api/v1/user-settings').catch(() => null),
         ]);
+
+        // Await modules fetch (fire-and-forget if it fails - sidebar just won't show module items)
+        await modulesFetchPromise.catch(() => {});
 
         // Populate the store in a single batch
         const state = store.getState();

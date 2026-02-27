@@ -34,6 +34,26 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# secrets and credentials
+credentials*
+secrets*
+*.key
+*.p12
+*.pfx
+*.jks
+
+# security audit reports and deployment docs (may contain secrets)
+SECURITY_AUDIT_REPORT.md
+AUTH_IMPLEMENTATION_REPORT.md
+DEPLOYMENT_VERIFICATION.md
+DEPLOYMENT-READY.md
+QUICK_DEPLOY.md
+SECURITY_IMPLEMENTATION_SUMMARY.md
+SUBAGENT_COMPLETION_REPORT.md
+SECURITY_HARDENING_PLAN.md
+INCIDENT-REPORT-*.md
+RESEARCH-COMPILATION.md
+
 # vercel
 .vercel
 

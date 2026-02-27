@@ -1,86 +1,34 @@
 /**
- * Stripe billing integration for YaadBooks SaaS subscriptions.
- * Uses Stripe API directly via fetch (no SDK dependency).
+ * YaadBooks Stripe Billing Service (Server-side)
+ *
+ * Re-exports client-safe plan definitions from ./plans.ts and adds
+ * server-only functions that require Prisma/Stripe.
+ *
+ * Client components should import from '@/lib/billing/plans' directly
+ * to avoid pulling in Node.js modules (pg, net, tls).
  */
 
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  priceUsd: number; // Monthly USD
-  priceUsdAnnual: number; // Annual USD (2 months free)
-  perUser: boolean; // If true, price is per-user
-  maxUsers: number; // -1 = unlimited
-  maxCompanies: number;
-  features: string[];
-}
+// Re-export all client-safe types and functions
+export {
+  type SubscriptionPlan,
+  type AddOn,
+  type BillingInterval,
+  PLANS,
+  ADD_ONS,
+  getPlan,
+  checkPlanLimits,
+  checkModuleAccess,
+  migrateLegacyPlanId,
+  formatJmd,
+  formatUsd,
+} from './plans';
 
-export const PLANS: SubscriptionPlan[] = [
-  {
-    id: 'solo',
-    name: 'Solo',
-    priceUsd: 19.99,
-    priceUsdAnnual: 199.99, // 2 months free
-    perUser: false,
-    maxUsers: 1,
-    maxCompanies: 1,
-    features: [
-      'All features included',
-      'Invoicing & Quotations',
-      'POS System',
-      'Inventory Management',
-      'Payroll & Compliance',
-      'Bank Reconciliation',
-      'GCT & Tax Reports',
-      'Email Support',
-    ],
-  },
-  {
-    id: 'team',
-    name: 'Team',
-    priceUsd: 14.99,
-    priceUsdAnnual: 149.99, // 2 months free
-    perUser: true,
-    maxUsers: -1, // Unlimited
-    maxCompanies: -1,
-    features: [
-      'Everything in Solo, plus:',
-      'Unlimited users',
-      'Unlimited companies',
-      'All features included',
-      'Priority Support',
-    ],
-  },
-];
+import { getPlan, migrateLegacyPlanId } from './plans';
 
-export function getPlan(planId: string): SubscriptionPlan | undefined {
-  return PLANS.find(p => p.id === planId);
-}
+// ─── Stripe Checkout ──────────────────────────────────────────────
 
-export function checkPlanLimits(planId: string, currentUsers: number, currentCompanies: number): { withinLimits: boolean; userLimit: number; companyLimit: number } {
-  const plan = getPlan(planId);
-  if (!plan) return { withinLimits: false, userLimit: 0, companyLimit: 0 };
+import type { BillingInterval } from './plans';
 
-  const withinLimits =
-    (plan.maxUsers === -1 || currentUsers <= plan.maxUsers) &&
-    (plan.maxCompanies === -1 || currentCompanies <= plan.maxCompanies);
-
-  return { withinLimits, userLimit: plan.maxUsers, companyLimit: plan.maxCompanies };
-}
-
-/**
- * Map legacy plan IDs (starter, business, pro, enterprise) to the new model.
- * Solo users -> 'solo', everyone else -> 'team'.
- */
-export function migrateLegacyPlanId(planId: string): string {
-  if (planId === 'solo' || planId === 'team') return planId;
-  // Legacy mapping: starter maps to solo, everything else maps to team
-  if (planId === 'starter') return 'solo';
-  return 'team';
-}
-
-export type BillingInterval = 'month' | 'year';
-
-// Stripe API integration (requires STRIPE_SECRET_KEY env var)
 export async function createCheckoutSession(params: {
   planId: string;
   companyId: string;
@@ -96,11 +44,17 @@ export async function createCheckoutSession(params: {
   const plan = getPlan(params.planId);
   if (!plan) return { error: 'Invalid plan for checkout' };
 
+  // Free tier doesn't need Stripe checkout
+  if (plan.id === 'free') {
+    return { error: 'Free plan does not require payment' };
+  }
+
   const interval: BillingInterval = params.billingInterval ?? 'month';
   const priceUsd = interval === 'year' ? plan.priceUsdAnnual : plan.priceUsd;
   const productSuffix = interval === 'year' ? ' (Annual)' : ' (Monthly)';
 
   // Create Stripe checkout session via API
+  // NOTE: Stripe processes in USD. Frontend displays JMD equivalent.
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
     headers: {
@@ -114,13 +68,15 @@ export async function createCheckoutSession(params: {
       'line_items[0][price_data][unit_amount]': String(Math.round(priceUsd * 100)),
       'line_items[0][price_data][recurring][interval]': interval,
       'line_items[0][price_data][product_data][name]': `YaadBooks ${plan.name}${productSuffix}`,
+      'line_items[0][price_data][product_data][description]': plan.features.join(' • '),
       'line_items[0][quantity]': '1',
       'success_url': params.successUrl,
       'cancel_url': params.cancelUrl,
       'metadata[companyId]': params.companyId,
       'metadata[userId]': params.userId,
-      'metadata[planId]': params.planId,
+      'metadata[planId]': plan.id,
       'metadata[billingInterval]': interval,
+      'allow_promotion_codes': 'true',
     }),
   });
 
@@ -133,8 +89,11 @@ export async function createCheckoutSession(params: {
   return { url: session.url };
 }
 
+// ─── Subscription Status ──────────────────────────────────────────
+
 export interface SubscriptionStatusResult {
   plan: string;
+  planDetails: ReturnType<typeof getPlan>;
   status: string;
   isActive: boolean;
   trialDaysRemaining: number;
@@ -144,6 +103,7 @@ export interface SubscriptionStatusResult {
 /**
  * Query the Company model's subscription fields from Prisma and return
  * a normalized subscription status. Handles trial expiry detection.
+ * Maps legacy plan IDs to new tiers.
  */
 export async function getSubscriptionStatus(companyId: string): Promise<SubscriptionStatusResult | null> {
   const { default: prisma } = await import('@/lib/db');
@@ -160,7 +120,7 @@ export async function getSubscriptionStatus(companyId: string): Promise<Subscrip
 
   if (!company) return null;
 
-  // Determine trial status inline (no plan-gate dependency)
+  // Determine trial status
   let trialDaysRemaining = 0;
   let trialExpired = false;
   if (company.subscriptionStatus === 'TRIALING') {
@@ -174,28 +134,31 @@ export async function getSubscriptionStatus(companyId: string): Promise<Subscrip
     }
   }
 
-  let effectivePlan = company.subscriptionPlan ?? 'SOLO';
+  // Normalize plan ID (handle legacy values)
+  let effectivePlan = migrateLegacyPlanId(company.subscriptionPlan ?? 'free');
   let effectiveStatus = company.subscriptionStatus ?? 'INACTIVE';
 
   if (effectiveStatus === 'TRIALING' && trialExpired) {
     await prisma.company.update({
       where: { id: companyId },
       data: {
-        subscriptionPlan: 'SOLO',
+        subscriptionPlan: 'FREE',
         subscriptionStatus: 'INACTIVE',
       },
     });
-    effectivePlan = 'SOLO';
+    effectivePlan = 'free';
     effectiveStatus = 'INACTIVE';
   }
 
   const isActive =
     effectiveStatus === 'ACTIVE' ||
     effectiveStatus === 'PAST_DUE' ||
-    (effectiveStatus === 'TRIALING' && !trialExpired);
+    (effectiveStatus === 'TRIALING' && !trialExpired) ||
+    effectivePlan === 'free'; // Free tier is always "active"
 
   return {
     plan: effectivePlan,
+    planDetails: getPlan(effectivePlan),
     status: effectiveStatus,
     isActive,
     trialDaysRemaining,

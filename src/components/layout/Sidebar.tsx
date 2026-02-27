@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/appStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { Permission } from '@/lib/auth/rbac';
+import { useActiveModuleIds } from '@/modules/store';
+import { moduleRegistry } from '@/modules/registry';
 import {
   HomeIcon,
   ShoppingCartIcon,
@@ -39,7 +41,51 @@ import {
   QuestionMarkCircleIcon,
   BuildingOffice2Icon,
   PrinterIcon,
+  CreditCardIcon,
+  StarIcon,
+  TagIcon,
+  IdentificationIcon,
+  Squares2X2Icon,
+  FireIcon,
+  BuildingStorefrontIcon,
+  ShoppingBagIcon,
+  ScissorsIcon,
+  ArrowRightStartOnRectangleIcon,
+  Square3Stack3DIcon,
+  MapPinIcon,
+  PuzzlePieceIcon,
 } from '@heroicons/react/24/outline';
+
+// Map HeroIcon string names from module manifests to actual components
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  HomeIcon,
+  ShoppingCartIcon,
+  DocumentTextIcon,
+  UserGroupIcon,
+  CubeIcon,
+  BanknotesIcon,
+  BookOpenIcon,
+  WrenchScrewdriverIcon,
+  UsersIcon,
+  BuildingLibraryIcon,
+  ChartBarIcon,
+  SparklesIcon,
+  Cog6ToothIcon,
+  ClockIcon,
+  CalendarDaysIcon,
+  StarIcon,
+  TagIcon,
+  IdentificationIcon,
+  Squares2X2Icon,
+  FireIcon,
+  BuildingStorefrontIcon,
+  ShoppingBagIcon,
+  ScissorsIcon,
+  ArrowRightStartOnRectangleIcon,
+  Square3Stack3DIcon,
+  MapPinIcon,
+  PuzzlePieceIcon,
+};
 
 interface NavItem {
   name: string;
@@ -127,6 +173,7 @@ const navigation: NavGroup[] = [
     name: 'System',
     items: [
       { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, permission: 'settings:read' },
+      { name: 'Billing', href: '/billing', icon: CreditCardIcon, permission: null },
       { name: 'Receipt Printer', href: '/settings/receipt-printer', icon: PrinterIcon, badge: 'NEW', permission: null },
       { name: 'Help Center', href: '/help', icon: QuestionMarkCircleIcon, permission: null },
     ],
@@ -183,8 +230,35 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar, setSidebarOpen, activeCompany } = useAppStore();
   const { can } = usePermissions();
+  const activeModuleIds = useActiveModuleIds();
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(defaultExpanded);
+
+  // Build module nav groups from the registry based on active modules
+  const moduleNavGroups: NavGroup[] = useMemo(() => {
+    const moduleGroups = moduleRegistry.getModuleNavItems(activeModuleIds);
+    return moduleGroups.map((mg) => ({
+      name: mg.moduleName,
+      items: mg.items.map((navItem) => ({
+        name: navItem.label,
+        href: `/${mg.moduleId}/${navItem.href}`,
+        icon: ICON_MAP[navItem.icon] || PuzzlePieceIcon,
+        permission: (navItem.permission as Permission) || null,
+      })),
+    }));
+  }, [activeModuleIds]);
+
+  // Combined navigation: static groups + module groups (inserted before System)
+  const allNavigation = useMemo(() => {
+    if (moduleNavGroups.length === 0) return navigation;
+    const systemIdx = navigation.findIndex((g) => g.name === 'System');
+    if (systemIdx === -1) return [...navigation, ...moduleNavGroups];
+    return [
+      ...navigation.slice(0, systemIdx),
+      ...moduleNavGroups,
+      ...navigation.slice(systemIdx),
+    ];
+  }, [moduleNavGroups]);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -206,7 +280,7 @@ export function Sidebar() {
   // Auto-expand group if it contains the active route
   useEffect(() => {
     if (!pathname) return;
-    for (const group of navigation) {
+    for (const group of allNavigation) {
       const hasActive = group.items.some(
         (item) => pathname === item.href || pathname.startsWith(item.href + '/')
       );
@@ -224,7 +298,7 @@ export function Sidebar() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, allNavigation]);
 
   return (
     <>
@@ -294,7 +368,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-3">
-          {navigation.map((group, groupIndex) => {
+          {allNavigation.map((group, groupIndex) => {
             const visibleItems = group.items.filter(
               (item) => !item.permission || can(item.permission)
             );

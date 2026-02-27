@@ -35,6 +35,12 @@ const CACHEABLE_API_PATTERNS = [
   '/api/v1/expenses',
   '/api/v1/companies',
   '/api/auth/me',
+  '/api/sync/pull/products',
+  '/api/sync/pull/employees',
+  '/api/pos/employees',
+  '/api/shifts/active',
+  '/api/employee/me',
+  '/api/employee/me/schedule',
 ];
 
 // Queue for offline mutations

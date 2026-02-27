@@ -43,7 +43,9 @@ export type Permission =
   // Fixed Assets
   | 'fixed_assets:read' | 'fixed_assets:create' | 'fixed_assets:update' | 'fixed_assets:delete' | 'fixed_assets:depreciate'
   // POS
-  | 'pos:read' | 'pos:create' | 'pos:update' | 'pos:delete' | 'pos:void' | 'pos:settings';
+  | 'pos:read' | 'pos:create' | 'pos:update' | 'pos:delete' | 'pos:void' | 'pos:settings'
+  // Module permissions follow pattern {moduleId}:{entity}:{action}
+  | (string & {});
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   READ_ONLY: [

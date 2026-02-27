@@ -24,7 +24,9 @@ RUN npx prisma generate
 # Build the Next.js app with production env vars baked in
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_APP_URL="https://yaadbooks.com"
-ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_51RlcqrLiXrJVafWfxwLSgxRKx6ewuhFYRQJzGXEOz9cEw9a6XiKHwkkofnF5bWcy71Cp6muMsUe3YLecpZdsMRk500Tj6ODo5A"
+# Stripe publishable key passed as build arg — not hardcoded in image layers
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 RUN npm run build
 
 # Production stage

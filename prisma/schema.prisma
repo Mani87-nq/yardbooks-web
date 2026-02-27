@@ -82,13 +82,15 @@ enum UserRole {
 }
 
 enum SubscriptionPlan {
-  SOLO
-  TEAM
-  // Legacy values kept for migration compatibility
+  FREE
   STARTER
+  PROFESSIONAL
   BUSINESS
-  PRO
   ENTERPRISE
+  // Legacy values kept for migration compatibility
+  SOLO      // maps to STARTER
+  TEAM      // maps to PROFESSIONAL
+  PRO       // maps to PROFESSIONAL
 }
 
 enum SubscriptionStatus {
@@ -761,7 +763,7 @@ model Company {
   logoUrl          String?
   
   // Subscription & Billing
-  subscriptionPlan       SubscriptionPlan?    @default(STARTER)
+  subscriptionPlan       SubscriptionPlan?    @default(FREE)
   subscriptionStatus     SubscriptionStatus?  @default(INACTIVE)
   stripeCustomerId       String?
   stripeSubscriptionId   String?
@@ -842,6 +844,35 @@ model Company {
   referralRedemptions ReferralRedemption[] @relation("ReferralRedemptions")
   pendingInvites   PendingInvite[]
   budgets          Budget[]
+  employeeProfiles EmployeeProfile[]
+  employeeShifts   Shift[]
+  posAuditActions  POSAction[]
+  employeeCashEvents CashDrawerEvent[]
+  employeeTimeOff  TimeOffRequest[]
+  employeeTipRecords TipRecord[]
+  employeeTaskItems  EmployeeTask[]
+  kioskDevices     KioskDevice[]
+  schedules        Schedule[]
+  scheduledShifts  ScheduledShift[]
+  modules          CompanyModule[]
+
+  // Retail module
+  loyaltyPrograms  LoyaltyProgram[]
+  promotions       Promotion[]
+  customerSegments CustomerSegment[]
+
+  // Restaurant module
+  restaurantTables RestaurantTable[]
+  reservations     Reservation[]
+  menuCategories   MenuCategory[]
+  menuItems        MenuItem[]
+
+  // Salon module
+  salonServiceCategories SalonServiceCategory[]
+  salonServices    SalonService[]
+  stylists         Stylist[]
+  appointments     Appointment[]
+  walkIns          WalkIn[]
 
   @@index([ownerId])
   @@index([trnNumber])
@@ -932,6 +963,11 @@ model Customer {
   creditNotes  CreditNote[]
   whtTransactions  WithholdingTaxTransaction[]  @relation("VendorWHT")
   whtCertificates  WithholdingTaxCertificate[]  @relation("VendorWHTCert")
+
+  // Module relations
+  loyaltyMemberships LoyaltyMember[]
+  segmentMemberships CustomerSegmentMember[]
+  appointments       Appointment[]
 
   @@index([companyId])
   @@index([companyId, type])
@@ -3605,4 +3641,1065 @@ model ReferralRedemption {
   @@index([referralCodeId])
   @@index([redeemedByUserId])
   @@index([redeemedByCompanyId])
+}
+
+// ============================================
+// ENUMS - EMPLOYEE PORTAL & KIOSK MODE
+// ============================================
+
+enum EmployeeRole {
+  POS_CASHIER
+  POS_SERVER
+  SHIFT_MANAGER
+  STORE_MANAGER
+}
+
+enum ShiftStatus {
+  ACTIVE
+  ON_BREAK
+  COMPLETED
+  ABANDONED
+}
+
+enum POSActionType {
+  SALE
+  VOID
+  REFUND
+  DISCOUNT
+  PRICE_OVERRIDE
+  CASH_DRAWER_OPEN
+  NO_SALE
+  CLOCK_IN
+  CLOCK_OUT
+  BREAK_START
+  BREAK_END
+  MANAGER_OVERRIDE
+  FAILED_PIN
+}
+
+enum CashDrawerEventType {
+  OPENING_COUNT
+  CLOSING_COUNT
+  CASH_DROP
+  CASH_PAYOUT
+  NO_SALE_OPEN
+}
+
+enum TimeOffStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+// ============================================
+// EMPLOYEE PORTAL - POS EMPLOYEE PROFILE
+// ============================================
+
+/// POS-specific employee profile with PIN-based authentication.
+/// Linked to an existing User for back-office access, or standalone for POS-only staff.
+model EmployeeProfile {
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Optional link to existing User (for employees who also access back-office)
+  userId          String?
+
+  // Display info
+  firstName       String
+  lastName        String
+  displayName     String?        // Nickname for POS display (e.g. "DJ" instead of "Damian Johnson")
+  email           String?
+  phone           String?
+  avatarColor     String         @default("#3B82F6") // Hex color for avatar circle on kiosk
+
+  // POS Authentication
+  pinHash         String         // Argon2id hash of 4-6 digit PIN
+  role            EmployeeRole   @default(POS_CASHIER)
+  permissions     Json           @default("{}") // Granular permissions: { canVoid: true, canDiscount: true, maxDiscountPercent: 25, ... }
+
+  // Security
+  failedPinAttempts  Int         @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+
+  // Employment link (optional link to payroll Employee record)
+  employeeId      String?
+
+  // Status
+  isActive        Boolean        @default(true)
+
+  // Audit
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+  createdBy       String?
+
+  // Relations
+  shifts            Shift[]
+  posActions        POSAction[]
+  cashDrawerEvents  CashDrawerEvent[]
+  timeOffRequests   TimeOffRequest[]
+  tipRecords        TipRecord[]
+  employeeTasks     EmployeeTask[]
+  scheduledShifts   ScheduledShift[]
+
+  @@index([companyId])
+  @@index([companyId, isActive])
+  @@index([userId])
+  @@index([employeeId])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - SHIFT MANAGEMENT
+// ============================================
+
+/// Clock in/out tracking with break and cash management
+model Shift {
+  id              String       @id @default(cuid())
+  companyId       String
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  // Timing
+  clockInAt       DateTime     @default(now())
+  clockOutAt      DateTime?
+  totalMinutes    Int?         // Calculated on clock-out
+  breakMinutes    Int          @default(0) // Total break time in minutes
+
+  // Status
+  status          ShiftStatus  @default(ACTIVE)
+
+  // Cash management
+  openingCash     Decimal?     @db.Decimal(15, 2)
+  closingCash     Decimal?     @db.Decimal(15, 2)
+  expectedCash    Decimal?     @db.Decimal(15, 2)
+  cashVariance    Decimal?     @db.Decimal(15, 2)
+
+  // Summary (populated on clock-out)
+  totalSales      Decimal      @default(0) @db.Decimal(15, 2)
+  totalRefunds    Decimal      @default(0) @db.Decimal(15, 2)
+  totalVoids      Decimal      @default(0) @db.Decimal(15, 2)
+  totalTips       Decimal      @default(0) @db.Decimal(15, 2)
+  transactionCount Int         @default(0)
+
+  // POS session link
+  posSessionId    String?
+  terminalId      String?
+
+  notes           String?
+
+  // Audit
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  breaks           ShiftBreak[]
+  cashDrawerEvents CashDrawerEvent[]
+  tipRecords       TipRecord[]
+
+  @@index([companyId])
+  @@index([employeeProfileId])
+  @@index([companyId, status])
+  @@index([companyId, clockInAt])
+}
+
+/// Individual break records within a shift
+model ShiftBreak {
+  id          String    @id @default(cuid())
+  shiftId     String
+  shift       Shift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  startAt     DateTime  @default(now())
+  endAt       DateTime?
+  duration    Int?      // Minutes, calculated on end
+  breakType   String    @default("STANDARD") // STANDARD, MEAL, OTHER
+  notes       String?
+
+  @@index([shiftId])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - POS AUDIT LOG
+// ============================================
+
+/// Comprehensive audit log for every POS action
+model POSAction {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  actionType      POSActionType
+  description     String?
+
+  // Context
+  orderId         String?       // Related POS order
+  shiftId         String?       // Related shift
+  terminalId      String?       // Terminal where action occurred
+  amount          Decimal?      @db.Decimal(15, 2)
+
+  // Manager override details
+  overrideByProfileId String?   // Manager who authorized
+  overrideReason      String?
+
+  // Security events
+  ipAddress       String?
+  userAgent       String?
+
+  // Metadata (flexible JSON for action-specific data)
+  metadata        Json?         // { originalPrice: 500, newPrice: 400, discountPercent: 20, ... }
+
+  createdAt       DateTime      @default(now())
+
+  @@index([companyId])
+  @@index([employeeProfileId])
+  @@index([companyId, actionType])
+  @@index([companyId, createdAt])
+  @@index([orderId])
+  @@index([shiftId])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - CASH DRAWER EVENTS
+// ============================================
+
+/// Denomination-level cash tracking for drawer events
+model CashDrawerEvent {
+  id              String             @id @default(cuid())
+  companyId       String
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  shiftId         String
+  shift           Shift              @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  employeeProfileId String
+  employeeProfile   EmployeeProfile  @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  eventType       CashDrawerEventType
+  amount          Decimal            @db.Decimal(15, 2)
+
+  // Jamaica denomination breakdown
+  // { "5000": 2, "2000": 5, "1000": 3, "500": 10, "100": 20, "50": 5, "25": 4, "20": 3, "10": 6 }
+  denominations   Json?
+
+  expectedAmount  Decimal?           @db.Decimal(15, 2)
+  variance        Decimal?           @db.Decimal(15, 2)
+
+  reason          String?
+  notes           String?
+
+  createdAt       DateTime           @default(now())
+
+  @@index([companyId])
+  @@index([shiftId])
+  @@index([employeeProfileId])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - TIME OFF
+// ============================================
+
+/// Employee time off requests
+model TimeOffRequest {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  startDate       DateTime
+  endDate         DateTime
+  reason          String?
+  leaveType       String        @default("VACATION") // VACATION, SICK, PERSONAL, OTHER
+
+  status          TimeOffStatus @default(PENDING)
+
+  // Approval
+  reviewedBy      String?       // EmployeeProfile ID of reviewer
+  reviewedAt      DateTime?
+  reviewNotes     String?
+
+  // Audit
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([companyId])
+  @@index([employeeProfileId])
+  @@index([companyId, status])
+  @@index([companyId, startDate])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - TIP TRACKING
+// ============================================
+
+/// Tip tracking per employee per shift
+model TipRecord {
+  id              String          @id @default(cuid())
+  companyId       String
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  shiftId         String
+  shift           Shift           @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  amount          Decimal         @db.Decimal(15, 2)
+  tipType         String          @default("CASH") // CASH, CARD, ELECTRONIC
+  orderId         String?         // Related POS order
+
+  createdAt       DateTime        @default(now())
+
+  @@index([companyId])
+  @@index([employeeProfileId])
+  @@index([shiftId])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - TASK ASSIGNMENTS
+// ============================================
+
+/// Task assignments for employees
+model EmployeeTask {
+  id              String          @id @default(cuid())
+  companyId       String
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+  priority        String          @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  dueDate         DateTime?
+
+  isCompleted     Boolean         @default(false)
+  completedAt     DateTime?
+
+  assignedBy      String?         // EmployeeProfile ID of assigner
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([companyId])
+  @@index([employeeProfileId])
+  @@index([companyId, isCompleted])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - KIOSK DEVICE
+// ============================================
+
+/// Registered kiosk devices
+model KioskDevice {
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  deviceName      String
+  deviceToken     String    @unique // Unique token for device authentication
+  terminalId      String?   // Linked POS terminal
+
+  // Device info
+  deviceType      String?   // "ipad", "android_tablet", "desktop", "phone"
+  userAgent       String?
+  lastSeenAt      DateTime?
+  isActive        Boolean   @default(true)
+
+  // Kiosk settings
+  autoLockMinutes   Int     @default(2)   // Inactivity timeout
+  loginMode         String  @default("AVATAR_GRID") // AVATAR_GRID or DIRECT_PIN
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([deviceToken])
+}
+
+// ============================================
+// EMPLOYEE PORTAL - SCHEDULING
+// ============================================
+
+/// Weekly schedule
+model Schedule {
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  weekStartDate   DateTime  @db.Date // Monday of the week
+  weekEndDate     DateTime  @db.Date // Sunday of the week
+
+  isPublished     Boolean   @default(false)
+  publishedAt     DateTime?
+  publishedBy     String?   // EmployeeProfile ID
+
+  notes           String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  scheduledShifts ScheduledShift[]
+
+  @@unique([companyId, weekStartDate])
+  @@index([companyId])
+  @@index([companyId, weekStartDate])
+}
+
+/// Individual scheduled shifts within a schedule
+model ScheduledShift {
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  scheduleId      String
+  schedule        Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  shiftDate       DateTime  @db.Date
+  startTime       String    // "08:00" (24-hour format)
+  endTime         String    // "16:00" (24-hour format)
+  role            String?   // Position for this shift (e.g. "Cashier", "Kitchen")
+
+  notes           String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([scheduleId])
+  @@index([employeeProfileId])
+  @@index([companyId, shiftDate])
+}
+
+// ============================================
+// MODULE ACTIVATION
+// ============================================
+
+model CompanyModule {
+  id          String   @id @default(cuid())
+  companyId   String
+  moduleId    String
+  isActive    Boolean  @default(true)
+  activatedAt DateTime @default(now())
+  deactivatedAt DateTime?
+  settings    Json?    @default("{}")
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, moduleId])
+  @@index([companyId])
+  @@index([moduleId])
+}
+
+// ============================================
+// RETAIL MODULE — Loyalty, Promotions, Segments
+// ============================================
+
+model LoyaltyProgram {
+  id              String   @id @default(cuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name            String
+  description     String?
+  isActive        Boolean  @default(true)
+
+  // Points rules
+  pointsPerDollar Decimal  @default(1) @db.Decimal(10, 2)  // JMD spent per point earned
+  pointsRounding  String   @default("FLOOR")                // FLOOR, ROUND, CEIL
+
+  // Reward thresholds
+  rewardThreshold Int      @default(100)                     // points needed for a reward
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  members         LoyaltyMember[]
+  transactions    LoyaltyTransaction[]
+  rewards         LoyaltyReward[]
+
+  @@index([companyId])
+}
+
+model LoyaltyMember {
+  id               String          @id @default(cuid())
+  companyId        String
+  customerId       String
+  loyaltyProgramId String
+
+  cardNumber       String?                                   // Physical/virtual card number
+  pointsBalance    Int             @default(0)
+  lifetimePoints   Int             @default(0)
+  tier             String          @default("BRONZE")        // BRONZE, SILVER, GOLD, PLATINUM
+  enrolledAt       DateTime        @default(now())
+  lastActivityAt   DateTime?
+
+  customer         Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  loyaltyProgram   LoyaltyProgram  @relation(fields: [loyaltyProgramId], references: [id], onDelete: Cascade)
+
+  transactions     LoyaltyTransaction[]
+
+  @@unique([companyId, loyaltyProgramId, customerId])
+  @@index([companyId])
+  @@index([cardNumber])
+}
+
+model LoyaltyTransaction {
+  id               String          @id @default(cuid())
+  companyId        String
+  loyaltyProgramId String
+  memberId         String
+  orderId          String?
+
+  type             String                                    // EARN, REDEEM, ADJUST, EXPIRE
+  points           Int
+  balanceAfter     Int
+  description      String?
+  createdAt        DateTime        @default(now())
+
+  loyaltyProgram   LoyaltyProgram  @relation(fields: [loyaltyProgramId], references: [id], onDelete: Cascade)
+  member           LoyaltyMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([memberId])
+}
+
+model LoyaltyReward {
+  id               String          @id @default(cuid())
+  companyId        String
+  loyaltyProgramId String
+
+  name             String
+  description      String?
+  pointsCost       Int
+  rewardType       String                                    // DISCOUNT_PERCENT, DISCOUNT_FIXED, FREE_ITEM, CUSTOM
+  rewardValue      Decimal?        @db.Decimal(15, 2)
+  productId        String?                                   // For FREE_ITEM type
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+
+  loyaltyProgram   LoyaltyProgram  @relation(fields: [loyaltyProgramId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model Promotion {
+  id              String   @id @default(cuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name            String
+  description     String?
+  type            String                                      // PERCENTAGE, FIXED_AMOUNT, BUY_X_GET_Y, BUNDLE
+  value           Decimal  @db.Decimal(15, 2)                 // Discount percentage or fixed amount
+  minOrderAmount  Decimal? @db.Decimal(15, 2)
+  maxDiscount     Decimal? @db.Decimal(15, 2)
+
+  // Targeting
+  appliesTo       String   @default("ALL")                    // ALL, CATEGORY, PRODUCT, CUSTOMER_SEGMENT
+  targetIds       Json?                                       // Array of product/category/segment IDs
+
+  // Schedule
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean  @default(true)
+
+  // Usage limits
+  maxUses         Int?
+  maxUsesPerCustomer Int?
+  currentUses     Int      @default(0)
+
+  // Promo code
+  promoCode       String?
+  requiresCode    Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([companyId, promoCode])
+  @@index([companyId])
+  @@index([companyId, isActive])
+}
+
+model CustomerSegment {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  type        String   @default("MANUAL")                     // MANUAL, AUTO (rule-based)
+  rules       Json?                                           // Auto-segment rules
+
+  memberCount Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     CustomerSegmentMember[]
+
+  @@index([companyId])
+}
+
+model CustomerSegmentMember {
+  id          String          @id @default(cuid())
+  segmentId   String
+  customerId  String
+  addedAt     DateTime        @default(now())
+
+  segment     CustomerSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  customer    Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, customerId])
+  @@index([segmentId])
+  @@index([customerId])
+}
+
+// ============================================
+// RESTAURANT MODULE — Tables, Reservations, Kitchen, Menu
+// ============================================
+
+model RestaurantTable {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  number       String                                        // Table number/name
+  section      String?                                       // "Patio", "Main Floor", "Bar", "VIP"
+  capacity     Int      @default(4)
+  shape        String   @default("SQUARE")                   // SQUARE, ROUND, RECTANGLE, BAR_SEAT
+
+  // Floor plan positioning (percentage-based)
+  posX         Decimal? @db.Decimal(5, 2)
+  posY         Decimal? @db.Decimal(5, 2)
+  width        Decimal? @db.Decimal(5, 2)
+  height       Decimal? @db.Decimal(5, 2)
+
+  status       String   @default("AVAILABLE")                // AVAILABLE, OCCUPIED, RESERVED, CLEANING, CLOSED
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  sessions     TableSession[]
+  reservations Reservation[]
+
+  @@unique([companyId, number])
+  @@index([companyId])
+  @@index([companyId, status])
+}
+
+model TableSession {
+  id              String           @id @default(cuid())
+  companyId       String
+  tableId         String
+  serverId        String?                                    // EmployeeProfile ID of the server
+
+  guestCount      Int              @default(1)
+  seatedAt        DateTime         @default(now())
+  closedAt        DateTime?
+  status          String           @default("ACTIVE")        // ACTIVE, BILL_REQUESTED, CLOSED
+
+  // Financials
+  subtotal        Decimal          @default(0) @db.Decimal(15, 2)
+  taxAmount       Decimal          @default(0) @db.Decimal(15, 2)
+  tipAmount       Decimal          @default(0) @db.Decimal(15, 2)
+  total           Decimal          @default(0) @db.Decimal(15, 2)
+
+  // Link to POS order
+  posOrderId      String?
+  notes           String?
+
+  table           RestaurantTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  kitchenOrders   KitchenOrder[]
+
+  @@index([companyId])
+  @@index([tableId])
+  @@index([companyId, status])
+}
+
+model Reservation {
+  id              String           @id @default(cuid())
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  customerName    String
+  customerPhone   String?
+  customerEmail   String?
+  customerId      String?                                    // Link to Customer if exists
+  tableId         String?
+
+  guestCount      Int
+  reservationDate DateTime
+  reservationTime String                                     // "18:30" format for easy querying
+  duration        Int              @default(90)              // Expected duration in minutes
+  status          String           @default("PENDING")       // PENDING, CONFIRMED, SEATED, COMPLETED, NO_SHOW, CANCELLED
+  notes           String?
+  specialRequests String?
+
+  // Confirmation
+  confirmedAt     DateTime?
+  confirmedBy     String?                                    // Employee who confirmed
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  table           RestaurantTable? @relation(fields: [tableId], references: [id])
+
+  @@index([companyId])
+  @@index([companyId, reservationDate])
+  @@index([companyId, status])
+}
+
+model MenuCategory {
+  id          String     @id @default(cuid())
+  companyId   String
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+  imageUrl    String?
+
+  items       MenuItem[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model MenuItem {
+  id             String           @id @default(cuid())
+  companyId      String
+  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  categoryId     String
+  productId      String?                                     // Link to Product for inventory tracking
+
+  name           String
+  description    String?
+  price          Decimal          @db.Decimal(15, 2)
+  imageUrl       String?
+  prepTime       Int?                                        // Estimated prep time in minutes
+  isAvailable    Boolean          @default(true)
+  isPopular      Boolean          @default(false)
+
+  // Dietary tags
+  tags           Json?                                       // ["vegetarian", "gluten-free", "spicy"]
+
+  // Course
+  course         String           @default("MAIN")           // APPETIZER, MAIN, DESSERT, DRINK, SIDE
+
+  sortOrder      Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  category       MenuCategory     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  modifierGroups MenuModifierGroup[]
+  kitchenItems   KitchenOrderItem[]
+
+  @@index([companyId])
+  @@index([categoryId])
+}
+
+model MenuModifierGroup {
+  id          String         @id @default(cuid())
+  companyId   String
+  menuItemId  String
+
+  name        String                                         // "Size", "Extras", "Spice Level"
+  required    Boolean        @default(false)
+  minSelect   Int            @default(0)
+  maxSelect   Int            @default(1)
+  sortOrder   Int            @default(0)
+
+  menuItem    MenuItem       @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  modifiers   MenuModifier[]
+
+  @@index([menuItemId])
+}
+
+model MenuModifier {
+  id              String            @id @default(cuid())
+  companyId       String
+  modifierGroupId String
+
+  name            String                                     // "Extra Cheese", "No Onions"
+  price           Decimal           @default(0) @db.Decimal(15, 2)
+  isDefault       Boolean           @default(false)
+  isAvailable     Boolean           @default(true)
+  sortOrder       Int               @default(0)
+
+  modifierGroup   MenuModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+
+  @@index([modifierGroupId])
+}
+
+model KitchenOrder {
+  id              String           @id @default(cuid())
+  companyId       String
+  tableSessionId  String?
+  posOrderId      String?
+  serverId        String?                                    // Employee who placed the order
+
+  orderNumber     Int                                        // Sequential per day
+  status          String           @default("PENDING")       // PENDING, PREPARING, READY, SERVED, CANCELLED
+  priority        String           @default("NORMAL")        // LOW, NORMAL, HIGH, RUSH
+  orderType       String           @default("DINE_IN")       // DINE_IN, TAKEOUT, DELIVERY
+
+  sentToKitchenAt DateTime         @default(now())
+  startedAt       DateTime?
+  readyAt         DateTime?
+  servedAt        DateTime?
+  notes           String?
+
+  tableSession    TableSession?    @relation(fields: [tableSessionId], references: [id])
+  items           KitchenOrderItem[]
+
+  @@index([companyId])
+  @@index([companyId, status])
+}
+
+model KitchenOrderItem {
+  id              String       @id @default(cuid())
+  kitchenOrderId  String
+  menuItemId      String?
+
+  name            String
+  quantity        Int          @default(1)
+  modifiers       Json?                                      // Applied modifiers as JSON
+  specialNotes    String?
+  course          String       @default("MAIN")
+  status          String       @default("PENDING")           // PENDING, PREPARING, READY, SERVED
+
+  kitchenOrder    KitchenOrder @relation(fields: [kitchenOrderId], references: [id], onDelete: Cascade)
+  menuItem        MenuItem?    @relation(fields: [menuItemId], references: [id])
+
+  @@index([kitchenOrderId])
+}
+
+// ============================================
+// SALON MODULE — Services, Appointments, Stylists, Walk-ins
+// ============================================
+
+model SalonServiceCategory {
+  id          String         @id @default(cuid())
+  companyId   String
+  company     Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  sortOrder   Int            @default(0)
+  isActive    Boolean        @default(true)
+  imageUrl    String?
+
+  services    SalonService[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model SalonService {
+  id              String               @id @default(cuid())
+  companyId       String
+  company         Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  categoryId      String
+
+  name            String
+  description     String?
+  price           Decimal              @db.Decimal(15, 2)
+  duration        Int                                        // Duration in minutes
+  bufferTime      Int                  @default(0)           // Buffer between appointments
+  imageUrl        String?
+
+  // Commission
+  commissionType  String               @default("PERCENTAGE") // PERCENTAGE, FIXED
+  commissionRate  Decimal              @default(0) @db.Decimal(5, 2)
+
+  isActive        Boolean              @default(true)
+  isPopular       Boolean              @default(false)
+  sortOrder       Int                  @default(0)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  category        SalonServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  appointmentServices AppointmentService[]
+  stylistServices StylistService[]
+
+  @@index([companyId])
+  @@index([categoryId])
+}
+
+model Stylist {
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeProfileId String?                                  // Link to EmployeeProfile
+
+  firstName       String
+  lastName        String
+  displayName     String
+  phone           String?
+  email           String?
+  avatarUrl       String?
+  avatarColor     String    @default("#10b981")
+  bio             String?
+  specialties     Json?                                      // ["Braids", "Color", "Men's Cut"]
+
+  // Commission
+  defaultCommissionType  String   @default("PERCENTAGE")     // PERCENTAGE, FIXED
+  defaultCommissionRate  Decimal  @default(0) @db.Decimal(5, 2)
+
+  // Schedule
+  workingDays     Json?                                      // { "MON": true, "TUE": true, ... }
+  workingHoursStart String? @default("09:00")
+  workingHoursEnd   String? @default("17:00")
+
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointments    Appointment[]
+  walkIns         WalkIn[]
+  services        StylistService[]
+  schedules       StylistScheduleSlot[]
+
+  @@index([companyId])
+}
+
+model StylistService {
+  id          String       @id @default(cuid())
+  stylistId   String
+  serviceId   String
+
+  // Override commission for this stylist/service combo
+  customPrice Decimal?     @db.Decimal(15, 2)
+  customDuration Int?
+  commissionOverride Decimal? @db.Decimal(5, 2)
+
+  stylist     Stylist      @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+  service     SalonService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([stylistId, serviceId])
+}
+
+model StylistScheduleSlot {
+  id          String   @id @default(cuid())
+  stylistId   String
+  date        DateTime @db.Date
+  startTime   String                                         // "09:00"
+  endTime     String                                         // "17:00"
+  isAvailable Boolean  @default(true)
+  notes       String?
+
+  stylist     Stylist  @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+
+  @@unique([stylistId, date, startTime])
+  @@index([stylistId, date])
+}
+
+model Appointment {
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customerId      String?
+  stylistId       String
+
+  // Customer info (allows non-registered customers)
+  customerName    String
+  customerPhone   String?
+  customerEmail   String?
+
+  // Schedule
+  date            DateTime  @db.Date
+  startTime       String                                     // "14:30"
+  endTime         String                                     // "15:30"
+  totalDuration   Int                                        // Total duration in minutes
+
+  // Status
+  status          String    @default("BOOKED")               // BOOKED, CONFIRMED, IN_PROGRESS, COMPLETED, NO_SHOW, CANCELLED
+  notes           String?
+
+  // Financial
+  totalPrice      Decimal   @default(0) @db.Decimal(15, 2)
+  depositPaid     Decimal   @default(0) @db.Decimal(15, 2)
+  invoiceId       String?                                    // Link to Invoice when completed
+
+  // Reminders
+  reminderSent    Boolean   @default(false)
+  confirmedAt     DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  stylist         Stylist   @relation(fields: [stylistId], references: [id])
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  services        AppointmentService[]
+
+  @@index([companyId])
+  @@index([companyId, date])
+  @@index([stylistId, date])
+  @@index([companyId, status])
+}
+
+model AppointmentService {
+  id              String       @id @default(cuid())
+  appointmentId   String
+  serviceId       String
+
+  price           Decimal      @db.Decimal(15, 2)
+  duration        Int
+  commission      Decimal      @default(0) @db.Decimal(15, 2)
+  notes           String?
+
+  appointment     Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  service         SalonService @relation(fields: [serviceId], references: [id])
+
+  @@index([appointmentId])
+}
+
+model WalkIn {
+  id              String   @id @default(cuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  customerName    String
+  customerPhone   String?
+  customerId      String?
+
+  requestedServices Json?                                    // Array of service names/IDs
+  preferredStylistId String?
+
+  // Queue
+  queuePosition   Int
+  estimatedWait   Int?                                       // Estimated wait in minutes
+  joinedAt        DateTime @default(now())
+
+  // Status
+  status          String   @default("WAITING")               // WAITING, ASSIGNED, IN_SERVICE, COMPLETED, LEFT
+  assignedStylistId String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  // Financial
+  totalPrice      Decimal  @default(0) @db.Decimal(15, 2)
+  invoiceId       String?
+
+  assignedStylist Stylist? @relation(fields: [assignedStylistId], references: [id])
+
+  @@index([companyId])
+  @@index([companyId, status])
 }

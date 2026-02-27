@@ -1,7 +1,7 @@
 {
-  "name": "YaadBooks - Jamaican Accounting Software",
+  "name": "YaadBooks - Business Operating System",
   "short_name": "YaadBooks",
-  "description": "Professional accounting software built for Jamaican businesses. Invoicing, POS, inventory, payroll, GCT filing, and more.",
+  "description": "The all-in-one business operating system built for Jamaica and the Caribbean. Accounting, POS, Payroll, Inventory, Employee Portal — works offline.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",

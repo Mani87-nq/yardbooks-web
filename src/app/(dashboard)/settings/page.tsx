@@ -3889,7 +3889,26 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          {activeTab === 'billing' && <BillingTab />}
+          {activeTab === 'billing' && (
+            <Card>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <CreditCardIcon className="w-10 h-10 text-gray-400 dark:text-gray-500 mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                    Billing & Subscription
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-md">
+                    Manage your plan, view pricing, compare features, and update your billing details on the dedicated billing page.
+                  </p>
+                  <a href="/billing">
+                    <Button icon={<CreditCardIcon className="w-4 h-4" />}>
+                      Go to Billing
+                    </Button>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {activeTab === 'integrations' && <IntegrationsTab />}
 
