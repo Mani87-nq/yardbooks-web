@@ -23,6 +23,7 @@ import {
   type Role,
   type Permission,
 } from '@/lib/auth/rbac';
+import { hasAnyPermission as hasModuleOrCorePermission } from '@/modules/permissions';
 
 export interface UsePermissionsReturn {
   /** The user's role in the active company */
@@ -54,9 +55,11 @@ export function usePermissions(): UsePermissionsReturn {
 
     return {
       role,
-      can: (permission: Permission) => hasPermission(role, permission),
-      canAny: (perms: Permission[]) => hasAnyPermission(role, perms),
-      canAll: (perms: Permission[]) => hasAllPermissions(role, perms),
+      // Use the combined checker that understands both core (e.g. "invoices:read")
+      // and module-namespaced permissions (e.g. "retail:loyalty:read").
+      can: (permission: Permission) => hasModuleOrCorePermission(role, permission as string),
+      canAny: (perms: Permission[]) => perms.some((p) => hasModuleOrCorePermission(role, p as string)),
+      canAll: (perms: Permission[]) => perms.every((p) => hasModuleOrCorePermission(role, p as string)),
       permissions,
       isAtLeast: (minimumRole: Role) => compareRoles(role, minimumRole) >= 0,
       isOwner: role === 'OWNER',
