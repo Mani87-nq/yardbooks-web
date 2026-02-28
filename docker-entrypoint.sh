@@ -1,19 +1,38 @@
 #!/bin/sh
 set -e
 
-echo "[entrypoint] Applying database migrations with Prisma..."
-# Use prisma db push WITHOUT --accept-data-loss to prevent silent data loss.
-# If the schema change would drop columns/tables, this will FAIL instead of
-# silently destroying data (which caused the Feb 25 outage).
-#
-# For production: migrate to `prisma migrate deploy` once migration history is established.
-# For now, db push without --accept-data-loss is the safe intermediate step.
-node node_modules/prisma/build/index.js db push --skip-generate 2>&1 || {
-  echo "[entrypoint] ERROR: prisma db push failed."
-  echo "[entrypoint] This likely means a schema change would cause data loss."
-  echo "[entrypoint] Review the change and apply it manually if intentional."
-  echo "[entrypoint] Continuing with app startup using existing schema..."
-}
+MAX_RETRIES=3
+RETRY_DELAY=5
+
+echo "[entrypoint] Waiting for database to be ready..."
+
+# Retry loop for prisma db push — the database may not be accepting
+# connections immediately after a container restart.
+attempt=1
+while [ "$attempt" -le "$MAX_RETRIES" ]; do
+  echo "[entrypoint] Attempt $attempt/$MAX_RETRIES: Running prisma db push..."
+
+  if node node_modules/prisma/build/index.js db push --skip-generate 2>&1; then
+    echo "[entrypoint] ✓ prisma db push succeeded on attempt $attempt."
+    break
+  else
+    echo "[entrypoint] ✗ prisma db push failed on attempt $attempt."
+    if [ "$attempt" -lt "$MAX_RETRIES" ]; then
+      echo "[entrypoint] Retrying in ${RETRY_DELAY}s..."
+      sleep "$RETRY_DELAY"
+    else
+      echo "[entrypoint] ERROR: All $MAX_RETRIES attempts failed."
+      echo "[entrypoint] The database schema may be out of sync."
+      echo "[entrypoint] Common causes:"
+      echo "[entrypoint]   - Database not reachable (check DATABASE_URL)"
+      echo "[entrypoint]   - Schema change requires --accept-data-loss"
+      echo "[entrypoint]   - Column exists in DB but not in schema.prisma"
+      echo "[entrypoint] Continuing with app startup using existing schema..."
+    fi
+  fi
+
+  attempt=$((attempt + 1))
+done
 
 echo "[entrypoint] Starting application..."
 exec "$@"

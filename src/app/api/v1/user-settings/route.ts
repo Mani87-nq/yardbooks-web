@@ -2,12 +2,13 @@
  * GET /api/v1/user-settings — Get user display/preference settings
  * PUT /api/v1/user-settings — Update user display/preference settings
  *
- * Persists theme, language, currency, dateFormat to the UserSettings model.
- * Also stores compactMode via a JSONB preferences column (added dynamically).
+ * Persists theme, language, currency, dateFormat, and displayPreferences
+ * (JSON field for compactMode, etc.) to the UserSettings model.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
+import { type Prisma } from '@prisma/client';
 import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 
@@ -37,21 +38,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Try to read the compactMode from a preferences JSON column
-    let compactMode = false;
-    try {
-      const rows = await prisma.$queryRaw<Array<{ display_preferences: string | null }>>`
-        SELECT display_preferences::text
-        FROM "UserSettings"
-        WHERE "userId" = ${user!.sub} AND "companyId" = ${companyId!}
-      `;
-      if (rows.length > 0 && rows[0].display_preferences) {
-        const prefs = JSON.parse(rows[0].display_preferences);
-        compactMode = prefs.compactMode ?? false;
-      }
-    } catch {
-      // Column may not exist yet; fall back to default
-    }
+    // Read compactMode from the displayPreferences JSON field
+    const prefs = (settings.displayPreferences ?? {}) as Record<string, unknown>;
+    const compactMode = prefs.compactMode === true;
 
     return NextResponse.json({
       theme: settings.theme,
@@ -94,7 +83,24 @@ export async function PUT(request: NextRequest) {
 
     const { compactMode, ...prismaFields } = parsed.data;
 
-    // Upsert the UserSettings record with the Prisma-modeled fields
+    // If compactMode is being updated, merge it into displayPreferences JSON
+    let displayPreferences: Prisma.InputJsonValue | undefined;
+    if (compactMode !== undefined) {
+      const existing = await prisma.userSettings.findUnique({
+        where: {
+          userId_companyId: {
+            userId: user!.sub,
+            companyId: companyId!,
+          },
+        },
+        select: { displayPreferences: true },
+      });
+
+      const currentPrefs = (existing?.displayPreferences ?? {}) as Record<string, boolean>;
+      displayPreferences = { ...currentPrefs, compactMode } as Prisma.InputJsonValue;
+    }
+
+    // Upsert the UserSettings record
     const settings = await prisma.userSettings.upsert({
       where: {
         userId_companyId: {
@@ -106,64 +112,22 @@ export async function PUT(request: NextRequest) {
         userId: user!.sub,
         companyId: companyId!,
         ...prismaFields,
+        ...(displayPreferences !== undefined ? { displayPreferences } : {}),
       },
-      update: prismaFields,
+      update: {
+        ...prismaFields,
+        ...(displayPreferences !== undefined ? { displayPreferences } : {}),
+      },
     });
 
-    // Store compactMode in a JSONB display_preferences column
-    if (compactMode !== undefined) {
-      try {
-        await prisma.$executeRaw`
-          ALTER TABLE "UserSettings"
-          ADD COLUMN IF NOT EXISTS display_preferences JSONB DEFAULT '{}'::jsonb
-        `;
-      } catch {
-        // Column might already exist
-      }
-
-      try {
-        // Read existing preferences, merge, and write back
-        const rows = await prisma.$queryRaw<Array<{ display_preferences: string | null }>>`
-          SELECT display_preferences::text
-          FROM "UserSettings"
-          WHERE "userId" = ${user!.sub} AND "companyId" = ${companyId!}
-        `;
-        const existing = rows.length > 0 && rows[0].display_preferences
-          ? JSON.parse(rows[0].display_preferences)
-          : {};
-        const merged = JSON.stringify({ ...existing, compactMode });
-        await prisma.$executeRaw`
-          UPDATE "UserSettings"
-          SET display_preferences = ${merged}::jsonb
-          WHERE "userId" = ${user!.sub} AND "companyId" = ${companyId!}
-        `;
-      } catch {
-        // If raw JSON storage fails, the main fields are still saved
-      }
-    }
-
-    // Read back compactMode for the response
-    let savedCompactMode = false;
-    try {
-      const rows = await prisma.$queryRaw<Array<{ display_preferences: string | null }>>`
-        SELECT display_preferences::text
-        FROM "UserSettings"
-        WHERE "userId" = ${user!.sub} AND "companyId" = ${companyId!}
-      `;
-      if (rows.length > 0 && rows[0].display_preferences) {
-        const prefs = JSON.parse(rows[0].display_preferences);
-        savedCompactMode = prefs.compactMode ?? false;
-      }
-    } catch {
-      // Fall back
-    }
+    const prefs = (settings.displayPreferences ?? {}) as Record<string, unknown>;
 
     return NextResponse.json({
       theme: settings.theme,
       language: settings.language,
       currency: settings.currency,
       dateFormat: settings.dateFormat,
-      compactMode: savedCompactMode,
+      compactMode: prefs.compactMode === true,
     });
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to save user settings');

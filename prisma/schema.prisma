@@ -3349,10 +3349,13 @@ model UserSettings {
   dashboardExpenses     Boolean  @default(true)
   dashboardInventory    Boolean  @default(true)
   dashboardActivity     Boolean  @default(true)
-  
+
+  // Display preferences (compact mode, etc.) stored as JSON
+  displayPreferences    Json?    @default("{}")
+
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  
+
   @@unique([userId, companyId])
   @@index([userId])
 }
