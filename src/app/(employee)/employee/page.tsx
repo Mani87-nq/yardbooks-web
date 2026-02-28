@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import KioskLockScreen from '@/components/kiosk/KioskLockScreen';
 
@@ -27,6 +27,7 @@ export default function EmployeeLoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const codeInputRef = useRef<HTMLInputElement>(null);
 
   // Track online status
   useEffect(() => {
@@ -57,7 +58,12 @@ export default function EmployeeLoginPage() {
 
   // ── Step 1: Enter Company Code ──────────────────────────────
   const handleCompanyCodeSubmit = useCallback(async () => {
-    const code = companyCode.trim().toUpperCase();
+    // Fallback: read DOM value if React state is empty (autofill bug)
+    let code = companyCode.trim().toUpperCase();
+    if (!code && codeInputRef.current) {
+      code = codeInputRef.current.value.trim().toUpperCase();
+      if (code) setCompanyCode(code);
+    }
     if (code.length < 1) {
       setError('Please enter your company code.');
       return;
@@ -175,6 +181,7 @@ export default function EmployeeLoginPage() {
             Company Code
           </label>
           <input
+            ref={codeInputRef}
             id="company-code"
             type="text"
             value={companyCode}
@@ -182,11 +189,23 @@ export default function EmployeeLoginPage() {
               setCompanyCode(e.target.value.toUpperCase());
               setError('');
             }}
+            onInput={(e) => {
+              // Backup handler for browser autofill / password managers
+              // that set the DOM value without triggering React onChange
+              const val = (e.target as HTMLInputElement).value;
+              if (val !== companyCode) {
+                setCompanyCode(val.toUpperCase());
+                setError('');
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleCompanyCodeSubmit();
             }}
             placeholder="e.g. YB4K9M"
             maxLength={10}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             autoFocus
             className="w-full px-4 py-3 text-center text-2xl font-mono tracking-wider rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 transition-colors"
           />
@@ -201,7 +220,7 @@ export default function EmployeeLoginPage() {
           {/* Submit button */}
           <button
             onClick={handleCompanyCodeSubmit}
-            disabled={isLoading || !companyCode.trim()}
+            disabled={isLoading}
             className="w-full mt-4 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             {isLoading ? (
