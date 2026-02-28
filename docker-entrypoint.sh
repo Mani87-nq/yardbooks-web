@@ -12,7 +12,7 @@ attempt=1
 while [ "$attempt" -le "$MAX_RETRIES" ]; do
   echo "[entrypoint] Attempt $attempt/$MAX_RETRIES: Running prisma db push..."
 
-  if node node_modules/prisma/build/index.js db push --skip-generate 2>&1; then
+  if node node_modules/prisma/build/index.js db push 2>&1; then
     echo "[entrypoint] ✓ prisma db push succeeded on attempt $attempt."
     break
   else
