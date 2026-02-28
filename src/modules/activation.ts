@@ -102,6 +102,9 @@ export async function activateModule(
   companyId: string,
   moduleId: string
 ): Promise<void> {
+  // 0. Clear stale cache before doing anything
+  clearActivationCache();
+
   // 1. Validate module exists
   const manifest = moduleRegistry.getModule(moduleId);
   if (!manifest) {
@@ -160,6 +163,9 @@ export async function deactivateModule(
   companyId: string,
   moduleId: string
 ): Promise<void> {
+  // Clear stale cache before doing anything
+  clearActivationCache();
+
   // Check that no other active module depends on this one
   const currentActive = await getActiveModules(companyId);
   const allModules = moduleRegistry.getAllModules();

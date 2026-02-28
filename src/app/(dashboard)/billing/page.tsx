@@ -84,6 +84,8 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [addOnNotice, setAddOnNotice] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   // Fetch billing data
   const fetchBilling = useCallback(async () => {
@@ -118,7 +120,8 @@ export default function BillingPage() {
         window.location.href = result.checkoutUrl;
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to start checkout');
+      setCheckoutError(err instanceof Error ? err.message : 'Failed to start checkout. Please try again.');
+      setTimeout(() => setCheckoutError(null), 6000);
     } finally {
       setCheckoutLoading(null);
     }
@@ -132,7 +135,8 @@ export default function BillingPage() {
         window.location.href = result.portalUrl;
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to open billing portal');
+      setCheckoutError(err instanceof Error ? err.message : 'Failed to open billing portal. Please try again.');
+      setTimeout(() => setCheckoutError(null), 6000);
     }
   };
 
@@ -369,6 +373,20 @@ export default function BillingPage() {
         </Card>
       </div>
 
+      {/* Checkout Error Banner */}
+      {checkoutError && (
+        <div className="flex items-center gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3">
+          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+          <p className="text-sm text-red-800 dark:text-red-200">{checkoutError}</p>
+          <button
+            onClick={() => setCheckoutError(null)}
+            className="ml-auto text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-300"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Pricing Cards Section */}
       <div id="pricing-section">
         <Card>
@@ -404,9 +422,10 @@ export default function BillingPage() {
           <AddOnsSection
             currentPlanId={currentPlanId}
             onAddAddOn={(addOnId) => {
-              // TODO: implement add-on checkout
-              alert(`Add-on checkout for "${addOnId}" coming soon!`);
+              setAddOnNotice(addOnId);
+              setTimeout(() => setAddOnNotice(null), 4000);
             }}
+            addOnNotice={addOnNotice}
           />
         </CardContent>
       </Card>

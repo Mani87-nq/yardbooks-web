@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     if (companyError) return companyError;
 
     const subscription = await getSubscriptionStatus(companyId!);
-    const currentPlanId = subscription?.plan?.toLowerCase() ?? 'solo';
+    const currentPlanId = subscription?.plan?.toLowerCase() ?? 'free';
     const plan = getPlan(currentPlanId);
 
     return NextResponse.json({
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 // ---- POST (Create Checkout Session) ----
 
 const checkoutSchema = z.object({
-  planId: z.enum(['solo', 'team']),
+  planId: z.enum(['free', 'starter', 'professional', 'business', 'enterprise']),
   billingInterval: z.enum(['month', 'year']).optional().default('month'),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),

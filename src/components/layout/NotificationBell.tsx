@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import {
   BellIcon,
   CheckIcon,
+  TrashIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
   BanknotesIcon,
@@ -58,6 +59,7 @@ export function NotificationBell() {
   const setNotifications = useAppStore((s) => s.setNotifications);
   const markNotificationRead = useAppStore((s) => s.markNotificationRead);
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
+  const clearNotifications = useAppStore((s) => s.clearNotifications);
   const hydrated = useAppStore((s) => s.hydrated);
 
   const unreadCount = useUnreadNotificationCount();
@@ -140,6 +142,11 @@ export function NotificationBell() {
     api.post('/api/v1/notifications', { markAllRead: true }).catch(() => {});
   };
 
+  const handleClearAll = async () => {
+    clearNotifications();
+    api.delete('/api/v1/notifications', { deleteAll: true }).catch(() => {});
+  };
+
   // ── Render ──────────────────────────────────────────────────────────
 
   return (
@@ -166,15 +173,26 @@ export function NotificationBell() {
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
               Notifications
             </h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllRead}
-                className="text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-              >
-                <CheckIcon className="w-3.5 h-3.5" />
-                Mark all as read
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                >
+                  <CheckIcon className="w-3.5 h-3.5" />
+                  Mark all as read
+                </button>
+              )}
+              {recentNotifications.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="text-xs font-medium text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 flex items-center gap-1 transition-colors"
+                >
+                  <TrashIcon className="w-3.5 h-3.5" />
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Notification list */}

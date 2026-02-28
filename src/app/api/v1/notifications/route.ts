@@ -1,7 +1,7 @@
 /**
  * GET    /api/v1/notifications — List notifications for the current user
  * POST   /api/v1/notifications — Mark notification(s) as read
- * DELETE /api/v1/notifications — Delete (archive) a notification
+ * DELETE /api/v1/notifications — Delete a single notification or bulk-delete all
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
@@ -138,8 +138,12 @@ export async function POST(request: NextRequest) {
 // ─── DELETE (Archive / delete notification) ──────────────────────────
 
 const deleteSchema = z.object({
-  notificationId: z.string().min(1),
-});
+  notificationId: z.string().min(1).optional(),
+  deleteAll: z.boolean().optional(),
+}).refine(
+  (data) => data.notificationId || data.deleteAll,
+  { message: 'Provide either notificationId or deleteAll: true' },
+);
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -152,13 +156,28 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json();
     const parsed = deleteSchema.safeParse(body);
     if (!parsed.success) {
-      return badRequest('notificationId is required');
+      return badRequest(parsed.error.issues.map((i) => i.message).join('; '));
     }
 
-    // Verify the notification belongs to this company/user
+    // Bulk delete all notifications for this company/user
+    if (parsed.data.deleteAll) {
+      const result = await prisma.notification.deleteMany({
+        where: {
+          companyId: companyId!,
+          OR: [{ userId: user!.sub }, { userId: null }],
+        },
+      });
+
+      return NextResponse.json({
+        message: 'All notifications deleted',
+        count: result.count,
+      });
+    }
+
+    // Delete a single notification
     const notification = await prisma.notification.findFirst({
       where: {
-        id: parsed.data.notificationId,
+        id: parsed.data.notificationId!,
         companyId: companyId!,
         OR: [{ userId: user!.sub }, { userId: null }],
       },
@@ -169,7 +188,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await prisma.notification.delete({
-      where: { id: parsed.data.notificationId },
+      where: { id: parsed.data.notificationId! },
     });
 
     return NextResponse.json({ message: 'Notification deleted' });

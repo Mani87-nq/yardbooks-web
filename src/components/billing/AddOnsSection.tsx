@@ -9,6 +9,7 @@ import {
   Square3Stack3DIcon,
   MapPinIcon,
   PlusIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 
 // ─── Icon mapping ───────────────────────────────────────────────
@@ -19,12 +20,20 @@ const ADD_ON_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   'extra-location': MapPinIcon,
 };
 
+// ─── Add-on name lookup ─────────────────────────────────────────
+
+const ADD_ON_NAMES: Record<string, string> = Object.fromEntries(
+  ADD_ONS.map((a) => [a.id, a.name])
+);
+
 // ─── Props ──────────────────────────────────────────────────────
 
 interface AddOnsSectionProps {
   onAddAddOn?: (addOnId: string) => void;
   loading?: string | null;
   currentPlanId?: string;
+  /** When set, shows an inline "coming soon" notice for this add-on ID */
+  addOnNotice?: string | null;
 }
 
 // ─── Component ──────────────────────────────────────────────────
@@ -33,6 +42,7 @@ export default function AddOnsSection({
   onAddAddOn,
   loading = null,
   currentPlanId = 'free',
+  addOnNotice = null,
 }: AddOnsSectionProps) {
   const isFreeOrStarter = currentPlanId === 'free' || currentPlanId === 'starter';
 
@@ -51,6 +61,17 @@ export default function AddOnsSection({
           )}
         </p>
       </div>
+
+      {/* Inline "coming soon" notice — replaces the ugly browser alert */}
+      {addOnNotice && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <ClockIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <span className="font-medium">{ADD_ON_NAMES[addOnNotice] ?? 'Add-on'}</span> checkout is coming soon.
+            We&apos;ll notify you as soon as it&apos;s available!
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {ADD_ONS.map((addOn) => (
