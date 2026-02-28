@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import KioskLockScreen from '@/components/kiosk/KioskLockScreen';
+import { useKioskStore } from '@/store/kioskStore';
 
 // ── Types ────────────────────────────────────────────────────────
 interface KioskEmployee {
@@ -92,6 +93,9 @@ export default function EmployeeLoginPage() {
     }
   }, [companyCode]);
 
+  // Kiosk store setters
+  const { setEmployee, setActiveModules } = useKioskStore();
+
   // ── Step 2: Authenticate with PIN (via KioskLockScreen) ─────
   const handleAuthenticate = useCallback(
     async (employeeId: string, pin: string) => {
@@ -110,6 +114,22 @@ export default function EmployeeLoginPage() {
         const data = await res.json();
 
         if (res.ok && data.authenticated) {
+          // Hydrate kiosk store with auth response data
+          if (data.employee) {
+            setEmployee({
+              id: data.employee.id,
+              firstName: data.employee.firstName,
+              lastName: data.employee.lastName,
+              displayName: data.employee.displayName,
+              role: data.employee.role,
+              avatarColor: data.employee.avatarColor || '#3B82F6',
+              permissions: data.employee.permissions || {},
+            });
+          }
+          if (data.activeModules) {
+            setActiveModules(data.activeModules);
+          }
+
           // Success — redirect to home
           router.push('/employee/home');
           return { success: true };
@@ -135,7 +155,7 @@ export default function EmployeeLoginPage() {
         };
       }
     },
-    [companyCode, router]
+    [companyCode, router, setEmployee, setActiveModules]
   );
 
   // ── Handle back to company code step ────────────────────────

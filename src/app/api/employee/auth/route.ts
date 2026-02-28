@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
         id: true,
         businessName: true,
         tradingName: true,
+        primaryColor: true,
       },
     });
 
@@ -218,6 +219,12 @@ export async function POST(request: NextRequest) {
     // 8. Build response with terminal cookie
     const activeShift = employee.shifts[0] || null;
 
+    // 8b. Fetch active modules for this company
+    const activeModulesData = await prisma.companyModule.findMany({
+      where: { companyId: company.id, isActive: true, deactivatedAt: null },
+      select: { moduleId: true },
+    });
+
     const response = NextResponse.json({
       authenticated: true,
       employee: {
@@ -232,8 +239,10 @@ export async function POST(request: NextRequest) {
       company: {
         id: company.id,
         name: company.tradingName || company.businessName,
+        primaryColor: company.primaryColor,
       },
       activeShift,
+      activeModules: activeModulesData.map((m) => m.moduleId),
     });
 
     response.cookies.set(TERMINAL_TOKEN_COOKIE, token, getTerminalTokenCookieOptions());

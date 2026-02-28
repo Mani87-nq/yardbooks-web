@@ -33,6 +33,20 @@ export type ModuleCategory =
 export type RequiredPlan = 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'BUSINESS' | 'ENTERPRISE';
 
 // ============================================
+// EMPLOYEE ROLES (for kiosk scoping)
+// ============================================
+
+/**
+ * POS-specific employee roles used by the kiosk system.
+ * Mirrors the Prisma `EmployeeRole` enum.
+ */
+export type EmployeeRole =
+  | 'POS_CASHIER'
+  | 'POS_SERVER'
+  | 'SHIFT_MANAGER'
+  | 'STORE_MANAGER';
+
+// ============================================
 // NAVIGATION
 // ============================================
 
@@ -85,6 +99,56 @@ export interface ModuleSettingsPanel {
   minRole: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'STAFF' | 'READ_ONLY';
   /** Icon for the settings navigation */
   icon: string;
+}
+
+// ============================================
+// KIOSK EXTENSION POINTS
+// ============================================
+
+/**
+ * Navigation item for the kiosk bottom tab bar.
+ *
+ * When a module is active, its kiosk nav items are merged into the
+ * employee portal's bottom navigation alongside the core tabs
+ * (Home, Clock, Profile).  Items are sorted by `priority` (ascending).
+ */
+export interface KioskNavItem {
+  /** Display label shown in the bottom tab bar (e.g. "Register", "Salon") */
+  label: string;
+  /** Route path relative to /employee/ (e.g. "pos", "salon", "restaurant/tables") */
+  href: string;
+  /** Heroicon component name for the tab icon */
+  icon: string;
+  /** Employee permission string required to see this tab (omit = visible to all) */
+  permission?: string;
+  /** Restrict visibility to specific employee roles (omit = all roles) */
+  roles?: EmployeeRole[];
+  /** Live badge count key resolved from kiosk store (e.g. "activeOrders") */
+  badge?: string;
+  /** Sort order in the nav bar — lower numbers appear further left */
+  priority: number;
+}
+
+/**
+ * Widget card rendered on the kiosk home dashboard.
+ *
+ * Active modules contribute home widgets that give employees at-a-glance
+ * information relevant to their role (e.g. today's appointments, table status,
+ * recent sales).  Widgets are sorted by `priority` (ascending).
+ */
+export interface KioskHomeWidget {
+  /** Unique widget identifier (e.g. "kiosk-pos-recent-sales") */
+  id: string;
+  /** Dynamic import path relative to src/ for the widget component */
+  component: string;
+  /** Widget title displayed above the card */
+  title: string;
+  /** Restrict visibility to specific employee roles (omit = all roles) */
+  roles?: EmployeeRole[];
+  /** Sort order on the home page — lower numbers appear first */
+  priority: number;
+  /** Grid span hint: 1 = half width, 2 = full width */
+  gridSpan?: 1 | 2;
 }
 
 // ============================================
@@ -154,13 +218,19 @@ export interface ModuleManifest {
     currency: 'JMD' | 'USD';
   };
 
-  // ---- Extension Points ----
-  /** Navigation items injected into the sidebar */
+  // ---- Extension Points (Admin Dashboard) ----
+  /** Navigation items injected into the admin sidebar */
   navigation: ModuleNavItem[];
-  /** Dashboard widgets provided by this module */
+  /** Admin dashboard widgets provided by this module */
   dashboardWidgets: ModuleDashboardWidget[];
   /** Settings panels provided by this module */
   settingsPanels: ModuleSettingsPanel[];
+
+  // ---- Extension Points (Employee Kiosk) ----
+  /** Navigation items injected into the kiosk bottom tab bar */
+  kioskNavigation?: KioskNavItem[];
+  /** Home widgets rendered on the kiosk home dashboard */
+  kioskHomeWidgets?: KioskHomeWidget[];
 
   // ---- Events ----
   /** Events published by this module */

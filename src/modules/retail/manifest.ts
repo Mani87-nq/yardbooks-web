@@ -78,6 +78,32 @@ export const manifest: ModuleManifest = {
     },
   ],
 
+  // ---- Kiosk (Employee Portal) Extension Points ----
+  kioskNavigation: [
+    {
+      label: 'Register',
+      href: 'pos',
+      icon: 'CalculatorIcon',
+      priority: 10,
+    },
+  ],
+  kioskHomeWidgets: [
+    {
+      id: 'kiosk-pos-new-sale',
+      component: 'components/kiosk/pos/NewSaleWidget',
+      title: 'Quick Sale',
+      priority: 5,
+      gridSpan: 2,
+    },
+    {
+      id: 'kiosk-pos-recent-orders',
+      component: 'components/kiosk/pos/RecentOrdersWidget',
+      title: 'Recent Orders',
+      priority: 15,
+      gridSpan: 2,
+    },
+  ],
+
   eventsPublished: [
     {
       name: 'retail.loyalty.points_earned',

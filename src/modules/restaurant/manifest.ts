@@ -91,6 +91,51 @@ export const manifest: ModuleManifest = {
     },
   ],
 
+  // ---- Kiosk (Employee Portal) Extension Points ----
+  kioskNavigation: [
+    {
+      label: 'Register',
+      href: 'pos',
+      icon: 'CalculatorIcon',
+      priority: 10,
+    },
+    {
+      label: 'Tables',
+      href: 'restaurant/tables',
+      icon: 'Squares2X2Icon',
+      priority: 20,
+    },
+    {
+      label: 'Kitchen',
+      href: 'restaurant/kitchen',
+      icon: 'FireIcon',
+      priority: 25,
+    },
+  ],
+  kioskHomeWidgets: [
+    {
+      id: 'kiosk-restaurant-tables',
+      component: 'components/kiosk/restaurant/ActiveTablesWidget',
+      title: 'Active Tables',
+      priority: 10,
+      gridSpan: 2,
+    },
+    {
+      id: 'kiosk-restaurant-reservations',
+      component: 'components/kiosk/restaurant/TodayReservationsWidget',
+      title: "Today's Reservations",
+      priority: 20,
+      gridSpan: 1,
+    },
+    {
+      id: 'kiosk-restaurant-kitchen-queue',
+      component: 'components/kiosk/restaurant/KitchenQueueWidget',
+      title: 'Kitchen Queue',
+      priority: 25,
+      gridSpan: 1,
+    },
+  ],
+
   eventsPublished: [
     {
       name: 'restaurant.reservation.created',

@@ -11,7 +11,7 @@
  *   import { moduleRegistry } from '@/modules/registry';
  *   const salon = moduleRegistry.getModule('salon');
  */
-import type { ModuleId, ModuleManifest, ModuleNavItem } from './types';
+import type { ModuleId, ModuleManifest, ModuleNavItem, KioskNavItem, KioskHomeWidget } from './types';
 
 // ── Static manifest imports ──────────────────────────────────
 // When a new module is added, import its manifest here and add
@@ -124,6 +124,57 @@ export class ModuleRegistry {
       .filter(
         (v): v is NonNullable<typeof v> => v !== null
       );
+  }
+
+  // ── Kiosk Navigation ────────────────────────────────────────
+
+  /**
+   * Aggregate kiosk bottom-nav items for the set of currently-active module IDs.
+   * Optionally filter by employee role.  Results are sorted by priority (ascending).
+   *
+   * Used by the KioskBottomNav component to render module-appropriate tabs.
+   */
+  getKioskNavItems(activeModuleIds: string[], employeeRole?: string): KioskNavItem[] {
+    const items: KioskNavItem[] = [];
+
+    for (const id of activeModuleIds) {
+      const mod = this.modules.get(id);
+      if (!mod?.kioskNavigation) continue;
+
+      for (const item of mod.kioskNavigation) {
+        // If the item restricts to specific roles, check the employee's role
+        if (item.roles && employeeRole && !item.roles.includes(employeeRole as never)) {
+          continue;
+        }
+        items.push(item);
+      }
+    }
+
+    return items.sort((a, b) => a.priority - b.priority);
+  }
+
+  /**
+   * Aggregate kiosk home widgets for the set of currently-active module IDs.
+   * Optionally filter by employee role.  Results are sorted by priority (ascending).
+   *
+   * Used by the kiosk home page to render module-appropriate dashboard cards.
+   */
+  getKioskHomeWidgets(activeModuleIds: string[], employeeRole?: string): KioskHomeWidget[] {
+    const widgets: KioskHomeWidget[] = [];
+
+    for (const id of activeModuleIds) {
+      const mod = this.modules.get(id);
+      if (!mod?.kioskHomeWidgets) continue;
+
+      for (const widget of mod.kioskHomeWidgets) {
+        if (widget.roles && employeeRole && !widget.roles.includes(employeeRole as never)) {
+          continue;
+        }
+        widgets.push(widget);
+      }
+    }
+
+    return widgets.sort((a, b) => a.priority - b.priority);
   }
 
   // ── Dependency Validation ────────────────────────────────────

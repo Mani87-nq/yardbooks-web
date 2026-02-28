@@ -78,6 +78,39 @@ export const manifest: ModuleManifest = {
     },
   ],
 
+  // ---- Kiosk (Employee Portal) Extension Points ----
+  kioskNavigation: [
+    {
+      label: 'Salon',
+      href: 'salon',
+      icon: 'SparklesIcon',
+      priority: 15,
+    },
+  ],
+  kioskHomeWidgets: [
+    {
+      id: 'kiosk-salon-today-appointments',
+      component: 'components/kiosk/salon/TodayAppointmentsWidget',
+      title: "Today's Appointments",
+      priority: 10,
+      gridSpan: 2,
+    },
+    {
+      id: 'kiosk-salon-walkin-queue',
+      component: 'components/kiosk/salon/WalkInQueueWidget',
+      title: 'Walk-in Queue',
+      priority: 20,
+      gridSpan: 1,
+    },
+    {
+      id: 'kiosk-salon-my-clients',
+      component: 'components/kiosk/salon/MyClientsWidget',
+      title: 'My Clients Today',
+      priority: 25,
+      gridSpan: 1,
+    },
+  ],
+
   eventsPublished: [
     {
       name: 'salon.appointment.created',

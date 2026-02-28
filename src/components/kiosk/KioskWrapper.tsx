@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import KioskBottomNav from '@/components/kiosk/KioskBottomNav';
 
 // ── Types ────────────────────────────────────────────────────────
 interface KioskEmployee {
@@ -18,6 +19,8 @@ interface KioskWrapperProps {
   inactivityTimeoutMinutes?: number;
   onLock: () => void;
   onToggleFullscreen?: () => void;
+  terminalNumber?: number | null;
+  companyName?: string;
 }
 
 // ── Component ────────────────────────────────────────────────────
@@ -28,6 +31,8 @@ export default function KioskWrapper({
   inactivityTimeoutMinutes = 2,
   onLock,
   onToggleFullscreen,
+  terminalNumber,
+  companyName,
 }: KioskWrapperProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,6 +150,14 @@ export default function KioskWrapper({
           <span className="text-sm font-mono font-medium text-gray-700 dark:text-gray-300">
             {formatTime(currentTime)}
           </span>
+          {companyName && (
+            <>
+              <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
+                {companyName}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Center: Current employee */}
@@ -164,6 +177,11 @@ export default function KioskWrapper({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
+          {terminalNumber != null && (
+            <span className="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono font-medium">
+              Terminal {terminalNumber}
+            </span>
+          )}
           {onToggleFullscreen && (
             <button
               onClick={onToggleFullscreen}
@@ -189,9 +207,12 @@ export default function KioskWrapper({
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pb-16">
         {children}
       </div>
+
+      {/* Bottom navigation */}
+      <KioskBottomNav />
     </div>
   );
 }

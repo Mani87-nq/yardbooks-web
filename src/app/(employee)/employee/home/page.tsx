@@ -3,27 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import KioskWrapper from '@/components/kiosk/KioskWrapper';
+import { useKioskStore } from '@/store/kioskStore';
 
 // ── Types ────────────────────────────────────────────────────────
-interface EmployeeInfo {
-  id: string;
-  firstName: string;
-  lastName: string;
-  displayName: string | null;
-  role: string;
-  avatarColor: string;
-}
-
-interface ActiveShift {
-  id: string;
-  clockInAt: string;
-  status: string;
-  totalSales: number;
-  totalTips: number;
-  transactionCount: number;
-  isOnBreak: boolean;
-}
-
 interface ShiftStats {
   hoursWorked: number;
   totalSales: number;
@@ -35,56 +17,57 @@ interface ShiftStats {
 // ── Component ────────────────────────────────────────────────────
 export default function EmployeeHomePage() {
   const router = useRouter();
-  const [employee, setEmployee] = useState<EmployeeInfo | null>(null);
-  const [activeShift, setActiveShift] = useState<ActiveShift | null>(null);
+
+  // Kiosk store state
+  const {
+    currentEmployee,
+    activeShift,
+    activeModules,
+    companyName,
+    terminalNumber,
+    isOnline,
+    isContextLoaded,
+    loadKioskContext,
+    setOnline,
+  } = useKioskStore();
+
+  // Page-specific local state
   const [stats, setStats] = useState<ShiftStats | null>(null);
-  const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [elapsedTime, setElapsedTime] = useState('');
 
-  // Track online status
+  // Track online status and sync with kiosk store
   useEffect(() => {
-    setIsOnline(navigator.onLine);
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    setOnline(navigator.onLine);
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [setOnline]);
 
-  // Load employee data via profile API (cookie is httpOnly, can't read client-side)
+  // Load kiosk context if not already loaded
   useEffect(() => {
-    async function loadData() {
+    if (!isContextLoaded) {
+      loadKioskContext();
+    }
+  }, [isContextLoaded, loadKioskContext]);
+
+  // Fetch page-specific stats (not in kiosk store)
+  useEffect(() => {
+    if (!isContextLoaded) return;
+
+    // If no employee after context loads, redirect to login
+    if (!currentEmployee) {
+      router.replace('/employee');
+      return;
+    }
+
+    async function loadStats() {
       try {
-        // Fetch employee profile (validates terminal auth)
-        const profileRes = await fetch('/api/employee/profile', { credentials: 'include' });
-        if (profileRes.status === 401) {
-          router.replace('/employee');
-          return;
-        }
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          setEmployee({
-            id: profileData.id,
-            firstName: profileData.firstName,
-            lastName: profileData.lastName,
-            displayName: profileData.displayName,
-            role: profileData.role,
-            avatarColor: profileData.avatarColor,
-          });
-        }
-
-        // Fetch active shift
-        const shiftRes = await fetch('/api/employee/shift/active', { credentials: 'include' });
-        if (shiftRes.ok) {
-          const shiftData = await shiftRes.json();
-          setActiveShift(shiftData.shift);
-        }
-
-        // Fetch 7-day stats
         const statsRes = await fetch('/api/employee/stats?period=7', { credentials: 'include' });
         if (statsRes.ok) {
           const statsData = await statsRes.json();
@@ -97,15 +80,14 @@ export default function EmployeeHomePage() {
           });
         }
       } catch {
-        // Auth failed or network error
-        router.replace('/employee');
+        // Stats fetch failed — non-critical, continue without them
       } finally {
         setIsLoading(false);
       }
     }
 
-    loadData();
-  }, [router]);
+    loadStats();
+  }, [isContextLoaded, currentEmployee, router]);
 
   // Update elapsed shift time every second
   useEffect(() => {
@@ -137,7 +119,13 @@ export default function EmployeeHomePage() {
     return `J$${amount.toLocaleString('en-JM', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  if (isLoading) {
+  // Module helpers
+  const hasModule = (moduleId: string) => activeModules.includes(moduleId);
+  const hasPOS = hasModule('retail') || hasModule('restaurant');
+  const hasSalon = hasModule('salon');
+  const hasRestaurant = hasModule('restaurant');
+
+  if (!isContextLoaded || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -148,6 +136,7 @@ export default function EmployeeHomePage() {
     );
   }
 
+  const employee = currentEmployee;
   const roleDisplay = employee?.role?.replace('POS_', '').replace('_', ' ') || 'Staff';
   const isManager = employee?.role === 'SHIFT_MANAGER' || employee?.role === 'STORE_MANAGER';
 
@@ -162,6 +151,8 @@ export default function EmployeeHomePage() {
       } : null}
       isOnline={isOnline}
       onLock={handleLock}
+      companyName={companyName}
+      terminalNumber={terminalNumber}
     >
       <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         {/* Greeting */}
@@ -222,7 +213,7 @@ export default function EmployeeHomePage() {
             )}
           </div>
         ) : (
-          /* No active shift — show clock in prompt */
+          /* No active shift -- show clock in prompt */
           <button
             onClick={() => router.push('/employee/clock')}
             className="w-full mb-6 p-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-center transition-colors touch-manipulation"
@@ -235,8 +226,9 @@ export default function EmployeeHomePage() {
           </button>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions — module-aware */}
         <div className="grid grid-cols-2 gap-3 mb-6">
+          {/* Always: Clock In/Out */}
           <button
             onClick={() => router.push('/employee/clock')}
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors touch-manipulation"
@@ -249,6 +241,46 @@ export default function EmployeeHomePage() {
             </span>
           </button>
 
+          {/* POS / Retail / Restaurant: New Sale */}
+          {hasPOS && (
+            <button
+              onClick={() => router.push('/employee/pos')}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors touch-manipulation"
+            >
+              <svg className="w-8 h-8 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+              </svg>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">New Sale</span>
+            </button>
+          )}
+
+          {/* Salon: Appointments */}
+          {hasSalon && (
+            <button
+              onClick={() => router.push('/employee/salon')}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors touch-manipulation"
+            >
+              <svg className="w-8 h-8 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Appointments</span>
+            </button>
+          )}
+
+          {/* Restaurant: Tables */}
+          {hasRestaurant && (
+            <button
+              onClick={() => router.push('/employee/restaurant/tables')}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors touch-manipulation"
+            >
+              <svg className="w-8 h-8 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tables</span>
+            </button>
+          )}
+
+          {/* Always: My Stats */}
           <button
             onClick={() => router.push('/employee/profile')}
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors touch-manipulation"
@@ -295,6 +327,66 @@ export default function EmployeeHomePage() {
           </div>
         )}
 
+        {/* Module Summary Widgets */}
+        <div className="mt-6 space-y-3">
+          {/* POS / Restaurant: Today's Sales (only when shift is active) */}
+          {hasPOS && activeShift && (
+            <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wider">
+                  Today&apos;s Sales
+                </p>
+                <p className="text-xl font-bold text-blue-800 dark:text-blue-200 mt-1">
+                  {formatCurrency(activeShift.totalSales)}
+                </p>
+              </div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">
+                {activeShift.transactionCount} txn{activeShift.transactionCount !== 1 ? 's' : ''}
+              </div>
+            </div>
+          )}
+
+          {/* Salon module card */}
+          {hasSalon && (
+            <button
+              onClick={() => router.push('/employee/salon')}
+              className="w-full rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4 flex items-center justify-between text-left transition-colors hover:bg-purple-100 dark:hover:bg-purple-900/30 touch-manipulation"
+            >
+              <div>
+                <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">
+                  Salon
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">
+                  Appointments &amp; Walk-ins
+                </p>
+              </div>
+              <svg className="w-5 h-5 text-purple-400 dark:text-purple-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          )}
+
+          {/* Restaurant module card */}
+          {hasRestaurant && (
+            <button
+              onClick={() => router.push('/employee/restaurant/tables')}
+              className="w-full rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-4 flex items-center justify-between text-left transition-colors hover:bg-orange-100 dark:hover:bg-orange-900/30 touch-manipulation"
+            >
+              <div>
+                <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                  Restaurant
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
+                  Tables &amp; Kitchen
+                </p>
+              </div>
+              <svg className="w-5 h-5 text-orange-400 dark:text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          )}
+        </div>
+
         {/* Manager Section */}
         {isManager && (
           <div className="mt-6 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
@@ -307,36 +399,6 @@ export default function EmployeeHomePage() {
             </p>
           </div>
         )}
-
-        {/* Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2 flex justify-around">
-          <button
-            className="flex flex-col items-center gap-1 px-3 py-1 text-emerald-600 dark:text-emerald-400"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-            </svg>
-            <span className="text-xs font-medium">Home</span>
-          </button>
-          <button
-            onClick={() => router.push('/employee/clock')}
-            className="flex flex-col items-center gap-1 px-3 py-1 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium">Clock</span>
-          </button>
-          <button
-            onClick={() => router.push('/employee/profile')}
-            className="flex flex-col items-center gap-1 px-3 py-1 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-            <span className="text-xs font-medium">Profile</span>
-          </button>
-        </nav>
       </div>
     </KioskWrapper>
   );
