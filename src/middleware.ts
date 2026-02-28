@@ -48,6 +48,11 @@ const PUBLIC_ROUTES = [
   '/twitter-image',       // Twitter/X card image
   '/robots.txt',          // SEO: search engine crawl rules
   '/sitemap.xml',         // SEO: sitemap for search engines
+  '/blog',                // SEO: public blog (listing + posts + OG images)
+  '/accounting-software-jamaica',  // SEO: landing page
+  '/pos-system-jamaica',           // SEO: landing page
+  '/payroll-software-jamaica',     // SEO: landing page
+  '/invoicing-software-jamaica',   // SEO: landing page
 ];
 
 // Routes that should redirect to dashboard if already authenticated
