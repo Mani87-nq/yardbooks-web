@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import PricingSection from '@/components/PricingSection';
 import ChatWidget from '@/components/ChatWidget';
+import JsonLd from '@/components/marketing/JsonLd';
+import { buildOrganizationSchema, buildSoftwareApplicationSchema } from '@/lib/seo/json-ld';
 import {
   SparklesIcon,
   ChatBubbleLeftRightIcon,
@@ -34,6 +36,9 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <JsonLd data={buildOrganizationSchema()} />
+      <JsonLd data={buildSoftwareApplicationSchema()} />
+
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

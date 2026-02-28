@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { buildLocalBusinessSchema, buildFaqSchema } from '@/lib/seo/json-ld';
 
 const SUBJECT_OPTIONS = [
   { value: '', label: 'Select a subject...' },
@@ -113,8 +114,37 @@ export default function ContactPage() {
     }
   };
 
+  const localBusinessSchema = buildLocalBusinessSchema();
+  const faqSchema = buildFaqSchema([
+    {
+      question: 'How quickly will I get a response?',
+      answer: 'We typically respond within 24 hours on business days. For urgent support issues, call us directly.',
+    },
+    {
+      question: 'Do you offer free demos?',
+      answer: 'Yes! Select "Sales" as your subject and request a demo. We\'ll schedule a personalized walkthrough.',
+    },
+    {
+      question: 'Is there phone support?',
+      answer: 'Absolutely. Call us at 876-613-9119 during business hours for immediate assistance.',
+    },
+    {
+      question: 'Can I get help with migration?',
+      answer: 'Yes, our team can help you migrate from QuickBooks, Excel, or any other system. Just reach out!',
+    },
+  ]);
+
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
