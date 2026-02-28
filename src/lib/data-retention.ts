@@ -10,6 +10,11 @@
  */
 import prisma from '@/lib/db';
 
+// ─── Trial account disposal ──────────────────────────────────────
+
+/** Days after trial expiry before the account is anonymized */
+export const TRIAL_DISPOSAL_DAYS = 7;
+
 // ─── Retention periods (in years) ──────────────────────────────────
 
 /** Retention periods in years */
@@ -411,4 +416,90 @@ export async function anonymizeUser(userId: string): Promise<void> {
     // The createdBy field still references the user ID, but the user
     // profile now contains only anonymized data.
   });
+}
+
+// ─── Expired trial account disposal ─────────────────────────────────
+
+/**
+ * Dispose of user accounts whose free trial expired more than
+ * TRIAL_DISPOSAL_DAYS ago (default: 7 days).
+ *
+ * Logic:
+ *   1. Find companies with status INACTIVE whose trial end date
+ *      is more than 7 days in the past.
+ *   2. For each company, find users who are ONLY a member of
+ *      that single expired company (not members of other companies).
+ *   3. Anonymize those users via `anonymizeUser()`.
+ *   4. Soft-delete the company itself.
+ *
+ * This frees up the email address so the person can re-register
+ * with a fresh account if they come back later.
+ *
+ * Financial records are preserved per Jamaica tax law.
+ */
+export async function disposeExpiredTrialAccounts(): Promise<{
+  companiesDisposed: number;
+  accountsAnonymized: number;
+}> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - TRIAL_DISPOSAL_DAYS);
+
+  // Find INACTIVE companies whose trial ended > 7 days ago
+  // and have not already been disposed (deletedAt is null)
+  const expiredCompanies = await prisma.company.findMany({
+    where: {
+      subscriptionStatus: 'INACTIVE',
+      subscriptionEndDate: { lt: cutoff },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      businessName: true,
+      members: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
+  let companiesDisposed = 0;
+  let accountsAnonymized = 0;
+
+  for (const company of expiredCompanies) {
+    // For each member, check if they belong to ANY other active company
+    for (const member of company.members) {
+      const otherMemberships = await prisma.companyMember.count({
+        where: {
+          userId: member.userId,
+          companyId: { not: company.id },
+          company: { deletedAt: null },
+        },
+      });
+
+      // Only anonymize if this is their sole company
+      if (otherMemberships === 0) {
+        // Check if user is not already anonymized
+        const user = await prisma.user.findUnique({
+          where: { id: member.userId },
+          select: { deletedAt: true },
+        });
+
+        if (user && !user.deletedAt) {
+          await anonymizeUser(member.userId);
+          accountsAnonymized++;
+        }
+      }
+    }
+
+    // Soft-delete the company so it's not processed again
+    await prisma.company.update({
+      where: { id: company.id },
+      data: { deletedAt: new Date() },
+    });
+
+    companiesDisposed++;
+  }
+
+  return { companiesDisposed, accountsAnonymized };
 }

@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing user
+    // NOTE: After trial disposal, anonymizeUser() changes the email to
+    // "deleted-{id}@anonymized.yaadbooks.local", so this check naturally
+    // returns null for disposed accounts — re-registration just works.
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return conflict('An account with this email already exists');

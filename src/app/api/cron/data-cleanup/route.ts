@@ -6,11 +6,13 @@
  * - Deletes expired sessions
  * - Archives old read notifications
  * - Cleans up stale audit log entries beyond retention period
+ * - Disposes expired trial accounts (7 days after trial end)
  *
  * Protected by CRON_SECRET (no user auth - called by Vercel scheduler).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { disposeExpiredTrialAccounts, TRIAL_DISPOSAL_DAYS } from '@/lib/data-retention';
 
 /** Data retention periods */
 const RETENTION = {
@@ -36,6 +38,8 @@ export async function GET(request: NextRequest) {
       expiredSessions: 0,
       oldNotifications: 0,
       oldAuditLogs: 0,
+      trialAccountsAnonymized: 0,
+      trialCompaniesDisposed: 0,
     };
 
     // 1. Delete expired sessions
@@ -69,6 +73,11 @@ export async function GET(request: NextRequest) {
     });
     stats.oldAuditLogs = oldAuditLogsResult.count;
 
+    // 4. Dispose expired trial accounts (7 days after trial end)
+    const trialDisposal = await disposeExpiredTrialAccounts();
+    stats.trialAccountsAnonymized = trialDisposal.accountsAnonymized;
+    stats.trialCompaniesDisposed = trialDisposal.companiesDisposed;
+
     return NextResponse.json({
       success: true,
       message: 'Data cleanup completed',
@@ -76,10 +85,13 @@ export async function GET(request: NextRequest) {
         expiredSessionsDeleted: stats.expiredSessions,
         oldNotificationsDeleted: stats.oldNotifications,
         oldAuditLogsDeleted: stats.oldAuditLogs,
+        trialAccountsAnonymized: stats.trialAccountsAnonymized,
+        trialCompaniesDisposed: stats.trialCompaniesDisposed,
         retentionPolicy: {
           notifications: `${RETENTION.OLD_NOTIFICATIONS_DAYS} days (read only)`,
           auditLogs: `${RETENTION.AUDIT_LOG_YEARS} years`,
           sessions: 'Deleted on expiry',
+          expiredTrials: `${TRIAL_DISPOSAL_DAYS} days after trial ends`,
         },
       },
     });
