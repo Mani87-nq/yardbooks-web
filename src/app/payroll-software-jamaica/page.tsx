@@ -28,6 +28,13 @@ export const metadata: Metadata = {
     locale: 'en_JM',
     siteName: 'YaadBooks',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Payroll Software for Jamaica | YaadBooks',
+    description:
+      'Payroll software that auto-calculates PAYE, NIS, NHT, Education Tax, and HEART for Jamaican businesses.',
+    creator: '@yaadbooks',
+  },
 };
 
 const DEDUCTIONS = [
@@ -295,6 +302,45 @@ export default function PayrollSoftwareJamicaPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Related articles */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Payroll &amp; Compliance Resources
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Link
+              href="/blog/payroll-compliance-jamaica-guide"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold mb-3">
+                Compliance
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                Payroll Compliance in Jamaica: What Every Employer Must Know
+              </h3>
+              <p className="text-gray-600 text-sm">
+                A complete guide to PAYE, NIS, NHT, Education Tax, and HEART with rates, deadlines, and best practices.
+              </p>
+            </Link>
+            <Link
+              href="/blog/taj-tax-compliance-guide-jamaica"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold mb-3">
+                Guides
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                TAJ Tax Compliance Guide: GCT, PAYE, and Filing Requirements
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Everything about GCT rates, S01/SO2 filings, record-keeping rules, and penalty avoidance.
+              </p>
+            </Link>
           </div>
         </div>
       </section>

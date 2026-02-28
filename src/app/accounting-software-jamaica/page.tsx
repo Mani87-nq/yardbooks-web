@@ -28,6 +28,13 @@ export const metadata: Metadata = {
     locale: 'en_JM',
     siteName: 'YaadBooks',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Accounting Software for Jamaica | YaadBooks',
+    description:
+      'Cloud accounting software built for Jamaican businesses. Automatic GCT, TAJ compliance, JMD support.',
+    creator: '@yaadbooks',
+  },
 };
 
 const FEATURES = [
@@ -261,6 +268,59 @@ export default function AccountingSoftwareJamaicaPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Related articles */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Learn More About Accounting in Jamaica
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Link
+              href="/blog/caribbean-market-opportunity-accounting-software"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold mb-3">
+                Market Insights
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                The Massive Opportunity in Caribbean Accounting Software
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Why 425,000 Jamaican MSMEs need locally-built financial software.
+              </p>
+            </Link>
+            <Link
+              href="/blog/accounting-features-your-business-needs"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold mb-3">
+                Product
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                10 Accounting Features Your Growing Business Actually Needs
+              </h3>
+              <p className="text-gray-600 text-sm">
+                From bank reconciliation to audit trails — what separates basic tools from serious platforms.
+              </p>
+            </Link>
+            <Link
+              href="/blog/taj-tax-compliance-guide-jamaica"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold mb-3">
+                Guides
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                TAJ Tax Compliance Guide: GCT, PAYE, and Filing Requirements
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Everything you need to know about GCT rates, filing deadlines, and penalty avoidance.
+              </p>
+            </Link>
           </div>
         </div>
       </section>

@@ -28,6 +28,13 @@ export const metadata: Metadata = {
     locale: 'en_JM',
     siteName: 'YaadBooks',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Invoicing Software for Jamaica | YaadBooks',
+    description:
+      'Professional invoicing software with GCT compliance, JMD support, and payment tracking for Jamaican businesses.',
+    creator: '@yaadbooks',
+  },
 };
 
 const FEATURES = [
@@ -306,6 +313,45 @@ export default function InvoicingSoftwareJamicaPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Related articles */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Invoicing &amp; Tax Resources
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Link
+              href="/blog/taj-tax-compliance-guide-jamaica"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold mb-3">
+                Guides
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                TAJ Tax Compliance Guide: GCT, PAYE, and Filing Requirements
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Understand GCT rates, tax invoice requirements, and how to stay compliant with TAJ.
+              </p>
+            </Link>
+            <Link
+              href="/blog/accounting-features-your-business-needs"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold mb-3">
+                Product
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                10 Accounting Features Your Growing Business Actually Needs
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Including AR/AP management, payment tracking, and professional invoicing capabilities.
+              </p>
+            </Link>
           </div>
         </div>
       </section>

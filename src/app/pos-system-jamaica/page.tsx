@@ -28,6 +28,13 @@ export const metadata: Metadata = {
     locale: 'en_JM',
     siteName: 'YaadBooks',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'POS System for Jamaica | YaadBooks',
+    description:
+      'Affordable POS system built for Jamaican businesses. GCT-ready receipts, inventory tracking, offline mode.',
+    creator: '@yaadbooks',
+  },
 };
 
 const FEATURES = [
@@ -303,6 +310,45 @@ export default function PosSystemJamicaPage() {
                 <p className="text-gray-600 text-sm">{useCase.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Related articles */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Insights for Jamaican Business Owners
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Link
+              href="/blog/caribbean-market-opportunity-accounting-software"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold mb-3">
+                Market Insights
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                The Massive Opportunity in Caribbean Accounting Software
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Why 425,000 Jamaican MSMEs need locally-built business software.
+              </p>
+            </Link>
+            <Link
+              href="/blog/caribbean-business-software-landscape-2026"
+              className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold mb-3">
+                Market Insights
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                The State of Business Software in the Caribbean: 2026 Report
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Cloud adoption, payment infrastructure, and digital readiness across the region.
+              </p>
+            </Link>
           </div>
         </div>
       </section>

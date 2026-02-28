@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function PayrollComplianceJamaica() {
   return (
     <article>
@@ -377,6 +379,22 @@ export default function PayrollComplianceJamaica() {
         getting payroll compliance right is one of the most impactful steps a
         Jamaican business can take.
       </p>
+
+      <div className="mt-12 rounded-xl bg-emerald-50 border border-emerald-200 p-8 not-prose">
+        <h3 className="text-xl font-bold text-gray-900 mb-3">
+          Automate Your Jamaican Payroll Compliance
+        </h3>
+        <p className="text-gray-600 mb-6">
+          YaadBooks automatically calculates all five statutory deductions — PAYE,
+          NIS, NHT, Education Tax, and HEART — and generates TAJ-ready reports.
+        </p>
+        <Link
+          href="/payroll-software-jamaica"
+          className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+        >
+          See YaadBooks Payroll Features
+        </Link>
+      </div>
     </article>
   );
 }

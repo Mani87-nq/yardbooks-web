@@ -16,6 +16,13 @@ export const metadata: Metadata = {
     locale: 'en_JM',
     siteName: 'YaadBooks',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog | YaadBooks — Business Insights for Jamaica',
+    description:
+      'Expert articles on accounting, payroll compliance, POS systems, and business management for Jamaican businesses.',
+    creator: '@yaadbooks',
+  },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {

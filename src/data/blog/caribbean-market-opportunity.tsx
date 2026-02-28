@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function CaribbeanMarketOpportunity() {
   return (
     <article>
@@ -228,6 +230,30 @@ export default function CaribbeanMarketOpportunity() {
         The opportunity is here. The question is who will build the solution
         that Caribbean businesses deserve.
       </p>
+
+      <div className="mt-12 rounded-xl bg-emerald-50 border border-emerald-200 p-8 not-prose">
+        <h3 className="text-xl font-bold text-gray-900 mb-3">
+          Ready to See What Locally-Built Software Looks Like?
+        </h3>
+        <p className="text-gray-600 mb-6">
+          YaadBooks is built from the ground up for Jamaica — with GCT, payroll
+          compliance, and JMD pricing built in from day one.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <Link
+            href="/accounting-software-jamaica"
+            className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            Explore Accounting Features
+          </Link>
+          <Link
+            href="/payroll-software-jamaica"
+            className="inline-block bg-white text-emerald-700 px-6 py-3 rounded-lg font-semibold border border-emerald-300 hover:bg-emerald-50 transition-colors"
+          >
+            Explore Payroll Features
+          </Link>
+        </div>
+      </div>
     </article>
   );
 }

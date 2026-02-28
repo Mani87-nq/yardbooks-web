@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function AccountingFeaturesComparison() {
   return (
     <article>
@@ -385,6 +387,30 @@ export default function AccountingFeaturesComparison() {
         categories will help you find the tool that does not just record your
         transactions but actively helps you build a stronger business.
       </p>
+
+      <div className="mt-12 rounded-xl bg-emerald-50 border border-emerald-200 p-8 not-prose">
+        <h3 className="text-xl font-bold text-gray-900 mb-3">
+          All 10 Features — Built for Jamaica
+        </h3>
+        <p className="text-gray-600 mb-6">
+          YaadBooks delivers every feature category above with native GCT compliance,
+          JMD support, and offline mode — built specifically for Jamaican businesses.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <Link
+            href="/accounting-software-jamaica"
+            className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            Explore Accounting Features
+          </Link>
+          <Link
+            href="/invoicing-software-jamaica"
+            className="inline-block bg-white text-emerald-700 px-6 py-3 rounded-lg font-semibold border border-emerald-300 hover:bg-emerald-50 transition-colors"
+          >
+            Explore Invoicing Features
+          </Link>
+        </div>
+      </div>
     </article>
   );
 }
