@@ -53,6 +53,14 @@ const PUBLIC_ROUTES = [
   '/pos-system-jamaica',           // SEO: landing page
   '/payroll-software-jamaica',     // SEO: landing page
   '/invoicing-software-jamaica',   // SEO: landing page
+  '/employee',                     // Employee portal (kiosk login + authenticated pages)
+  '/api/employee/auth',            // Terminal auth endpoints (PIN login, employee list, logout)
+  '/api/employee/profile',         // Terminal profile (uses terminal JWT, not owner JWT)
+  '/api/employee/clock-in',        // Terminal clock-in (uses terminal JWT)
+  '/api/employee/clock-out',       // Terminal clock-out (uses terminal JWT)
+  '/api/employee/shift',           // Terminal active shift (uses terminal JWT)
+  '/api/employee/stats',           // Terminal stats (uses terminal JWT)
+  '/api/employee/schedule',        // Terminal schedule (uses terminal JWT)
 ];
 
 // Routes that should redirect to dashboard if already authenticated

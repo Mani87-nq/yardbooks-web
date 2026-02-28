@@ -738,7 +738,10 @@ model Company {
   businessName     String
   tradingName      String?
   businessType     BusinessType  @default(SOLE_PROPRIETOR)
-  
+
+  // Employee Portal / Kiosk
+  terminalCode     String?       @unique  // 6-char alphanumeric code for kiosk login (e.g. "YB4K9M")
+
   // Jamaica tax registration
   trnNumber        String?       // Tax Registration Number
   gctNumber        String?       // GCT Registration Number
@@ -876,6 +879,7 @@ model Company {
 
   @@index([ownerId])
   @@index([trnNumber])
+  @@index([terminalCode])
   @@index([gctNumber])
 }
 

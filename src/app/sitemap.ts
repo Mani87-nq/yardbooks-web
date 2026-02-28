@@ -88,5 +88,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  return [...corePages, ...blogPages, ...landingPages];
+  // Employee portal
+  const employeePages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/employee`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+  ];
+
+  return [...corePages, ...blogPages, ...landingPages, ...employeePages];
 }
