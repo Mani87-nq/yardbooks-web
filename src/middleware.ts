@@ -61,6 +61,8 @@ const PUBLIC_ROUTES = [
   '/api/employee/shift',           // Terminal active shift (uses terminal JWT)
   '/api/employee/stats',           // Terminal stats (uses terminal JWT)
   '/api/employee/schedule',        // Terminal schedule (uses terminal JWT)
+  '/api/employee/modules',         // Terminal active modules (uses terminal JWT)
+  '/api/employee/terminal',        // Terminal registration (uses terminal JWT)
 ];
 
 // Routes that should redirect to dashboard if already authenticated
