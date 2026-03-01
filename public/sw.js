@@ -1,46 +1,33 @@
 /**
- * YaadBooks Service Worker
+ * YaadBooks Service Worker v5
  * Provides offline support, caching, and background sync.
  *
+ * IMPORTANT: Next.js App Router uses RSC (React Server Components) for
+ * client-side navigation. RSC requests use the same URLs as pages but with
+ * special headers (RSC: 1). These MUST NOT be intercepted or cached by the SW,
+ * otherwise client-side navigation (Link clicks, router.push) will break.
+ *
  * Strategies:
- * - App Shell (HTML/CSS/JS): Cache-first with network fallback
- * - API GET requests: Network-first with cache fallback (stale data better than nothing)
+ * - Next.js RSC/prefetch requests: PASS THROUGH (never cache)
+ * - API GET requests: Network-first with cache fallback
  * - API mutations (POST/PUT/DELETE): Queue for background sync when offline
- * - Static assets (fonts/images): Cache-first with long TTL
- * - Navigation: Network-first with offline fallback page
+ * - Static assets (_next/static/*, fonts, images): Cache-first
+ * - Navigation (full page loads): Network-first with offline fallback
  */
 
-const CACHE_VERSION = 'yaadbooks-v4';
+const CACHE_VERSION = 'yaadbooks-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 
 // App shell files to pre-cache on install
 const APP_SHELL = [
-  '/',
-  '/dashboard',
   '/manifest.json',
   '/icons/icon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/apple-touch-icon.png',
   '/offline',
-];
-
-// API patterns to cache (GET only)
-const CACHEABLE_API_PATTERNS = [
-  '/api/v1/customers',
-  '/api/v1/products',
-  '/api/v1/invoices',
-  '/api/v1/expenses',
-  '/api/v1/companies',
-  '/api/auth/me',
-  '/api/sync/pull/products',
-  '/api/sync/pull/employees',
-  '/api/pos/employees',
-  '/api/shifts/active',
-  '/api/employee/me',
-  '/api/employee/me/schedule',
 ];
 
 // Queue for offline mutations
@@ -52,7 +39,6 @@ self.addEventListener('install', (event) => {
     caches
       .open(STATIC_CACHE)
       .then((cache) => {
-        // Pre-cache app shell — don't fail install if some fail
         return Promise.allSettled(
           APP_SHELL.map((url) =>
             cache.add(url).catch((err) => {
@@ -62,7 +48,7 @@ self.addEventListener('install', (event) => {
         );
       })
       .then(() => {
-        console.log('[SW] Install complete');
+        console.log('[SW] Install complete (v5)');
         return self.skipWaiting();
       })
   );
@@ -84,7 +70,7 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => {
-        console.log('[SW] Activate complete');
+        console.log('[SW] Activate complete (v5)');
         return self.clients.claim();
       })
   );
@@ -95,9 +81,25 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET cross-origin requests
+  // ═══ CRITICAL: Skip Next.js App Router RSC/data requests ═══
+  // These are used for client-side navigation and MUST pass through
+  // untouched. Intercepting them breaks Link clicks and router.push().
+  if (
+    request.headers.get('RSC') === '1' ||
+    request.headers.get('Next-Router-Prefetch') !== null ||
+    request.headers.get('Next-Router-State-Tree') !== null ||
+    url.searchParams.has('_rsc')
+  ) {
+    return; // Let the browser handle natively — do NOT call event.respondWith()
+  }
+
+  // Skip non-GET requests for non-API routes
+  if (request.method !== 'GET' && !url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Skip cross-origin requests (except Google Fonts)
   if (url.origin !== self.location.origin) {
-    // Cache Google Fonts
     if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
       event.respondWith(cacheFirst(request, FONT_CACHE, 30 * 24 * 60 * 60));
       return;
@@ -117,25 +119,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Large media files — pass through to network (don't cache 30 MB videos)
+  // Large media files — pass through (don't cache 30 MB videos)
   if (isLargeMedia(url.pathname)) {
-    return; // Let the browser handle it natively
+    return;
   }
 
-  // Static assets — cache first
+  // Next.js static assets (_next/static/*) — cache first, content-hashed
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE, 365 * 24 * 60 * 60));
+    return;
+  }
+
+  // Other static assets (images, fonts, etc.) — cache first
   if (isStaticAsset(url.pathname)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE, 7 * 24 * 60 * 60));
     return;
   }
 
-  // Navigation requests — network first with offline fallback
+  // Navigation requests (full page loads) — network first with offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigation(request));
     return;
   }
 
-  // Everything else — network first
-  event.respondWith(networkFirst(request, STATIC_CACHE, 60 * 60));
+  // Everything else — pass through to network (don't cache unknown requests)
+  // This is safer than caching, which could break Next.js internal requests
+  return;
 });
 
 // ─── STRATEGIES ────────────────────────────────────────────────
@@ -149,7 +158,6 @@ async function cacheFirst(request, cacheName, maxAgeSec) {
   const cached = await cache.match(request);
 
   if (cached) {
-    // Check if cache entry is still fresh
     const dateHeader = cached.headers.get('sw-cached-at');
     if (dateHeader) {
       const cachedAt = parseInt(dateHeader, 10);
@@ -157,7 +165,7 @@ async function cacheFirst(request, cacheName, maxAgeSec) {
         return cached;
       }
     } else {
-      return cached; // No timestamp, assume fresh
+      return cached;
     }
   }
 
@@ -177,7 +185,6 @@ async function cacheFirst(request, cacheName, maxAgeSec) {
     }
     return response;
   } catch {
-    // Network failed, return stale cache if available
     if (cached) return cached;
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
@@ -206,7 +213,6 @@ async function networkFirst(request, cacheName, maxAgeSec) {
     }
     return response;
   } catch {
-    // Network failed — try cache
     const cached = await cache.match(request);
     if (cached) {
       return cached;
@@ -227,22 +233,18 @@ async function networkFirst(request, cacheName, maxAgeSec) {
 async function handleNavigation(request) {
   try {
     const response = await fetch(request);
-    // Cache successful navigations
     if (response.ok) {
       const cache = await caches.open(STATIC_CACHE);
       cache.put(request, response.clone());
     }
     return response;
   } catch {
-    // Try cache
     const cached = await caches.match(request);
     if (cached) return cached;
 
-    // Fall back to offline page
     const offlinePage = await caches.match('/offline');
     if (offlinePage) return offlinePage;
 
-    // Last resort
     return new Response(offlineHTML(), {
       status: 200,
       headers: { 'Content-Type': 'text/html' },
@@ -258,7 +260,6 @@ async function handleMutation(request) {
     const response = await fetch(request.clone());
     return response;
   } catch {
-    // Offline — queue the mutation for later
     try {
       const body = await request.clone().text();
       const mutation = {
@@ -270,12 +271,10 @@ async function handleMutation(request) {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       };
 
-      // Store in IndexedDB via a simple approach
       const queue = await getMutationQueue();
       queue.push(mutation);
       await saveMutationQueue(queue);
 
-      // Notify clients about queued mutation
       const clients = await self.clients.matchAll();
       clients.forEach((client) => {
         client.postMessage({
@@ -315,7 +314,6 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Also sync when coming back online
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'ONLINE') {
     processMutationQueue();
@@ -325,9 +323,6 @@ self.addEventListener('message', (event) => {
   }
 });
 
-/**
- * Process queued mutations — retry in order.
- */
 async function processMutationQueue() {
   const queue = await getMutationQueue();
   if (queue.length === 0) return;
@@ -352,18 +347,15 @@ async function processMutationQueue() {
       });
 
       if (!response.ok && response.status >= 500) {
-        // Server error — keep in queue for retry
         remaining.push(mutation);
       }
     } catch {
-      // Still offline or network error — keep in queue
       remaining.push(mutation);
     }
   }
 
   await saveMutationQueue(remaining);
 
-  // Notify clients about sync results
   const clients = await self.clients.matchAll();
   clients.forEach((client) => {
     client.postMessage({
@@ -400,14 +392,9 @@ async function saveMutationQueue(queue) {
 // ─── HELPERS ──────────────────────────────────────────────────
 
 function isStaticAsset(pathname) {
-  return /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|mp4|webm|ogg|mp3|wav|pdf)$/.test(pathname) ||
-    pathname.startsWith('/_next/static/');
+  return /\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|pdf)$/.test(pathname);
 }
 
-/**
- * Large media files (video/audio) should NOT be cached by the SW.
- * Caching a 30 MB video via blob() wastes memory and can fail.
- */
 function isLargeMedia(pathname) {
   return /\.(mp4|webm|ogg|mp3|wav)$/.test(pathname);
 }
@@ -516,7 +503,6 @@ function offlineHTML() {
   </div>
   <script>
     window.addEventListener('online', () => window.location.reload());
-    // Check for queued mutations
     if ('caches' in window) {
       caches.open('yaadbooks-queue').then(cache => {
         cache.match('/queue').then(response => {
