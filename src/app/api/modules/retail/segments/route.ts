@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
-import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { requireModule } from '@/modules/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 
@@ -13,7 +13,7 @@ import { badRequest, internalError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
-    const { user, error: authError } = await requireAuth(request);
+    const { user, error: authError } = await requirePermission(request, 'retail:segments:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
@@ -71,7 +71,7 @@ const createSegmentSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, error: authError } = await requireAuth(request);
+    const { user, error: authError } = await requirePermission(request, 'retail:segments:create');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;

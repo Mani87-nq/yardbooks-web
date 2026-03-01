@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const section = searchParams.get('section') ?? undefined;
     const status = searchParams.get('status') ?? undefined;
-    const includeSession = searchParams.get('includeSession') === 'true';
 
     const where = {
       companyId: companyId!,
@@ -33,20 +32,27 @@ export async function GET(request: NextRequest) {
     const tables = await (prisma as any).restaurantTable.findMany({
       where,
       orderBy: [{ section: 'asc' }, { number: 'asc' }],
-      ...(includeSession
-        ? {
-            include: {
-              sessions: {
-                where: { status: 'ACTIVE' },
-                take: 1,
-                orderBy: { seatedAt: 'desc' },
-              },
-            },
-          }
-        : {}),
+      include: {
+        sessions: {
+          where: { status: { in: ['ACTIVE', 'OCCUPIED'] } },
+          take: 1,
+          orderBy: { seatedAt: 'desc' },
+        },
+      },
     });
 
-    return NextResponse.json({ data: tables });
+    // Flatten active session fields onto each table for the FE
+    const data = tables.map((table: any) => {
+      const activeSession = table.sessions?.[0] ?? null;
+      const { sessions, ...rest } = table;
+      return {
+        ...rest,
+        currentOrderId: activeSession?.posOrderId ?? null,
+        seatedAt: activeSession?.seatedAt?.toISOString?.() ?? activeSession?.seatedAt ?? null,
+      };
+    });
+
+    return NextResponse.json({ data });
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to list tables');
   }

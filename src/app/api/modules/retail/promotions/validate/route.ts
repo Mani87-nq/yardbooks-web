@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
-import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { requireModule } from '@/modules/middleware';
 import { badRequest, notFound, internalError } from '@/lib/api-error';
 
@@ -27,7 +27,7 @@ const validateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, error: authError } = await requireAuth(request);
+    const { user, error: authError } = await requirePermission(request, 'retail:promotions:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;

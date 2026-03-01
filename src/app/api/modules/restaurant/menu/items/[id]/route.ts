@@ -32,7 +32,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
     });
     if (!item) return notFound('Menu item not found');
 
-    return NextResponse.json(item);
+    // Transform to match the list endpoint's response shape (UI-friendly aliases)
+    const transformed = {
+      ...item,
+      price: Number(item.price),
+      preparationTime: item.prepTime,
+      allergens: Array.isArray(item.tags) ? item.tags.join(', ') : null,
+      modifiers: item.modifierGroups?.map((g: any) => g.name).join(', ') || null,
+    };
+
+    return NextResponse.json(transformed);
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to get menu item');
   }

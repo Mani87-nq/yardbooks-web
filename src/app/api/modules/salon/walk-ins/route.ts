@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const { user, error: authError } = await requirePermission(
       request,
-      'salon:appointments:read'
+      'salon:walkins:read'
     );
     if (authError) return authError;
 
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   try {
     const { user, error: authError } = await requirePermission(
       request,
-      'salon:appointments:create'
+      'salon:walkins:create'
     );
     if (authError) return authError;
 
@@ -176,7 +176,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const { user, error: authError } = await requirePermission(
       request,
-      'salon:appointments:update'
+      'salon:walkins:update'
     );
     if (authError) return authError;
 

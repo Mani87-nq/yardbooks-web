@@ -118,7 +118,7 @@ export default function BudgetsPage() {
 
   const { data: glAccountsResponse } = useQuery({
     queryKey: ['glAccounts'],
-    queryFn: () => api.get<ListResponse<GLAccount>>('/api/v1/accounting/chart'),
+    queryFn: () => api.get<ListResponse<GLAccount>>('/api/v1/gl-accounts'),
   });
 
   const createBudget = useMutation({

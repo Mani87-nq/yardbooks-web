@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod/v4';
 import prisma from '@/lib/db';
-import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { requireModule } from '@/modules/middleware';
 import { badRequest, notFound, internalError } from '@/lib/api-error';
 
@@ -16,7 +16,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const { user, error: authError } = await requireAuth(request);
+    const { user, error: authError } = await requirePermission(request, 'retail:loyalty:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
@@ -56,7 +56,7 @@ const updateProgramSchema = z.object({
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const { user, error: authError } = await requireAuth(request);
+    const { user, error: authError } = await requirePermission(request, 'retail:loyalty:update');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;
@@ -99,7 +99,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const { user, error: authError } = await requireAuth(request);
+    const { user, error: authError } = await requirePermission(request, 'retail:loyalty:delete');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;

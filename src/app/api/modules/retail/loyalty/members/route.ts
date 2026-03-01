@@ -3,13 +3,13 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { requireAuth, requireCompany } from '@/lib/auth/middleware';
+import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { requireModule } from '@/modules/middleware';
 import { internalError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
-    const { user, error: authError } = await requireAuth(request);
+    const { user, error: authError } = await requirePermission(request, 'retail:members:read');
     if (authError) return authError;
     const { companyId, error: companyError } = requireCompany(user!);
     if (companyError) return companyError;

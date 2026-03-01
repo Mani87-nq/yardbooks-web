@@ -10,6 +10,33 @@ import { requirePermission, requireCompany } from '@/lib/auth/middleware';
 import { requireModule } from '@/modules/middleware';
 import { badRequest, internalError } from '@/lib/api-error';
 
+/**
+ * Serialize a Prisma Json modifiers value into a human-readable comma-separated string.
+ * Handles arrays of strings, arrays of objects with a `name` key, plain objects, and primitives.
+ * Returns null for null/undefined input.
+ */
+function formatModifiers(modifiers: unknown): string | null {
+  if (modifiers == null) return null;
+
+  if (Array.isArray(modifiers)) {
+    const parts = modifiers.map((m) => {
+      if (typeof m === 'string') return m;
+      if (m && typeof m === 'object' && 'name' in m) return String(m.name);
+      return String(m);
+    });
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+
+  if (typeof modifiers === 'object') {
+    // e.g. { "Size": "Large", "Extra": "Cheese" } → "Size: Large, Extra: Cheese"
+    const entries = Object.entries(modifiers as Record<string, unknown>);
+    if (entries.length === 0) return null;
+    return entries.map(([key, val]) => `${key}: ${val}`).join(', ');
+  }
+
+  return String(modifiers);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { user, error: authError } = await requirePermission(request, 'restaurant:kitchen:read');
@@ -59,7 +86,33 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ data: orders });
+    // Transform DB records to match the front-end KitchenOrder contract
+    const transformed = orders.map((order: any) => {
+      const tableNumber = order.tableSession?.table?.number
+        ? Number(order.tableSession.table.number)
+        : null;
+
+      return {
+        ...order,
+        // 1. Map DB status → FE status
+        status: REVERSE_STATUS_MAP[order.status] ?? order.status,
+        // 2. Flatten table info
+        tableNumber,
+        tableName: tableNumber != null ? `Table ${tableNumber}` : null,
+        // 3. Rename notes → specialInstructions
+        specialInstructions: order.notes ?? null,
+        // 4. Transform items
+        items: order.items.map((item: any) => ({
+          ...item,
+          // 5. Rename specialNotes → notes
+          notes: item.specialNotes ?? null,
+          // 6. Serialize modifiers (Json) to readable string
+          modifiers: formatModifiers(item.modifiers),
+        })),
+      };
+    });
+
+    return NextResponse.json({ data: transformed });
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to list kitchen orders');
   }
@@ -162,6 +215,18 @@ const patchKitchenOrderSchema = z.object({
   orderId: z.string().min(1),
   status: z.string().min(1),
 });
+
+/**
+ * Reverse map: DB status → front-end status for GET responses.
+ * The database uses:   PENDING, PREPARING, READY, SERVED, CANCELLED
+ * The kitchen UI uses: NEW, IN_PROGRESS, READY, COMPLETED
+ */
+const REVERSE_STATUS_MAP: Record<string, string> = {
+  PENDING: 'NEW',
+  PREPARING: 'IN_PROGRESS',
+  READY: 'READY',
+  SERVED: 'COMPLETED',
+};
 
 /**
  * Map front-end status names to database status values.
