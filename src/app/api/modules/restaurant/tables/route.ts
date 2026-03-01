@@ -53,8 +53,9 @@ export async function GET(request: NextRequest) {
 }
 
 const createTableSchema = z.object({
-  number: z.string().min(1).max(20),
-  section: z.string().max(50).optional(),
+  number: z.union([z.string().min(1).max(20), z.number()]).transform(String),
+  name: z.string().max(100).nullable().optional(),
+  section: z.string().max(50).nullable().optional(),
   capacity: z.number().int().min(1).max(50).default(4),
   shape: z.enum(['SQUARE', 'ROUND', 'RECTANGLE', 'BAR_SEAT']).default('SQUARE'),
   posX: z.number().min(0).max(100).optional(),

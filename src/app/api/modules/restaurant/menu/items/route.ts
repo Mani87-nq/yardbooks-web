@@ -51,7 +51,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ data: items });
+    // Transform to include UI-friendly field aliases
+    const data = items.map((item: any) => ({
+      ...item,
+      price: Number(item.price),
+      preparationTime: item.prepTime,
+      allergens: Array.isArray(item.tags) ? item.tags.join(', ') : null,
+      modifiers: item.modifierGroups?.map((g: any) => g.name).join(', ') || null,
+    }));
+
+    return NextResponse.json({ data });
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to list menu items');
   }
@@ -60,10 +69,14 @@ export async function GET(request: NextRequest) {
 const createItemSchema = z.object({
   categoryId: z.string().min(1),
   name: z.string().min(1).max(200),
-  description: z.string().max(1000).optional(),
+  description: z.string().max(1000).nullable().optional(),
   price: z.number().min(0),
-  imageUrl: z.string().url().optional(),
-  prepTime: z.number().int().min(0).optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  // Accept both field names
+  prepTime: z.number().int().min(0).nullable().optional(),
+  preparationTime: z.number().int().min(0).nullable().optional(),
+  allergens: z.string().max(500).nullable().optional(),
+  modifiers: z.string().max(500).nullable().optional(),
   isAvailable: z.boolean().default(true),
   isPopular: z.boolean().default(false),
   tags: z.array(z.string()).optional(),
@@ -93,10 +106,30 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
+    // Resolve aliased field names
+    const prepTime = parsed.data.prepTime ?? parsed.data.preparationTime ?? null;
+
+    // Build tags array that includes allergens info if provided
+    let tags = parsed.data.tags || [];
+    if (parsed.data.allergens) {
+      const allergenTags = parsed.data.allergens.split(',').map((a: string) => a.trim()).filter(Boolean);
+      tags = [...tags, ...allergenTags];
+    }
+
     const item = await (prisma as any).menuItem.create({
       data: {
-        ...parsed.data,
-        tags: parsed.data.tags || null,
+        categoryId: parsed.data.categoryId,
+        name: parsed.data.name,
+        description: parsed.data.description || null,
+        price: parsed.data.price,
+        imageUrl: parsed.data.imageUrl || null,
+        prepTime,
+        isAvailable: parsed.data.isAvailable,
+        isPopular: parsed.data.isPopular,
+        tags: tags.length > 0 ? tags : null,
+        course: parsed.data.course,
+        sortOrder: parsed.data.sortOrder,
+        productId: parsed.data.productId || null,
         companyId: companyId!,
       },
       include: {

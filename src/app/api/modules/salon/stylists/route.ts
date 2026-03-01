@@ -49,7 +49,10 @@ export async function GET(request: NextRequest) {
           select: {
             appointments: {
               where: {
-                date: new Date().toISOString().split('T')[0],
+                date: {
+                  gte: new Date(new Date().toISOString().split('T')[0] + 'T00:00:00.000Z'),
+                  lte: new Date(new Date().toISOString().split('T')[0] + 'T23:59:59.999Z'),
+                },
                 status: { in: ['BOOKED', 'CONFIRMED', 'IN_PROGRESS'] },
               },
             },

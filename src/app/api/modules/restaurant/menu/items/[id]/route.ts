@@ -41,17 +41,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
 const updateItemSchema = z.object({
   categoryId: z.string().optional(),
   name: z.string().min(1).max(200).optional(),
-  description: z.string().max(1000).optional(),
+  description: z.string().max(1000).nullable().optional(),
   price: z.number().min(0).optional(),
-  imageUrl: z.string().url().optional(),
-  prepTime: z.number().int().min(0).optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  prepTime: z.number().int().min(0).nullable().optional(),
+  preparationTime: z.number().int().min(0).nullable().optional(),
+  allergens: z.string().max(500).nullable().optional(),
+  modifiers: z.string().max(500).nullable().optional(),
   isAvailable: z.boolean().optional(),
   isPopular: z.boolean().optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string()).nullable().optional(),
   course: z.enum(['APPETIZER', 'MAIN', 'DESSERT', 'DRINK', 'SIDE']).optional(),
   sortOrder: z.number().int().min(0).optional(),
-  productId: z.string().optional(),
-});
+  productId: z.string().nullable().optional(),
+}).passthrough(); // Allow extra UI fields (id, category, createdAt, etc.) without failing validation
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
@@ -72,9 +75,25 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const parsed = updateItemSchema.safeParse(body);
     if (!parsed.success) return badRequest('Validation failed');
 
+    // Resolve aliased fields and build clean DB update payload
+    const prepTime = parsed.data.prepTime ?? parsed.data.preparationTime;
+    const updateData: Record<string, any> = {};
+    if (parsed.data.categoryId !== undefined) updateData.categoryId = parsed.data.categoryId;
+    if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+    if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
+    if (parsed.data.price !== undefined) updateData.price = parsed.data.price;
+    if (parsed.data.imageUrl !== undefined) updateData.imageUrl = parsed.data.imageUrl;
+    if (prepTime !== undefined) updateData.prepTime = prepTime;
+    if (parsed.data.isAvailable !== undefined) updateData.isAvailable = parsed.data.isAvailable;
+    if (parsed.data.isPopular !== undefined) updateData.isPopular = parsed.data.isPopular;
+    if (parsed.data.tags !== undefined) updateData.tags = parsed.data.tags;
+    if (parsed.data.course !== undefined) updateData.course = parsed.data.course;
+    if (parsed.data.sortOrder !== undefined) updateData.sortOrder = parsed.data.sortOrder;
+    if (parsed.data.productId !== undefined) updateData.productId = parsed.data.productId;
+
     const item = await (prisma as any).menuItem.update({
       where: { id },
-      data: parsed.data,
+      data: updateData,
       include: {
         category: { select: { id: true, name: true } },
         modifierGroups: {

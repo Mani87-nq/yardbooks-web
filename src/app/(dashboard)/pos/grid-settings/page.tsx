@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
 import { usePosStore } from '@/store/posStore';
-import { useActiveProducts } from '@/store/appStore';
+import { useProducts } from '@/hooks/api/useProducts';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
 import { DEFAULT_GRID_SETTINGS, SHORTCUT_COLOR_PRESETS, SHORTCUT_ICON_PRESETS, type ProductShortcut } from '@/types/pos';
@@ -313,7 +313,11 @@ function PreviewTile({
 }
 
 export default function GridSettingsPage() {
-  const products = useActiveProducts();
+  const { data: productsData } = useProducts({ limit: 100 });
+  const products = useMemo(
+    () => (productsData?.data ?? []).filter((p) => p.isActive),
+    [productsData]
+  );
   const gridSettings = usePosStore((state) => state.gridSettings);
   const gridShortcuts = usePosStore((state) => state.gridShortcuts);
   const updateGridSettings = usePosStore((state) => state.updateGridSettings);

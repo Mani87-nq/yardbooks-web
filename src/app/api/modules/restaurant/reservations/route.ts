@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date'); // YYYY-MM-DD
     const status = searchParams.get('status');
+    const filter = searchParams.get('filter'); // today, upcoming, past
     const cursor = searchParams.get('cursor') ?? undefined;
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 100);
 
@@ -29,7 +30,22 @@ export async function GET(request: NextRequest) {
       ...(status ? { status } : {}),
     };
 
-    if (date) {
+    // Handle filter shortcuts from the UI
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    if (filter === 'today') {
+      const filterDate = date || todayStart.toISOString().split('T')[0];
+      const dayStart = new Date(`${filterDate}T00:00:00.000Z`);
+      const dayEnd = new Date(`${filterDate}T23:59:59.999Z`);
+      where.reservationDate = { gte: dayStart, lte: dayEnd };
+    } else if (filter === 'upcoming') {
+      where.reservationDate = { gt: todayEnd };
+      if (!status) where.status = { in: ['PENDING', 'CONFIRMED'] };
+    } else if (filter === 'past') {
+      where.reservationDate = { lt: todayStart };
+    } else if (date) {
       const dayStart = new Date(`${date}T00:00:00.000Z`);
       const dayEnd = new Date(`${date}T23:59:59.999Z`);
       where.reservationDate = { gte: dayStart, lte: dayEnd };
@@ -44,11 +60,27 @@ export async function GET(request: NextRequest) {
     });
 
     const hasMore = reservations.length > limit;
-    const data = hasMore ? reservations.slice(0, limit) : reservations;
+    const rawData = hasMore ? reservations.slice(0, limit) : reservations;
+
+    // Transform to match the front-end expected shape
+    const data = rawData.map((r: any) => ({
+      id: r.id,
+      customerName: r.customerName,
+      customerPhone: r.customerPhone,
+      customerEmail: r.customerEmail,
+      partySize: r.guestCount,
+      date: r.reservationDate?.toISOString?.() || r.reservationDate,
+      time: r.reservationTime,
+      tableId: r.tableId,
+      tableNumber: r.table?.number ? parseInt(r.table.number, 10) || r.table.number : null,
+      status: r.status,
+      specialRequests: r.specialRequests,
+      createdAt: r.createdAt?.toISOString?.() || r.createdAt,
+    }));
 
     return NextResponse.json({
       data,
-      pagination: { nextCursor: hasMore ? data[data.length - 1].id : null, hasMore, limit },
+      pagination: { nextCursor: hasMore ? rawData[rawData.length - 1].id : null, hasMore, limit },
     });
   } catch (error) {
     return internalError(error instanceof Error ? error.message : 'Failed to list reservations');
@@ -57,16 +89,20 @@ export async function GET(request: NextRequest) {
 
 const createReservationSchema = z.object({
   customerName: z.string().min(1).max(200),
-  customerPhone: z.string().max(30).optional(),
-  customerEmail: z.string().email().optional(),
+  customerPhone: z.string().max(30).nullable().optional(),
+  customerEmail: z.string().email().nullable().optional(),
   customerId: z.string().optional(),
-  tableId: z.string().optional(),
-  guestCount: z.number().int().min(1).max(100),
-  reservationDate: z.string(), // ISO date string
-  reservationTime: z.string().regex(/^\d{2}:\d{2}$/), // "HH:mm"
+  tableId: z.string().nullable().optional(),
+  // Accept both API-native and UI field names
+  guestCount: z.number().int().min(1).max(100).optional(),
+  partySize: z.number().int().min(1).max(100).optional(),
+  reservationDate: z.string().optional(),
+  date: z.string().optional(),
+  reservationTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   duration: z.number().int().min(15).max(480).default(90),
-  notes: z.string().max(1000).optional(),
-  specialRequests: z.string().max(1000).optional(),
+  notes: z.string().max(1000).nullable().optional(),
+  specialRequests: z.string().max(1000).nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -90,6 +126,15 @@ export async function POST(request: NextRequest) {
       return badRequest('Validation failed', fieldErrors);
     }
 
+    // Resolve aliased field names (UI sends partySize/date/time, API stores guestCount/reservationDate/reservationTime)
+    const guestCount = parsed.data.guestCount || parsed.data.partySize;
+    const reservationDate = parsed.data.reservationDate || parsed.data.date;
+    const reservationTime = parsed.data.reservationTime || parsed.data.time;
+
+    if (!guestCount || !reservationDate || !reservationTime) {
+      return badRequest('guestCount (or partySize), date, and time are required');
+    }
+
     const reservation = await (prisma as any).reservation.create({
       data: {
         companyId: companyId!,
@@ -98,9 +143,9 @@ export async function POST(request: NextRequest) {
         customerEmail: parsed.data.customerEmail || null,
         customerId: parsed.data.customerId || null,
         tableId: parsed.data.tableId || null,
-        guestCount: parsed.data.guestCount,
-        reservationDate: new Date(parsed.data.reservationDate),
-        reservationTime: parsed.data.reservationTime,
+        guestCount,
+        reservationDate: new Date(reservationDate),
+        reservationTime,
         duration: parsed.data.duration,
         notes: parsed.data.notes || null,
         specialRequests: parsed.data.specialRequests || null,

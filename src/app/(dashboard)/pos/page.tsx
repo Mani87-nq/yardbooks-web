@@ -627,7 +627,7 @@ export default function POSPage() {
                     <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
                         No terminals configured.{' '}
-                        <Link href="/pos/grid-settings" className="text-emerald-600 hover:underline font-medium">
+                        <Link href="/pos/settings" className="text-emerald-600 hover:underline font-medium">
                           Set up terminals first
                         </Link>
                       </p>

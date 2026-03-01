@@ -6,6 +6,7 @@
 import { NextRequest } from 'next/server';
 import { verifyAccessToken, type AccessTokenPayload } from './jwt';
 import { hasPermission, type Permission, type Role } from './rbac';
+import { hasAnyPermission as hasModuleOrCorePermission } from '@/modules/permissions';
 import { unauthorized, forbidden } from '@/lib/api-error';
 
 /**
@@ -58,7 +59,14 @@ export async function requirePermission(request: NextRequest, permission: Permis
   const { user, error } = await requireAuth(request);
   if (error) return { user: null, error };
 
-  if (!hasPermission(user!.role as Role, permission)) {
+  // Module permissions follow the pattern {moduleId}:{entity}:{action} (3 parts).
+  // Use the module-aware permission check for those; fall back to core RBAC for 2-part.
+  const parts = (permission as string).split(':');
+  const allowed = parts.length === 3
+    ? hasModuleOrCorePermission(user!.role as Role, permission as string)
+    : hasPermission(user!.role as Role, permission);
+
+  if (!allowed) {
     return { user: null, error: forbidden(`Missing permission: ${permission}`) };
   }
 
