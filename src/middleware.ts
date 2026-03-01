@@ -73,6 +73,25 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ============================================
+  // SKIP RSC / PREFETCH REQUESTS
+  // ============================================
+  // Next.js App Router sends internal RSC requests for client-side navigation.
+  // These carry a `Next-Router-State-Tree` header with URL-encoded state.
+  // Passing modified request headers via NextResponse.next({ request: { headers } })
+  // corrupts this header, causing "router state header could not be parsed" errors
+  // and breaking ALL client-side navigation (Link clicks, router.push).
+  // RSC requests already carry session cookies from the initial page load,
+  // so they don't need middleware auth checks, CSP nonces, or security headers.
+  if (
+    request.headers.get('RSC') === '1' ||
+    request.headers.get('Next-Router-Prefetch') !== null ||
+    request.headers.get('Next-Router-State-Tree') !== null ||
+    request.nextUrl.searchParams.has('_rsc')
+  ) {
+    return NextResponse.next();
+  }
+
+  // ============================================
   // CSP NONCE — generated per request
   // ============================================
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');

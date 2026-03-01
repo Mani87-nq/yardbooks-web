@@ -1,18 +1,21 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAppStore } from '@/store/appStore';
+
+/**
+ * Module-level guard — survives component unmount/remount cycles.
+ * useRef resets on every mount, so it can't prevent duplicate registrations
+ * when React Strict Mode or layout re-renders remount this component.
+ */
+let swRegistered = false;
 
 /**
  * Registers the service worker and handles background sync.
  * Renders nothing — just side effects.
- *
- * Uses a ref guard to prevent multiple registrations (React Strict Mode
- * and layout re-renders can mount this component multiple times).
  */
 export function ServiceWorkerRegistration() {
   const addNotification = useAppStore((s) => s.addNotification);
-  const registeredRef = useRef(false);
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
@@ -58,11 +61,11 @@ export function ServiceWorkerRegistration() {
       return;
     }
 
-    // Guard against multiple registrations (React Strict Mode, re-renders)
-    if (registeredRef.current) {
+    // Module-level guard — prevents duplicate registrations across remounts
+    if (swRegistered) {
       return;
     }
-    registeredRef.current = true;
+    swRegistered = true;
 
     // Register service worker
     navigator.serviceWorker
