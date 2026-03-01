@@ -2,7 +2,8 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { useAppStore, useDashboardStats, useRecentInvoices, useLowStockProducts } from '@/store/appStore';
+import { useAppStore } from '@/store/appStore';
+import { useDashboardStats, useRecentInvoices, useLowStockProducts } from '@/hooks/api/useDashboard';
 import { formatRelativeTime } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
 import { StatusBadge } from '@/components/ui/Badge';

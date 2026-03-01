@@ -24,10 +24,11 @@ interface PaginatedResponse<T> {
   pagination: { nextCursor: string | null; hasMore: boolean; limit: number };
 }
 
-export function useExpenses(params?: { category?: string; limit?: number }) {
+export function useExpenses(params?: { category?: string; limit?: number; search?: string }) {
   const searchParams = new URLSearchParams();
   if (params?.category) searchParams.set('category', params.category);
   if (params?.limit) searchParams.set('limit', String(params.limit));
+  if (params?.search) searchParams.set('search', params.search);
   const qs = searchParams.toString();
 
   return useQuery({

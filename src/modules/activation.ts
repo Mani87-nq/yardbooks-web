@@ -11,6 +11,10 @@
 import { prisma } from '@/lib/db';
 import { moduleRegistry } from './registry';
 import { eventBus } from './event-bus';
+import { registerCategorySeedHandler } from './hooks/seed-categories';
+
+// Register lifecycle hooks once at module load time
+registerCategorySeedHandler();
 
 // ============================================
 // REQUEST-SCOPED CACHE

@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
           { sku: { contains: search, mode: 'insensitive' as const } },
+          { barcode: { contains: search, mode: 'insensitive' as const } },
         ],
       } : {}),
       ...(category ? { category } : {}),

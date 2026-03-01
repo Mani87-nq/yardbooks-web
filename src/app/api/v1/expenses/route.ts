@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get('cursor') ?? undefined;
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '20'), 100);
+    const search = searchParams.get('search') ?? undefined;
     const categoryParam = searchParams.get('category');
     const validCategories = ['ADVERTISING', 'BANK_FEES', 'CONTRACTOR', 'EQUIPMENT', 'INSURANCE', 'INVENTORY', 'MEALS', 'OFFICE_SUPPLIES', 'PROFESSIONAL_SERVICES', 'RENT', 'REPAIRS', 'SALARIES', 'SOFTWARE', 'TAXES', 'TELEPHONE', 'TRAVEL', 'UTILITIES', 'VEHICLE', 'OTHER'] as const;
     const category = categoryParam && validCategories.includes(categoryParam as any) ? categoryParam : undefined;
@@ -31,6 +32,15 @@ export async function GET(request: NextRequest) {
       companyId: companyId!,
       deletedAt: null,
       ...(category ? { category: category as any } : {}),
+      ...(search
+        ? {
+            OR: [
+              { description: { contains: search, mode: 'insensitive' as const } },
+              { reference: { contains: search, mode: 'insensitive' as const } },
+              { vendor: { name: { contains: search, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
     };
 
     const expenses = await prisma.expense.findMany({

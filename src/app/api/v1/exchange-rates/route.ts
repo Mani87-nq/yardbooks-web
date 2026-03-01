@@ -13,6 +13,10 @@ import { Currency } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth: exchange rates require authentication
+    const { error: authError } = await requirePermission(request, 'settings:read');
+    if (authError) return authError;
+
     const { searchParams } = new URL(request.url);
     const fromCurrency = searchParams.get('from') as Currency | null;
     const toCurrency = searchParams.get('to') as Currency | null;

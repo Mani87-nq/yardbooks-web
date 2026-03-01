@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppStore } from '@/store/appStore';
 import { useCurrency } from '@/hooks/useCurrency';
+import api from '@/lib/api-client';
 import {
   MagnifyingGlassIcon,
   UserGroupIcon,
@@ -12,7 +12,6 @@ import {
   BanknotesIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import type { Customer, Product, Invoice, Quotation, Expense } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,173 +68,124 @@ const STATUS_COLORS: Record<string, string> = {
   converted: 'bg-purple-100 text-purple-700',
 };
 
-function matchesQuery(value: string | undefined | null, query: string): boolean {
-  if (!value) return false;
-  return value.toLowerCase().includes(query);
-}
-
 // ---------------------------------------------------------------------------
-// Search logic
+// API-backed search (replaces Zustand store search)
 // ---------------------------------------------------------------------------
 
-function searchCustomers(
-  customers: Customer[],
-  query: string,
-  companyId?: string,
-): { items: SearchResultItem[]; total: number } {
-  const filtered = customers.filter(
-    (c) =>
-      (!companyId || c.companyId === companyId) &&
-      (matchesQuery(c.name, query) ||
-        matchesQuery(c.companyName, query) ||
-        matchesQuery(c.email, query) ||
-        matchesQuery(c.phone, query)),
-  );
-  return {
-    total: filtered.length,
-    items: filtered.slice(0, MAX_PER_CATEGORY).map((c) => ({
-      id: c.id,
-      category: 'customers' as const,
-      primary: c.name,
-      secondary: c.companyName || c.email || c.phone || undefined,
-      href: `/customers/${c.id}`,
-    })),
-  };
+interface ApiSearchResults {
+  categories: CategoryResults[];
+  isLoading: boolean;
 }
 
-function searchProducts(
-  products: Product[],
+async function searchViaApi(
   query: string,
   fc: (n: number) => string,
-  companyId?: string,
-): { items: SearchResultItem[]; total: number } {
-  const filtered = products.filter(
-    (p) =>
-      (!companyId || p.companyId === companyId) &&
-      (matchesQuery(p.name, query) ||
-        matchesQuery(p.sku, query) ||
-        matchesQuery(p.barcode, query) ||
-        matchesQuery(p.description, query)),
-  );
-  return {
-    total: filtered.length,
-    items: filtered.slice(0, MAX_PER_CATEGORY).map((p) => ({
-      id: p.id,
-      category: 'products' as const,
-      primary: p.name,
-      secondary: p.sku ? `SKU: ${p.sku}` : undefined,
-      meta: `${fc(p.unitPrice)}  |  Stock: ${p.quantity}`,
-      href: '/inventory',
-    })),
-  };
-}
+  signal: AbortSignal
+): Promise<CategoryResults[]> {
+  const cats: CategoryResults[] = [];
 
-function searchInvoices(
-  invoices: Invoice[],
-  customers: Customer[],
-  query: string,
-  fc: (n: number) => string,
-  companyId?: string,
-): { items: SearchResultItem[]; total: number } {
-  const customerMap = new Map(customers.map((c) => [c.id, c]));
-  const filtered = invoices.filter((inv) => {
-    if (companyId && inv.companyId !== companyId) return false;
-    const cust = inv.customer || customerMap.get(inv.customerId);
-    return (
-      matchesQuery(inv.invoiceNumber, query) ||
-      matchesQuery(cust?.name, query)
-    );
-  });
-  return {
-    total: filtered.length,
-    items: filtered.slice(0, MAX_PER_CATEGORY).map((inv) => {
-      const cust = inv.customer || customerMap.get(inv.customerId);
-      return {
+  // Fire all searches in parallel
+  const [customers, products, invoices, quotations, expenses] = await Promise.allSettled([
+    api.get<{ data: any[] }>(`/api/v1/customers?search=${encodeURIComponent(query)}&limit=${MAX_PER_CATEGORY}`, { signal }),
+    api.get<{ data: any[] }>(`/api/v1/products?search=${encodeURIComponent(query)}&limit=${MAX_PER_CATEGORY}`, { signal }),
+    api.get<{ data: any[] }>(`/api/v1/invoices?search=${encodeURIComponent(query)}&limit=${MAX_PER_CATEGORY}`, { signal }),
+    api.get<{ data: any[] }>(`/api/v1/quotations?search=${encodeURIComponent(query)}&limit=${MAX_PER_CATEGORY}`, { signal }),
+    api.get<{ data: any[] }>(`/api/v1/expenses?search=${encodeURIComponent(query)}&limit=${MAX_PER_CATEGORY}`, { signal }),
+  ]);
+
+  // Customers
+  if (customers.status === 'fulfilled' && customers.value.data.length > 0) {
+    cats.push({
+      ...CATEGORY_META.customers,
+      category: 'customers',
+      total: customers.value.data.length,
+      items: customers.value.data.slice(0, MAX_PER_CATEGORY).map((c: any) => ({
+        id: c.id,
+        category: 'customers' as const,
+        primary: c.name,
+        secondary: c.companyName || c.email || c.phone || undefined,
+        href: `/customers/${c.id}`,
+      })),
+    });
+  }
+
+  // Products
+  if (products.status === 'fulfilled' && products.value.data.length > 0) {
+    cats.push({
+      ...CATEGORY_META.products,
+      category: 'products',
+      total: products.value.data.length,
+      items: products.value.data.slice(0, MAX_PER_CATEGORY).map((p: any) => ({
+        id: p.id,
+        category: 'products' as const,
+        primary: p.name,
+        secondary: p.sku ? `SKU: ${p.sku}` : undefined,
+        meta: `${fc(Number(p.unitPrice))}  |  Stock: ${p.quantity}`,
+        href: '/inventory',
+      })),
+    });
+  }
+
+  // Invoices
+  if (invoices.status === 'fulfilled' && invoices.value.data.length > 0) {
+    cats.push({
+      ...CATEGORY_META.invoices,
+      category: 'invoices',
+      total: invoices.value.data.length,
+      items: invoices.value.data.slice(0, MAX_PER_CATEGORY).map((inv: any) => ({
         id: inv.id,
         category: 'invoices' as const,
         primary: inv.invoiceNumber,
-        secondary: cust?.name,
-        meta: fc(inv.total),
+        secondary: inv.customer?.name,
+        meta: fc(Number(inv.total)),
         badge: {
           label: inv.status.charAt(0).toUpperCase() + inv.status.slice(1),
           color: STATUS_COLORS[inv.status] || 'bg-gray-100 text-gray-700',
         },
         href: `/invoices/${inv.id}`,
-      };
-    }),
-  };
-}
+      })),
+    });
+  }
 
-function searchQuotations(
-  quotations: Quotation[],
-  customers: Customer[],
-  query: string,
-  fc: (n: number) => string,
-  companyId?: string,
-): { items: SearchResultItem[]; total: number } {
-  const customerMap = new Map(customers.map((c) => [c.id, c]));
-  const filtered = quotations.filter((q) => {
-    if (companyId && q.companyId !== companyId) return false;
-    const cust = q.customer || customerMap.get(q.customerId);
-    return (
-      matchesQuery(q.quotationNumber, query) ||
-      matchesQuery(q.customerName, query) ||
-      matchesQuery(cust?.name, query)
-    );
-  });
-  return {
-    total: filtered.length,
-    items: filtered.slice(0, MAX_PER_CATEGORY).map((q) => {
-      const cust = q.customer || customerMap.get(q.customerId);
-      return {
+  // Quotations
+  if (quotations.status === 'fulfilled' && quotations.value.data.length > 0) {
+    cats.push({
+      ...CATEGORY_META.quotations,
+      category: 'quotations',
+      total: quotations.value.data.length,
+      items: quotations.value.data.slice(0, MAX_PER_CATEGORY).map((q: any) => ({
         id: q.id,
         category: 'quotations' as const,
         primary: q.quotationNumber,
-        secondary: q.customerName || cust?.name,
-        meta: fc(q.total),
+        secondary: q.customerName || q.customer?.name,
+        meta: fc(Number(q.total)),
         badge: {
           label: q.status.charAt(0).toUpperCase() + q.status.slice(1),
           color: STATUS_COLORS[q.status] || 'bg-gray-100 text-gray-700',
         },
         href: '/quotations',
-      };
-    }),
-  };
-}
+      })),
+    });
+  }
 
-function searchExpenses(
-  expenses: Expense[],
-  customers: Customer[],
-  query: string,
-  fc: (n: number) => string,
-  companyId?: string,
-): { items: SearchResultItem[]; total: number } {
-  const vendorMap = new Map(
-    customers.filter((c) => c.type === 'vendor' || c.type === 'both').map((c) => [c.id, c]),
-  );
-  const filtered = expenses.filter((e) => {
-    if (companyId && e.companyId !== companyId) return false;
-    const vendor = e.vendor || (e.vendorId ? vendorMap.get(e.vendorId) : undefined);
-    return (
-      matchesQuery(e.description, query) ||
-      matchesQuery(e.reference, query) ||
-      matchesQuery(vendor?.name, query)
-    );
-  });
-  return {
-    total: filtered.length,
-    items: filtered.slice(0, MAX_PER_CATEGORY).map((e) => {
-      const vendor = e.vendor || (e.vendorId ? vendorMap.get(e.vendorId) : undefined);
-      return {
+  // Expenses
+  if (expenses.status === 'fulfilled' && expenses.value.data.length > 0) {
+    cats.push({
+      ...CATEGORY_META.expenses,
+      category: 'expenses',
+      total: expenses.value.data.length,
+      items: expenses.value.data.slice(0, MAX_PER_CATEGORY).map((e: any) => ({
         id: e.id,
         category: 'expenses' as const,
         primary: e.description,
-        secondary: vendor?.name || e.reference || undefined,
-        meta: fc(e.amount),
+        secondary: e.vendor?.name || e.reference || undefined,
+        meta: fc(Number(e.amount)),
         href: '/expenses',
-      };
-    }),
-  };
+      })),
+    });
+  }
+
+  return cats;
 }
 
 // ---------------------------------------------------------------------------
@@ -245,71 +195,64 @@ function searchExpenses(
 export function GlobalSearch() {
   const router = useRouter();
   const { fc } = useCurrency();
-  const customers = useAppStore((s) => s.customers);
-  const products = useAppStore((s) => s.products);
-  const invoices = useAppStore((s) => s.invoices);
-  const quotations = useAppStore((s) => s.quotations);
-  const expenses = useAppStore((s) => s.expenses);
-  const activeCompanyId = useAppStore((s) => s.activeCompany?.id);
 
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [results, setResults] = useState<CategoryResults[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
 
   // -----------------------------------------------------------------------
-  // Debounce
+  // Debounced search via API
   // -----------------------------------------------------------------------
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDebouncedQuery(query.trim().toLowerCase());
+
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 2) {
+      setResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    debounceRef.current = setTimeout(async () => {
+      // Cancel any in-flight request
+      if (abortRef.current) abortRef.current.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const apiResults = await searchViaApi(trimmedQuery.toLowerCase(), fc, controller.signal);
+        if (!controller.signal.aborted) {
+          setResults(apiResults);
+          setIsSearching(false);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setResults([]);
+          setIsSearching(false);
+        }
+      }
     }, 300);
+
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query]);
+  }, [query, fc]);
 
-  // -----------------------------------------------------------------------
-  // Compute results
-  // -----------------------------------------------------------------------
-  const results: CategoryResults[] = useMemo(() => {
-    if (debouncedQuery.length < 2) return [];
-
-    const cats: CategoryResults[] = [];
-    const q = debouncedQuery;
-
-    const custResult = searchCustomers(customers, q, activeCompanyId);
-    if (custResult.total > 0) {
-      cats.push({ ...CATEGORY_META.customers, category: 'customers', ...custResult });
-    }
-
-    const prodResult = searchProducts(products, q, fc, activeCompanyId);
-    if (prodResult.total > 0) {
-      cats.push({ ...CATEGORY_META.products, category: 'products', ...prodResult });
-    }
-
-    const invResult = searchInvoices(invoices, customers, q, fc, activeCompanyId);
-    if (invResult.total > 0) {
-      cats.push({ ...CATEGORY_META.invoices, category: 'invoices', ...invResult });
-    }
-
-    const quotResult = searchQuotations(quotations, customers, q, fc, activeCompanyId);
-    if (quotResult.total > 0) {
-      cats.push({ ...CATEGORY_META.quotations, category: 'quotations', ...quotResult });
-    }
-
-    const expResult = searchExpenses(expenses, customers, q, fc, activeCompanyId);
-    if (expResult.total > 0) {
-      cats.push({ ...CATEGORY_META.expenses, category: 'expenses', ...expResult });
-    }
-
-    return cats;
-  }, [debouncedQuery, customers, products, invoices, quotations, expenses, activeCompanyId, fc]);
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
 
   // Flat list for keyboard navigation
   const flatItems = useMemo(() => results.flatMap((r) => r.items), [results]);
@@ -351,7 +294,7 @@ export function GlobalSearch() {
     (item: SearchResultItem) => {
       setIsOpen(false);
       setQuery('');
-      setDebouncedQuery('');
+      setResults([]);
       router.push(item.href);
     },
     [router],
@@ -393,7 +336,7 @@ export function GlobalSearch() {
   // Determine dropdown state
   // -----------------------------------------------------------------------
   const showDropdown = isOpen;
-  const hasQuery = debouncedQuery.length >= 2;
+  const hasQuery = query.trim().length >= 2;
   const hasResults = results.length > 0;
 
   // -----------------------------------------------------------------------
@@ -455,7 +398,7 @@ export function GlobalSearch() {
               onClick={() => {
                 setIsOpen(false);
                 setQuery('');
-                setDebouncedQuery('');
+                setResults([]);
               }}
               className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
             >
@@ -488,6 +431,16 @@ export function GlobalSearch() {
           <MagnifyingGlassIcon className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" />
           <p className="text-sm text-gray-500 dark:text-gray-400">Type to search across customers, products, invoices, quotations, and expenses</p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Minimum 2 characters</p>
+        </div>
+      );
+    }
+
+    // Loading state
+    if (isSearching) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-emerald-500 mb-3" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Searching...</p>
         </div>
       );
     }

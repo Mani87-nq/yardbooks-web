@@ -44,8 +44,23 @@ export type Permission =
   | 'fixed_assets:read' | 'fixed_assets:create' | 'fixed_assets:update' | 'fixed_assets:delete' | 'fixed_assets:depreciate'
   // POS
   | 'pos:read' | 'pos:create' | 'pos:update' | 'pos:delete' | 'pos:void' | 'pos:settings'
-  // Module permissions follow pattern {moduleId}:{entity}:{action}
-  | (string & {});
+  // ── Module: Restaurant ──────────────────────────────
+  | 'restaurant:menu:read' | 'restaurant:menu:create' | 'restaurant:menu:update' | 'restaurant:menu:delete'
+  | 'restaurant:tables:read' | 'restaurant:tables:create' | 'restaurant:tables:update' | 'restaurant:tables:delete'
+  | 'restaurant:kitchen:read' | 'restaurant:kitchen:update'
+  | 'restaurant:reservations:read' | 'restaurant:reservations:create' | 'restaurant:reservations:update' | 'restaurant:reservations:delete'
+  | 'restaurant:tips:read' | 'restaurant:tips:create' | 'restaurant:tips:update' | 'restaurant:tips:delete'
+  | 'restaurant:orders:read' | 'restaurant:orders:create' | 'restaurant:orders:update'
+  // ── Module: Salon ───────────────────────────────────
+  | 'salon:appointments:read' | 'salon:appointments:create' | 'salon:appointments:update' | 'salon:appointments:delete'
+  | 'salon:services:read' | 'salon:services:create' | 'salon:services:update' | 'salon:services:delete'
+  | 'salon:stylists:read' | 'salon:stylists:create' | 'salon:stylists:update' | 'salon:stylists:delete'
+  | 'salon:walkins:read' | 'salon:walkins:create' | 'salon:walkins:update'
+  // ── Module: Retail & Loyalty ────────────────────────
+  | 'retail:loyalty:read' | 'retail:loyalty:create' | 'retail:loyalty:update' | 'retail:loyalty:delete'
+  | 'retail:members:read' | 'retail:members:create'
+  | 'retail:promotions:read' | 'retail:promotions:create' | 'retail:promotions:update' | 'retail:promotions:delete'
+  | 'retail:segments:read' | 'retail:segments:create' | 'retail:segments:update' | 'retail:segments:delete';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   READ_ONLY: [
