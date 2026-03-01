@@ -97,7 +97,7 @@ export default function CashMovementModal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={() => { if (!isSubmitting) onClose(); }}
       />
 
       {/* Modal Card */}

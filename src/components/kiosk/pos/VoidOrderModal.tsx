@@ -1,14 +1,11 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import type { KioskPosSession } from '@/store/kioskPosStore';
-
 // ── Types ───────────────────────────────────────────────────────
 
 interface VoidOrderModalProps {
   orderId: string;
   orderNumber: string;
-  session: KioskPosSession;
   onVoided: () => void;
   onClose: () => void;
 }
@@ -25,7 +22,6 @@ const VOID_REASONS = [
 export default function VoidOrderModal({
   orderId,
   orderNumber,
-  session,
   onVoided,
   onClose,
 }: VoidOrderModalProps) {
@@ -34,9 +30,6 @@ export default function VoidOrderModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsManagerOverride, setNeedsManagerOverride] = useState(false);
-
-  const formatCurrency = (amount: number) =>
-    `J$${amount.toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   // Derive the final void reason
   const voidReason =

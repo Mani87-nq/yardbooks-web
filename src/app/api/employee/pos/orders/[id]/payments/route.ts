@@ -242,12 +242,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
               expectedCash: {
                 increment: Math.round((effectivePayment - changeGiven) * 100) / 100,
               },
+              // Consolidate totalSales update into same query when fully paid
+              ...(isFullyPaid
+                ? {
+                    totalSales: { increment: Number(order.total) },
+                    netSales: { increment: Number(order.total) },
+                  }
+                : {}),
             },
           });
-        }
-
-        // Update session totalSales if order is now completed
-        if (isFullyPaid && order.sessionId) {
+        } else if (isFullyPaid && order.sessionId) {
+          // Non-cash fully paid — update session totals only
           await tx.posSession.update({
             where: { id: order.sessionId },
             data: {

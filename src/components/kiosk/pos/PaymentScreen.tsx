@@ -40,7 +40,6 @@ export default function PaymentScreen({
     pendingOrderId,
     resumedOrderId,
     setPendingOrderId,
-    setResumedOrderId,
     setPaymentStep,
     setLastCompletedOrder,
   } = useKioskPosStore();
