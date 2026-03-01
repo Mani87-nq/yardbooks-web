@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import KioskWrapper from '@/components/kiosk/KioskWrapper';
 import { useKioskStore } from '@/store/kioskStore';
+
+// Lazy-loaded kiosk POS widgets (only loaded when retail module is active)
+const NewSaleWidget = lazy(() => import('@/components/kiosk/pos/NewSaleWidget'));
+const RecentOrdersWidget = lazy(() => import('@/components/kiosk/pos/RecentOrdersWidget'));
 
 // ── Types ────────────────────────────────────────────────────────
 interface ShiftStats {
@@ -324,6 +328,18 @@ export default function EmployeeHomePage() {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* POS Quick Actions (retail module active) */}
+        {hasPOS && (
+          <div className="mt-6 space-y-3">
+            <Suspense fallback={<div className="h-20 bg-gray-100 dark:bg-gray-700 rounded-2xl animate-pulse" />}>
+              <NewSaleWidget />
+            </Suspense>
+            <Suspense fallback={<div className="h-32 bg-gray-100 dark:bg-gray-700 rounded-2xl animate-pulse" />}>
+              <RecentOrdersWidget />
+            </Suspense>
           </div>
         )}
 

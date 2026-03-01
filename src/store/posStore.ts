@@ -3,12 +3,15 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import Decimal from 'decimal.js';
+import {
+  d2,
+  calculateLineItem,
+  getPaymentMethodLabel,
+  calculateCartTotals as calculateCartTotalsEngine,
+} from '@/lib/pos/cart-engine';
 
 // Configure Decimal.js for financial calculations (matches src/lib/currency.ts)
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
-
-/** Round a Decimal to 2 dp and return a plain number. */
-const d2 = (v: Decimal): number => v.toDecimalPlaces(2).toNumber();
 import type {
   PosOrder,
   PosOrderItem,
@@ -168,56 +171,7 @@ const EMPTY_CART: PosCart = {
 // HELPER FUNCTIONS
 // ============================================
 
-function calculateLineItem(item: CartItem, gctRate: number): Omit<PosOrderItem, 'id' | 'lineNumber' | 'inventoryDeducted' | 'warehouseId'> {
-  const lineSubtotal = d2(new Decimal(item.quantity).times(item.unitPrice));
-
-  let discountAmount = 0;
-  if (item.discountType === 'percent' && item.discountValue) {
-    discountAmount = d2(new Decimal(lineSubtotal).times(item.discountValue).dividedBy(100));
-  } else if (item.discountType === 'amount' && item.discountValue) {
-    discountAmount = item.discountValue;
-  }
-
-  const lineTotalBeforeTax = d2(new Decimal(lineSubtotal).minus(discountAmount));
-  const effectiveGctRate = item.isGctExempt ? 0 : gctRate;
-  const gctAmount = d2(new Decimal(lineTotalBeforeTax).times(effectiveGctRate));
-  const lineTotal = d2(new Decimal(lineTotalBeforeTax).plus(gctAmount));
-
-  return {
-    productId: item.productId,
-    name: item.name,
-    description: item.description,
-    quantity: item.quantity,
-    uomCode: item.uomCode,
-    unitPrice: item.unitPrice,
-    lineSubtotal,
-    discountType: item.discountType,
-    discountValue: item.discountValue,
-    discountAmount,
-    lineTotalBeforeTax,
-    isGctExempt: item.isGctExempt,
-    gctRate: effectiveGctRate,
-    gctAmount,
-    lineTotal,
-    notes: item.notes,
-  };
-}
-
-function getPaymentMethodLabel(method: PaymentMethodType): string {
-  const labels: Record<PaymentMethodType, string> = {
-    cash: 'Cash',
-    jam_dex: 'JAM-DEX',
-    lynk_wallet: 'Lynk Wallet',
-    wipay: 'WiPay',
-    card_visa: 'Visa',
-    card_mastercard: 'Mastercard',
-    card_other: 'Card',
-    bank_transfer: 'Bank Transfer',
-    store_credit: 'Store Credit',
-    other: 'Other',
-  };
-  return labels[method];
-}
+// calculateLineItem and getPaymentMethodLabel are now imported from @/lib/pos/cart-engine
 
 // ============================================
 // STORE IMPLEMENTATION
@@ -518,50 +472,15 @@ export const usePosStore = create<PosState>()(
 
       calculateCartTotals: () => {
         const { currentCart, settings } = get();
-        const gctRate = settings.gctRate;
-
-        let subtotal = new Decimal(0);
-        let taxableAmount = new Decimal(0);
-        let exemptAmount = new Decimal(0);
-        let gctAmount = new Decimal(0);
-        let itemCount = 0;
-
-        currentCart.items.forEach((item) => {
-          const calculated = calculateLineItem(item, gctRate);
-          subtotal = subtotal.plus(calculated.lineTotalBeforeTax);
-          if (item.isGctExempt) {
-            exemptAmount = exemptAmount.plus(calculated.lineTotalBeforeTax);
-          } else {
-            taxableAmount = taxableAmount.plus(calculated.lineTotalBeforeTax);
-          }
-          gctAmount = gctAmount.plus(calculated.gctAmount);
-          itemCount += Number(item.quantity);
-        });
-
-        let discountAmount = new Decimal(0);
-        if (currentCart.orderDiscountType === 'percent' && currentCart.orderDiscountValue) {
-          discountAmount = subtotal.times(currentCart.orderDiscountValue).dividedBy(100);
-        } else if (currentCart.orderDiscountType === 'amount' && currentCart.orderDiscountValue) {
-          discountAmount = new Decimal(currentCart.orderDiscountValue);
-        }
-
-        const discountedSubtotal = subtotal.minus(discountAmount);
-        const discountRatio = subtotal.greaterThan(0) ? discountedSubtotal.dividedBy(subtotal) : new Decimal(1);
-        taxableAmount = taxableAmount.times(discountRatio);
-        exemptAmount = exemptAmount.times(discountRatio);
-        gctAmount = taxableAmount.times(gctRate);
-
-        const total = discountedSubtotal.plus(gctAmount);
-
-        return {
-          subtotal: d2(subtotal),
-          discountAmount: d2(discountAmount),
-          taxableAmount: d2(taxableAmount),
-          exemptAmount: d2(exemptAmount),
-          gctAmount: d2(gctAmount),
-          total: d2(total),
-          itemCount,
-        };
+        return calculateCartTotalsEngine(
+          currentCart.items,
+          settings.gctRate,
+          {
+            type: currentCart.orderDiscountType,
+            value: currentCart.orderDiscountValue,
+            reason: currentCart.orderDiscountReason,
+          },
+        );
       },
 
       // Payment Actions
