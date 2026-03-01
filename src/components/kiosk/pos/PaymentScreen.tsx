@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useKioskPosStore, type KioskPosSession } from '@/store/kioskPosStore';
 
 interface PaymentScreenProps {
@@ -41,6 +41,7 @@ export default function PaymentScreen({
     resumedOrderId,
     setPendingOrderId,
     setResumedOrderId,
+    setPaymentStep,
     setLastCompletedOrder,
   } = useKioskPosStore();
 
@@ -65,68 +66,8 @@ export default function PaymentScreen({
   const formatCurrency = (amount: number) =>
     `J$${amount.toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // ── Auto-return after completion ──────────────────────────────
-  useEffect(() => {
-    if (step === 'complete') {
-      const timer = setTimeout(() => {
-        handleNewSale();
-      }, 15000);
-      return () => clearTimeout(timer);
-    }
-  }, [step]);
+  // ── Process Payment (defined first, referenced by handlers below) ──
 
-  // ── Method Selection ──────────────────────────────────────────
-  const handleMethodSelect = useCallback((method: string) => {
-    setSelectedMethod(method);
-    if (method === 'CASH') {
-      setStep('cash-entry');
-    } else {
-      // For non-cash, process immediately with exact amount
-      processPayment(method, totals.total, totals.total);
-    }
-  }, [totals.total]);
-
-  // ── Cash Entry ────────────────────────────────────────────────
-  const cashAmount = useMemo(() => {
-    const val = parseFloat(cashEntered);
-    return isNaN(val) ? 0 : val;
-  }, [cashEntered]);
-
-  const changeAmount = useMemo(() => {
-    return Math.max(0, cashAmount - totals.total);
-  }, [cashAmount, totals.total]);
-
-  const handleQuickCash = useCallback((amount: number) => {
-    setCashEntered(amount.toString());
-  }, []);
-
-  const handleExactCash = useCallback(() => {
-    setCashEntered(totals.total.toFixed(2));
-  }, [totals.total]);
-
-  const handleNumpadPress = useCallback((key: string) => {
-    if (key === 'C') {
-      setCashEntered('');
-    } else if (key === '⌫') {
-      setCashEntered((prev) => prev.slice(0, -1));
-    } else if (key === '.') {
-      if (!cashEntered.includes('.')) {
-        setCashEntered((prev) => (prev || '0') + '.');
-      }
-    } else {
-      setCashEntered((prev) => prev + key);
-    }
-  }, [cashEntered]);
-
-  const handleCashSubmit = useCallback(() => {
-    if (cashAmount < totals.total) {
-      setError('Amount tendered must be at least the total.');
-      return;
-    }
-    processPayment('CASH', totals.total, cashAmount);
-  }, [cashAmount, totals.total]);
-
-  // ── Process Payment ───────────────────────────────────────────
   const processPayment = useCallback(
     async (method: string, amount: number, amountTendered: number) => {
       setStep('processing');
@@ -222,10 +163,76 @@ export default function PaymentScreen({
     [session, currentCart, pendingOrderId, resumedOrderId, setPendingOrderId, setLastCompletedOrder, selectedMethod]
   );
 
+  // ── New Sale handler (stable ref for timer) ──────────────────
   const handleNewSale = useCallback(() => {
     clearCart();
+    setPaymentStep('idle');
     onComplete();
-  }, [clearCart, onComplete]);
+  }, [clearCart, onComplete, setPaymentStep]);
+
+  const handleNewSaleRef = useRef(handleNewSale);
+  handleNewSaleRef.current = handleNewSale;
+
+  // ── Auto-return after completion ──────────────────────────────
+  useEffect(() => {
+    if (step === 'complete') {
+      const timer = setTimeout(() => {
+        handleNewSaleRef.current();
+      }, 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
+  // ── Method Selection ──────────────────────────────────────────
+  const handleMethodSelect = useCallback((method: string) => {
+    setSelectedMethod(method);
+    if (method === 'CASH') {
+      setStep('cash-entry');
+    } else {
+      processPayment(method, totals.total, totals.total);
+    }
+  }, [totals.total, processPayment]);
+
+  // ── Cash Entry ────────────────────────────────────────────────
+  const cashAmount = useMemo(() => {
+    const val = parseFloat(cashEntered);
+    return isNaN(val) ? 0 : val;
+  }, [cashEntered]);
+
+  const changeAmount = useMemo(() => {
+    return Math.max(0, cashAmount - totals.total);
+  }, [cashAmount, totals.total]);
+
+  const handleQuickCash = useCallback((amount: number) => {
+    setCashEntered(amount.toString());
+  }, []);
+
+  const handleExactCash = useCallback(() => {
+    setCashEntered(totals.total.toFixed(2));
+  }, [totals.total]);
+
+  const handleNumpadPress = useCallback((key: string) => {
+    setCashEntered((prev) => {
+      if (key === 'C') return '';
+      if (key === '⌫') return prev.slice(0, -1);
+      if (key === '.') {
+        if (prev.includes('.')) return prev;
+        return (prev || '0') + '.';
+      }
+      // Limit to 2 decimal places
+      const dotIndex = prev.indexOf('.');
+      if (dotIndex !== -1 && prev.length - dotIndex > 2) return prev;
+      return prev + key;
+    });
+  }, []);
+
+  const handleCashSubmit = useCallback(() => {
+    if (cashAmount < totals.total) {
+      setError('Amount tendered must be at least the total.');
+      return;
+    }
+    processPayment('CASH', totals.total, cashAmount);
+  }, [cashAmount, totals.total, processPayment]);
 
   // ── Render: Method Selection ──────────────────────────────────
   if (step === 'method') {

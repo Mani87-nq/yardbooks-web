@@ -55,12 +55,12 @@ export function calculateLineItem(
   const lineSubtotal = d2(new Decimal(item.quantity).times(item.unitPrice));
 
   let discountAmount = 0;
-  if (item.discountType === 'percent' && item.discountValue) {
+  if (item.discountType === 'percent' && item.discountValue != null) {
     discountAmount = d2(
       new Decimal(lineSubtotal).times(item.discountValue).dividedBy(100),
     );
-  } else if (item.discountType === 'amount' && item.discountValue) {
-    discountAmount = item.discountValue;
+  } else if (item.discountType === 'amount' && item.discountValue != null) {
+    discountAmount = Math.min(item.discountValue, lineSubtotal);
   }
 
   const lineTotalBeforeTax = d2(new Decimal(lineSubtotal).minus(discountAmount));
@@ -129,10 +129,10 @@ export function calculateCartTotals(
 
   // Apply order-level discount
   let discountAmount = new Decimal(0);
-  if (orderDiscount?.type === 'percent' && orderDiscount.value) {
+  if (orderDiscount?.type === 'percent' && orderDiscount.value != null) {
     discountAmount = subtotal.times(orderDiscount.value).dividedBy(100);
-  } else if (orderDiscount?.type === 'amount' && orderDiscount.value) {
-    discountAmount = new Decimal(orderDiscount.value);
+  } else if (orderDiscount?.type === 'amount' && orderDiscount.value != null) {
+    discountAmount = Decimal.min(new Decimal(orderDiscount.value), subtotal);
   }
 
   // Proportional adjustment of taxable/exempt after order discount

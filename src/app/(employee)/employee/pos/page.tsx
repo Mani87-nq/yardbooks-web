@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import KioskWrapper from '@/components/kiosk/KioskWrapper';
 import { useKioskStore } from '@/store/kioskStore';
@@ -39,7 +39,7 @@ export default function KioskPosPage() {
 
   // Local state
   const [view, setView] = useState<PosView>('loading');
-  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
+  const hasInitialized = useRef(false);
 
   // ── Online/offline tracking ───────────────────────────────────
   useEffect(() => {
@@ -75,7 +75,6 @@ export default function KioskPosPage() {
       if (res.ok) {
         const settings = await res.json();
         setPosSettings(settings);
-        setIsSettingsLoaded(true);
       }
     } catch (err) {
       console.error('[Kiosk POS] Failed to load settings:', err);
@@ -84,7 +83,7 @@ export default function KioskPosPage() {
 
   // ── Check for existing open session ───────────────────────────
   const checkSession = useCallback(async () => {
-    if (!terminalId) return;
+    if (!terminalId) return false;
     try {
       const res = await fetch(
         `/api/employee/pos/sessions?status=OPEN&terminalId=${terminalId}`,
@@ -103,24 +102,34 @@ export default function KioskPosPage() {
     return false;
   }, [terminalId, setCurrentSession]);
 
-  // ── Initialize POS view ───────────────────────────────────────
+  // ── Initialize POS view (once) ─────────────────────────────────
   useEffect(() => {
-    if (!isContextLoaded || !currentEmployee) return;
+    if (!isContextLoaded || !currentEmployee || hasInitialized.current) return;
 
     // Check retail module is active
     if (!activeModules.includes('retail')) {
       setView('no-module');
+      hasInitialized.current = true;
       return;
     }
+
+    // Guard: terminalId must be available
+    if (!terminalId) {
+      setView('open-session');
+      hasInitialized.current = true;
+      return;
+    }
+
+    hasInitialized.current = true;
 
     const init = async () => {
       await loadSettings();
       const hasSession = await checkSession();
-      setView(hasSession || currentSession ? 'register' : 'open-session');
+      setView(hasSession ? 'register' : 'open-session');
     };
 
     init();
-  }, [isContextLoaded, currentEmployee, activeModules, loadSettings, checkSession, currentSession]);
+  }, [isContextLoaded, currentEmployee, activeModules, terminalId, loadSettings, checkSession]);
 
   // ── Handlers ──────────────────────────────────────────────────
 
@@ -197,9 +206,9 @@ export default function KioskPosPage() {
         </div>
       )}
 
-      {view === 'open-session' && (
+      {view === 'open-session' && terminalId && (
         <OpenSessionScreen
-          terminalId={terminalId!}
+          terminalId={terminalId}
           employeeName={`${currentEmployee.firstName} ${currentEmployee.lastName}`}
           onSessionOpened={handleSessionOpened}
         />

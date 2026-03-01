@@ -126,10 +126,20 @@ export async function POST(request: NextRequest) {
       return badRequest(`Cannot return items from an order with status ${order.status}`);
     }
 
-    // Calculate totals
-    const subtotal = items.reduce((sum, i) => sum + i.refundAmount, 0);
-    const gctRate = Number(order.gctRate);
-    const gctAmount = Math.round(subtotal * gctRate * 100) / 100;
+    // Calculate totals — use per-item GCT exemption from original order items
+    const orderGctRate = Number(order.gctRate);
+    let subtotal = 0;
+    let gctAmount = 0;
+    for (const returnItem of items) {
+      subtotal += returnItem.refundAmount;
+      const originalItem = order.items.find((oi) => oi.id === returnItem.orderItemId);
+      const isExempt = originalItem?.isGctExempt ?? false;
+      if (!isExempt) {
+        gctAmount += Math.round(returnItem.refundAmount * orderGctRate * 100) / 100;
+      }
+    }
+    subtotal = Math.round(subtotal * 100) / 100;
+    gctAmount = Math.round(gctAmount * 100) / 100;
     const totalRefund = Math.round((subtotal + gctAmount) * 100) / 100;
 
     const result = await prisma.$transaction(async (tx) => {

@@ -13,10 +13,13 @@ export default function HeldOrdersPanel({ session, onClose }: HeldOrdersPanelPro
     heldOrders,
     setHeldOrders,
     loadFromHeldOrder,
+    currentCart,
   } = useKioskPosStore();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingVoid, setConfirmingVoid] = useState<string | null>(null);
+  const [confirmingResume, setConfirmingResume] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) =>
     `J$${amount.toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -44,7 +47,7 @@ export default function HeldOrdersPanel({ session, onClose }: HeldOrdersPanelPro
             name: item.name,
             quantity: Number(item.quantity),
             unitPrice: Number(item.unitPrice),
-            discountType: item.discountType === 'PERCENTAGE' ? 'percent' : item.discountType === 'FIXED' ? 'amount' : undefined,
+            discountType: item.discountType === 'PERCENTAGE' ? 'percent' as const : item.discountType === 'FIXED' ? 'amount' as const : undefined,
             discountValue: item.discountValue ? Number(item.discountValue) : undefined,
             isGctExempt: item.isGctExempt ?? false,
             uomCode: item.uomCode,
@@ -67,6 +70,20 @@ export default function HeldOrdersPanel({ session, onClose }: HeldOrdersPanelPro
   // ── Resume held order ─────────────────────────────────────────
   const handleResume = useCallback(
     (order: HeldOrderSummary) => {
+      // If cart has items, confirm before replacing
+      if (currentCart.items.length > 0) {
+        setConfirmingResume(order.id);
+        return;
+      }
+      loadFromHeldOrder(order);
+      onClose();
+    },
+    [loadFromHeldOrder, onClose, currentCart.items.length]
+  );
+
+  const confirmResume = useCallback(
+    (order: HeldOrderSummary) => {
+      setConfirmingResume(null);
       loadFromHeldOrder(order);
       onClose();
     },
@@ -75,7 +92,15 @@ export default function HeldOrdersPanel({ session, onClose }: HeldOrdersPanelPro
 
   // ── Void held order ───────────────────────────────────────────
   const handleVoid = useCallback(
+    (orderId: string) => {
+      setConfirmingVoid(orderId);
+    },
+    []
+  );
+
+  const confirmVoid = useCallback(
     async (orderId: string) => {
+      setConfirmingVoid(null);
       try {
         const res = await fetch(`/api/employee/pos/orders/${orderId}/void`, {
           method: 'POST',
@@ -85,9 +110,12 @@ export default function HeldOrdersPanel({ session, onClose }: HeldOrdersPanelPro
         });
         if (res.ok) {
           setHeldOrders(heldOrders.filter((o) => o.id !== orderId));
+        } else {
+          const data = await res.json().catch(() => null);
+          setError(data?.detail ?? 'Failed to void order');
         }
       } catch (err) {
-        console.error('[Kiosk POS] Void held order failed:', err);
+        setError('Failed to void order');
       }
     },
     [heldOrders, setHeldOrders]
@@ -133,7 +161,15 @@ export default function HeldOrdersPanel({ session, onClose }: HeldOrdersPanelPro
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-red-500">{error}</div>
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-3">{error}</p>
+              <button
+                onClick={() => { setError(null); fetchHeldOrders(); }}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline touch-manipulation"
+              >
+                Retry
+              </button>
+            </div>
           ) : heldOrders.length === 0 ? (
             <div className="text-center py-8">
               <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,20 +209,63 @@ export default function HeldOrdersPanel({ session, onClose }: HeldOrdersPanelPro
                     </p>
                   )}
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleResume(order)}
-                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg touch-manipulation transition-colors"
-                    >
-                      Resume
-                    </button>
-                    <button
-                      onClick={() => handleVoid(order.id)}
-                      className="px-4 py-2 text-red-600 dark:text-red-400 text-sm font-medium border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 touch-manipulation transition-colors"
-                    >
-                      Void
-                    </button>
-                  </div>
+                  {/* Confirmation dialogs */}
+                  {confirmingResume === order.id ? (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-2">
+                      <p className="text-xs text-yellow-800 dark:text-yellow-300 mb-2">
+                        Your current cart has items. Resuming will replace them.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => confirmResume(order)}
+                          className="flex-1 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg touch-manipulation"
+                        >
+                          Replace Cart
+                        </button>
+                        <button
+                          onClick={() => setConfirmingResume(null)}
+                          className="px-3 py-1.5 text-gray-600 dark:text-gray-400 text-xs border border-gray-300 dark:border-gray-600 rounded-lg touch-manipulation"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : confirmingVoid === order.id ? (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-2">
+                      <p className="text-xs text-red-800 dark:text-red-300 mb-2">
+                        Void this order? This cannot be undone.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => confirmVoid(order.id)}
+                          className="flex-1 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg touch-manipulation"
+                        >
+                          Confirm Void
+                        </button>
+                        <button
+                          onClick={() => setConfirmingVoid(null)}
+                          className="px-3 py-1.5 text-gray-600 dark:text-gray-400 text-xs border border-gray-300 dark:border-gray-600 rounded-lg touch-manipulation"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleResume(order)}
+                        className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg touch-manipulation transition-colors"
+                      >
+                        Resume
+                      </button>
+                      <button
+                        onClick={() => handleVoid(order.id)}
+                        className="px-4 py-2 text-red-600 dark:text-red-400 text-sm font-medium border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 touch-manipulation transition-colors"
+                      >
+                        Void
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

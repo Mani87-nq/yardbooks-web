@@ -223,6 +223,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
           include: { items: true, payments: true },
         });
 
+        // Record cash movement for ALL cash payments (including split payments)
+        if (parsed.data.method === 'CASH' && order.sessionId) {
+          await tx.cashMovement.create({
+            data: {
+              sessionId: order.sessionId,
+              type: 'SALE',
+              amount: effectivePayment,
+              orderId: id,
+              performedBy: employee!.sub,
+              reason: `Payment for order ${order.orderNumber}`,
+            },
+          });
+
+          await tx.posSession.update({
+            where: { id: order.sessionId },
+            data: {
+              expectedCash: {
+                increment: Math.round((effectivePayment - changeGiven) * 100) / 100,
+              },
+            },
+          });
+        }
+
         // Update session totalSales if order is now completed
         if (isFullyPaid && order.sessionId) {
           await tx.posSession.update({
@@ -232,29 +255,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
               netSales: { increment: Number(order.total) },
             },
           });
-
-          // Record cash movement for cash payments
-          if (parsed.data.method === 'CASH') {
-            await tx.cashMovement.create({
-              data: {
-                sessionId: order.sessionId,
-                type: 'SALE',
-                amount: effectivePayment,
-                orderId: id,
-                performedBy: employee!.sub,
-                reason: `Payment for order ${order.orderNumber}`,
-              },
-            });
-
-            await tx.posSession.update({
-              where: { id: order.sessionId },
-              data: {
-                expectedCash: {
-                  increment: Math.round((effectivePayment - changeGiven) * 100) / 100,
-                },
-              },
-            });
-          }
         }
 
         // Update Shift totalSales for the employee
@@ -272,65 +272,60 @@ export async function POST(request: NextRequest, context: RouteContext) {
           });
         }
 
+        // Award loyalty points inside the transaction (best-effort)
+        if (isFullyPaid && order.customerId) {
+          try {
+            const memberships = await (tx as any).loyaltyMember.findMany({
+              where: { customerId: order.customerId, status: 'ACTIVE' },
+              include: { program: true },
+            });
+
+            const orderTotal = Number(order.total);
+            for (const member of memberships) {
+              if (member.program?.isActive) {
+                const points = Math.floor(
+                  orderTotal * Number(member.program.pointsPerDollar)
+                );
+                if (points > 0) {
+                  const currentBalance = member.pointsBalance || 0;
+
+                  await (tx as any).loyaltyTransaction.create({
+                    data: {
+                      memberId: member.id,
+                      loyaltyProgramId: member.loyaltyProgramId,
+                      type: 'EARN',
+                      points,
+                      balanceAfter: currentBalance + points,
+                      description: `Purchase #${order.orderNumber}`,
+                      orderId: id,
+                      companyId: companyId!,
+                    },
+                  });
+
+                  await (tx as any).loyaltyMember.update({
+                    where: { id: member.id },
+                    data: {
+                      pointsBalance: { increment: points },
+                      lifetimePoints: { increment: points },
+                      lastActivityAt: new Date(),
+                    },
+                  });
+                }
+              }
+            }
+          } catch (loyaltyErr) {
+            console.error(
+              `[Kiosk POS] Loyalty points failed for order ${order.orderNumber}:`,
+              loyaltyErr
+            );
+          }
+        }
+
         return { payment, order: updatedOrder };
       }
 
       return { payment, order };
     });
-
-    // Auto-award loyalty points (best-effort, non-blocking)
-    if (
-      parsed.data.status === 'COMPLETED' &&
-      result.order?.status === 'COMPLETED' &&
-      order.customerId
-    ) {
-      const orderTotal = Number(order.total);
-      try {
-        const memberships = await (prisma as any).loyaltyMember.findMany({
-          where: { customerId: order.customerId, status: 'ACTIVE' },
-          include: { program: true },
-        });
-
-        for (const member of memberships) {
-          if (member.program?.isActive) {
-            const points = Math.floor(
-              orderTotal * Number(member.program.pointsPerDollar)
-            );
-            if (points > 0) {
-              const currentBalance = member.pointsBalance || 0;
-
-              await (prisma as any).$transaction([
-                (prisma as any).loyaltyTransaction.create({
-                  data: {
-                    memberId: member.id,
-                    loyaltyProgramId: member.loyaltyProgramId,
-                    type: 'EARN',
-                    points,
-                    balanceAfter: currentBalance + points,
-                    description: `Purchase #${order.orderNumber}`,
-                    orderId: id,
-                    companyId: companyId!,
-                  },
-                }),
-                (prisma as any).loyaltyMember.update({
-                  where: { id: member.id },
-                  data: {
-                    pointsBalance: { increment: points },
-                    lifetimePoints: { increment: points },
-                    lastActivityAt: new Date(),
-                  },
-                }),
-              ]);
-            }
-          }
-        }
-      } catch (loyaltyErr) {
-        console.error(
-          `[Kiosk POS] Loyalty points failed for order ${order.orderNumber}:`,
-          loyaltyErr
-        );
-      }
-    }
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

@@ -122,6 +122,30 @@ export async function POST(request: NextRequest) {
       data: { failedPinAttempts: 0, lockedUntil: null },
     });
 
+    // Granular permission check for the specific action
+    const managerPermissions = (manager.permissions ?? {}) as Record<string, unknown>;
+    const actionPermissionMap: Record<string, string> = {
+      VOID: 'canVoid',
+      REFUND: 'canRefund',
+      DISCOUNT: 'canDiscount',
+      PRICE_OVERRIDE: 'canApplyPriceOverride',
+      CASH_DRAWER_OPEN: 'canOpenDrawer',
+      NO_SALE: 'canOpenDrawer',
+    };
+    const requiredPermission = actionPermissionMap[actionType];
+    if (requiredPermission && !managerPermissions[requiredPermission]) {
+      await prisma.pOSAction.create({
+        data: {
+          companyId: companyId!,
+          employeeProfileId: employee!.sub,
+          actionType: 'MANAGER_OVERRIDE',
+          description: `Override denied: ${manager.firstName} ${manager.lastName} lacks ${requiredPermission} permission`,
+          metadata: { denied: true, reason: `Missing permission: ${requiredPermission}` },
+        },
+      });
+      return forbidden(`Manager does not have permission for ${actionType}`);
+    }
+
     // Log the successful override
     const action = await prisma.pOSAction.create({
       data: {

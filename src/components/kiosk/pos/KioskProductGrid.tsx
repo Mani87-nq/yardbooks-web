@@ -51,7 +51,7 @@ export default function KioskProductGrid({ isLoading, onRefresh }: KioskProductG
   );
 
   const formatPrice = (price: number) =>
-    `J$${price.toLocaleString('en-JM', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    `J$${price.toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="flex flex-col h-full">
@@ -143,8 +143,13 @@ export default function KioskProductGrid({ isLoading, onRefresh }: KioskProductG
             {filteredProducts.map((product) => (
               <button
                 key={product.id}
-                onClick={() => handleProductTap(product)}
-                className="flex flex-col items-center justify-center p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm active:scale-95 touch-manipulation transition-all min-h-[100px]"
+                onClick={() => product.quantity > 0 && handleProductTap(product)}
+                disabled={product.quantity <= 0}
+                className={`flex flex-col items-center justify-center p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl touch-manipulation transition-all min-h-[100px] ${
+                  product.quantity <= 0
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm active:scale-95'
+                }`}
               >
                 {product.imageUrl ? (
                   <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 bg-gray-100 dark:bg-gray-700 flex-shrink-0">

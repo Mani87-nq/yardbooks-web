@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useKioskPosStore, type KioskPosSession } from '@/store/kioskPosStore';
+import { calculateLineItem } from '@/lib/pos/cart-engine';
 
 interface KioskCartProps {
   session: KioskPosSession;
@@ -17,9 +18,11 @@ export default function KioskCart({ session, onStartPayment }: KioskCartProps) {
     getCartTotals,
   } = useKioskPosStore();
 
-  const [editingQty, setEditingQty] = useState<string | null>(null);
+  const [holdError, setHoldError] = useState<string | null>(null);
+  const [isHolding, setIsHolding] = useState(false);
 
   const totals = useMemo(() => getCartTotals(), [currentCart, getCartTotals]);
+  const gctRate = useKioskPosStore((s) => s.posSettings?.gctRate ?? 0.15);
   const items = currentCart.items;
 
   const formatCurrency = (amount: number) =>
@@ -32,6 +35,8 @@ export default function KioskCart({ session, onStartPayment }: KioskCartProps) {
 
   const handleHold = useCallback(async () => {
     if (items.length === 0) return;
+    setIsHolding(true);
+    setHoldError(null);
 
     try {
       // Create a draft order first, then hold it
@@ -77,9 +82,14 @@ export default function KioskCart({ session, onStartPayment }: KioskCartProps) {
 
       if (holdRes.ok) {
         clearCart();
+      } else {
+        const data = await holdRes.json().catch(() => null);
+        throw new Error(data?.detail ?? 'Failed to hold order');
       }
     } catch (err) {
-      console.error('[Kiosk POS] Hold failed:', err);
+      setHoldError(err instanceof Error ? err.message : 'Hold failed');
+    } finally {
+      setIsHolding(false);
     }
   }, [items, session, currentCart, clearCart]);
 
@@ -145,13 +155,13 @@ export default function KioskCart({ session, onStartPayment }: KioskCartProps) {
 
                 {/* Line Total */}
                 <span className="w-20 text-right text-sm font-mono font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(item.unitPrice * item.quantity)}
+                  {formatCurrency(calculateLineItem(item, gctRate).lineTotalBeforeTax)}
                 </span>
 
                 {/* Remove */}
                 <button
                   onClick={() => removeFromCart(item.tempId)}
-                  className="p-1 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 touch-manipulation transition-all"
+                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 touch-manipulation transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -179,7 +189,7 @@ export default function KioskCart({ session, onStartPayment }: KioskCartProps) {
           )}
           {totals.gctAmount > 0 && (
             <div className="flex justify-between text-gray-600 dark:text-gray-400">
-              <span>GCT (15%)</span>
+              <span>GCT ({Math.round(gctRate * 100)}%)</span>
               <span className="font-mono">{formatCurrency(totals.gctAmount)}</span>
             </div>
           )}
@@ -188,6 +198,13 @@ export default function KioskCart({ session, onStartPayment }: KioskCartProps) {
             <span className="font-mono">{formatCurrency(totals.total)}</span>
           </div>
         </div>
+
+        {/* Hold Error */}
+        {holdError && (
+          <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-xs text-center">
+            {holdError}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-2">
@@ -202,9 +219,10 @@ export default function KioskCart({ session, onStartPayment }: KioskCartProps) {
           {items.length > 0 && (
             <button
               onClick={handleHold}
-              className="px-3 py-2.5 text-sm font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/20 rounded-xl touch-manipulation hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-colors"
+              disabled={isHolding}
+              className="px-3 py-2.5 text-sm font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/20 rounded-xl touch-manipulation hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Hold
+              {isHolding ? 'Holding...' : 'Hold'}
             </button>
           )}
           <button

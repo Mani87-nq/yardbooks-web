@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import CashDrawerCount from '@/components/kiosk/CashDrawerCount';
-import type { KioskPosSession } from '@/store/kioskPosStore';
+import { useKioskPosStore, type KioskPosSession } from '@/store/kioskPosStore';
 
 interface CloseSessionScreenProps {
   session: KioskPosSession;
@@ -15,12 +15,37 @@ export default function CloseSessionScreen({
   onSessionClosed,
   onCancel,
 }: CloseSessionScreenProps) {
+  const { setCurrentSession } = useKioskPosStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [freshSession, setFreshSession] = useState<KioskPosSession>(session);
   const [closingResult, setClosingResult] = useState<{
     variance: number;
     closingCash: number;
   } | null>(null);
+
+  // Refresh session data on mount to get latest expectedCash/totalSales
+  useEffect(() => {
+    const refreshSession = async () => {
+      try {
+        const res = await fetch(
+          `/api/employee/pos/sessions?status=OPEN&terminalId=${session.terminalId}`,
+          { credentials: 'include' }
+        );
+        if (res.ok) {
+          const { data } = await res.json();
+          if (data && data.length > 0) {
+            const updated = data[0] as KioskPosSession;
+            setFreshSession(updated);
+            setCurrentSession(updated);
+          }
+        }
+      } catch {
+        // Use stale session data if refresh fails
+      }
+    };
+    refreshSession();
+  }, [session.terminalId, setCurrentSession]);
 
   const formatCurrency = (amount: number) =>
     `J$${Math.abs(amount).toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -31,7 +56,7 @@ export default function CloseSessionScreen({
       setError(null);
 
       try {
-        const res = await fetch(`/api/employee/pos/sessions/${session.id}/close`, {
+        const res = await fetch(`/api/employee/pos/sessions/${freshSession.id}/close`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -57,7 +82,7 @@ export default function CloseSessionScreen({
         setIsSubmitting(false);
       }
     },
-    [session.id]
+    [freshSession.id]
   );
 
   // ── Closing Result Screen ─────────────────────────────────────
@@ -110,15 +135,15 @@ export default function CloseSessionScreen({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Opening Cash</span>
-                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(session.openingCash)}</span>
+                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(freshSession.openingCash)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Total Sales</span>
-                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(session.totalSales)}</span>
+                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(freshSession.totalSales)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Expected Cash</span>
-                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(session.expectedCash)}</span>
+                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(freshSession.expectedCash)}</span>
               </div>
               <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2">
                 <span className="text-gray-600 dark:text-gray-400">Counted Cash</span>
@@ -179,7 +204,7 @@ export default function CloseSessionScreen({
         {/* Cash Drawer Count */}
         <CashDrawerCount
           title="Closing Cash Count"
-          expectedAmount={session.expectedCash}
+          expectedAmount={freshSession.expectedCash}
           onSubmit={handleSubmit}
           onCancel={onCancel}
           isSubmitting={isSubmitting}

@@ -176,10 +176,11 @@ interface KioskPosState {
 
 // ── Defaults ─────────────────────────────────────────────────────
 
-const EMPTY_CART: PosCart = {
+/** Returns a fresh empty cart object (avoids shared array references). */
+const makeEmptyCart = (): PosCart => ({
   items: [],
   customerName: 'Walk-in',
-};
+});
 
 // ── Store ────────────────────────────────────────────────────────
 
@@ -187,7 +188,7 @@ export const useKioskPosStore = create<KioskPosState>()(
   persist(
     (set, get) => ({
       // Initial state
-      currentCart: { ...EMPTY_CART },
+      currentCart: makeEmptyCart(),
       currentSession: null,
       heldOrders: [],
       pendingOrderId: null,
@@ -281,7 +282,7 @@ export const useKioskPosStore = create<KioskPosState>()(
 
       clearCart: () => {
         set({
-          currentCart: { ...EMPTY_CART },
+          currentCart: makeEmptyCart(),
           pendingOrderId: null,
           resumedOrderId: null,
           paymentStep: 'idle',
@@ -369,7 +370,7 @@ export const useKioskPosStore = create<KioskPosState>()(
 
       resetPosState: () =>
         set({
-          currentCart: { ...EMPTY_CART },
+          currentCart: makeEmptyCart(),
           currentSession: null,
           heldOrders: [],
           pendingOrderId: null,

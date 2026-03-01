@@ -9,6 +9,7 @@ import { z } from 'zod/v4';
 import prisma from '@/lib/db';
 import { requireTerminalAuth } from '@/lib/auth/terminal-middleware';
 import { notFound, badRequest, forbidden, internalError } from '@/lib/api-error';
+// GL reversal is handled inline since no dedicated void function exists
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const order = await prisma.posOrder.findFirst({
       where: { id, companyId: companyId! },
-      include: { payments: true },
+      include: { payments: true, items: true },
     });
     if (!order) return notFound('Order not found');
 
@@ -72,50 +73,82 @@ export async function POST(request: NextRequest, context: RouteContext) {
         include: { items: true, payments: true },
       });
 
-      // If completed order with session, update session totals
-      if (order.sessionId && order.status === 'COMPLETED') {
-        const orderTotal = Number(order.total);
+      // If completed order, restock inventory and reverse financials
+      if (order.status === 'COMPLETED') {
+        // Restock inventory for all deducted items
+        for (const item of order.items) {
+          if (item.productId && item.inventoryDeducted) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { quantity: { increment: Number(item.quantity) } },
+            });
 
-        await tx.posSession.update({
-          where: { id: order.sessionId },
-          data: {
-            totalVoids: { increment: orderTotal },
-            netSales: { decrement: orderTotal },
-          },
-        });
+            await tx.posOrderItem.update({
+              where: { id: item.id },
+              data: { inventoryDeducted: false },
+            });
+          }
+        }
 
-        // Reverse cash from expected cash
-        const cashPayments = order.payments.filter(
-          (p) => p.method === 'CASH' && p.status === 'COMPLETED'
-        );
-        const totalCashReceived = cashPayments.reduce(
-          (sum, p) => sum + Number(p.amount),
-          0
-        );
-        const totalCashChange = cashPayments.reduce(
-          (sum, p) => sum + (p.changeGiven ? Number(p.changeGiven) : 0),
-          0
-        );
-        const netCash = Math.round((totalCashReceived - totalCashChange) * 100) / 100;
-
-        if (netCash > 0) {
-          await tx.cashMovement.create({
-            data: {
-              sessionId: order.sessionId,
-              type: 'ADJUSTMENT',
-              amount: -netCash,
-              orderId: id,
-              performedBy: employee!.sub,
-              reason: `Void order ${order.orderNumber}: ${parsed.data.voidReason}`,
-            },
-          });
+        // Update session totals
+        if (order.sessionId) {
+          const orderTotal = Number(order.total);
 
           await tx.posSession.update({
             where: { id: order.sessionId },
             data: {
-              expectedCash: { decrement: netCash },
+              totalVoids: { increment: orderTotal },
+              netSales: { decrement: orderTotal },
             },
           });
+
+          // Reverse cash from expected cash
+          const cashPayments = order.payments.filter(
+            (p) => p.method === 'CASH' && p.status === 'COMPLETED'
+          );
+          const totalCashReceived = cashPayments.reduce(
+            (sum, p) => sum + Number(p.amount),
+            0
+          );
+          const totalCashChange = cashPayments.reduce(
+            (sum, p) => sum + (p.changeGiven ? Number(p.changeGiven) : 0),
+            0
+          );
+          const netCash = Math.round((totalCashReceived - totalCashChange) * 100) / 100;
+
+          if (netCash > 0) {
+            await tx.cashMovement.create({
+              data: {
+                sessionId: order.sessionId,
+                type: 'ADJUSTMENT',
+                amount: -netCash,
+                orderId: id,
+                performedBy: employee!.sub,
+                reason: `Void order ${order.orderNumber}: ${parsed.data.voidReason}`,
+              },
+            });
+
+            await tx.posSession.update({
+              where: { id: order.sessionId },
+              data: {
+                expectedCash: { decrement: netCash },
+              },
+            });
+          }
+        }
+
+        // Reverse GL journal entry (best-effort) — void the original journal
+        if (order.glTransactionId) {
+          try {
+            await tx.journalEntry.update({
+              where: { id: order.glTransactionId },
+              data: {
+                isReversed: true,
+              },
+            });
+          } catch {
+            console.error(`[Kiosk POS] GL reversal failed for void ${order.orderNumber}`);
+          }
         }
       }
 

@@ -137,11 +137,11 @@ export async function POST(request: NextRequest) {
       const lineSubtotal = Math.round(qty * price * 100) / 100;
 
       let discountAmount = 0;
-      if (item.discountType && item.discountValue) {
+      if (item.discountType && item.discountValue != null) {
         if (item.discountType === 'PERCENTAGE') {
           discountAmount = Math.round(lineSubtotal * (Number(item.discountValue) / 100) * 100) / 100;
         } else {
-          discountAmount = Number(item.discountValue);
+          discountAmount = Math.min(Number(item.discountValue), lineSubtotal);
         }
       }
 
@@ -178,22 +178,26 @@ export async function POST(request: NextRequest) {
     );
 
     let orderDiscountAmount = 0;
-    if (orderData.orderDiscountType && orderData.orderDiscountValue) {
+    if (orderData.orderDiscountType && orderData.orderDiscountValue != null) {
       if (orderData.orderDiscountType === 'PERCENTAGE') {
         orderDiscountAmount = Math.round(subtotal * (Number(orderData.orderDiscountValue) / 100) * 100) / 100;
       } else {
-        orderDiscountAmount = Number(orderData.orderDiscountValue);
+        orderDiscountAmount = Math.min(Number(orderData.orderDiscountValue), subtotal);
       }
     }
 
-    const taxableAmount = Math.round((subtotal - orderDiscountAmount) * 100) / 100;
-    const exemptAmount = calculatedItems
+    // Proportionally reduce taxable/exempt amounts by order discount
+    const discountRatio = subtotal > 0 ? (subtotal - orderDiscountAmount) / subtotal : 1;
+    const rawTaxable = calculatedItems
+      .filter((i) => !i.isGctExempt)
+      .reduce((sum, i) => sum + i.lineTotalBeforeTax, 0);
+    const rawExempt = calculatedItems
       .filter((i) => i.isGctExempt)
       .reduce((sum, i) => sum + i.lineTotalBeforeTax, 0);
-    const gctAmount = calculatedItems.reduce(
-      (sum, item) => sum + item.gctAmount,
-      0
-    );
+    const taxableAmount = Math.round(rawTaxable * discountRatio * 100) / 100;
+    const exemptAmount = Math.round(rawExempt * discountRatio * 100) / 100;
+    // Recalculate GCT on the discounted taxable amount (not the pre-discount sum)
+    const gctAmount = Math.round(taxableAmount * defaultGctRate * 100) / 100;
     const total = Math.round((subtotal - orderDiscountAmount + gctAmount) * 100) / 100;
 
     // Create order with items in a transaction

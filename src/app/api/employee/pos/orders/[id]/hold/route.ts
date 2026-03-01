@@ -36,15 +36,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
     if (!order) return notFound('Order not found');
 
+    if (order.status === 'HELD') {
+      return badRequest('Order is already on hold');
+    }
+
     const holdableStatuses = ['DRAFT', 'PENDING_PAYMENT', 'PARTIALLY_PAID'];
     if (!holdableStatuses.includes(order.status)) {
       return badRequest(
         `Cannot hold an order with status ${order.status}. Only orders in DRAFT, PENDING_PAYMENT, or PARTIALLY_PAID status can be held.`
       );
-    }
-
-    if (order.status === 'HELD') {
-      return badRequest('Order is already on hold');
     }
 
     const heldOrder = await prisma.posOrder.update({
