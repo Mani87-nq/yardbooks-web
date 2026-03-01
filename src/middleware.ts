@@ -278,13 +278,22 @@ function addSecurityHeaders(response: NextResponse, nonce: string) {
     'camera=(), microphone=(), geolocation=(), payment=()'
   );
 
-  // Content Security Policy — nonce-based for scripts (replaces unsafe-inline)
-  // style-src keeps 'unsafe-inline' because Tailwind/CSS-in-JS requires it
-  // and style injection is far lower risk than script injection.
+  // Content Security Policy
+  //
+  // IMPORTANT: Next.js 16 generates inline scripts for RSC payload delivery
+  // (self.__next_f.push([...])) that do NOT receive the nonce attribute.
+  // This is a known incompatibility between nonce-based CSP and Next.js 16's
+  // cacheComponents feature (GitHub issue #89754). Using nonce-only for
+  // script-src silently blocks these inline scripts, which kills hydration
+  // and breaks ALL client-side navigation (router.push, Link clicks).
+  //
+  // We use 'unsafe-inline' for script-src as the pragmatic solution.
+  // XSS protection still relies on: httpOnly cookies, input sanitization,
+  // and the other CSP directives (frame-ancestors, form-action, base-uri).
   const isDev = process.env.NODE_ENV === 'development';
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''}`,
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob: https:`,
     `media-src 'self'`,
