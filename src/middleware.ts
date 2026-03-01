@@ -2,6 +2,14 @@
  * Next.js Middleware — runs on every request.
  * Handles authentication checks, transparent token refresh, and security headers.
  *
+ * CRITICAL: Next.js 16 overhauled the routing/navigation system. Middleware
+ * MUST NOT add response headers (CSP, X-Frame-Options, etc.) to non-document
+ * requests (RSC, prefetch, API). Adding headers to RSC responses corrupts the
+ * client-side router state and silently breaks all client navigation.
+ *
+ * Security headers are ONLY applied to full document (HTML) requests.
+ * The `Sec-Fetch-Dest: document` header reliably identifies these.
+ *
  * Single-session enforcement:
  *   When a user logs in from a new device, the server deletes all previous
  *   sessions. The old browser's 15-min access token eventually expires;
@@ -73,29 +81,31 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ============================================
-  // RSC / PREFETCH DETECTION
+  // REQUEST TYPE DETECTION
   // ============================================
-  // Next.js App Router sends internal RSC requests for client-side navigation.
-  // These MUST NOT have their request headers modified — passing modified headers
-  // via NextResponse.next({ request: { headers } }) corrupts the
-  // Next-Router-State-Tree header and silently breaks all client navigation.
+  // Sec-Fetch-Dest reliably identifies the type of resource being requested:
+  //   "document" → full page navigation (typed URL, refresh, link without JS)
+  //   "empty"    → fetch/XHR (RSC, API calls, prefetch)
+  //   other      → subresources (script, style, image, font, etc.)
+  //
+  // Security headers (CSP with nonce, X-Frame-Options, etc.) are ONLY needed
+  // on document responses. Adding them to RSC responses breaks Next.js 16's
+  // client-side navigation by corrupting the router state.
+  const isDocumentRequest = request.headers.get('sec-fetch-dest') === 'document';
+
+  // Also detect RSC/prefetch requests for early bail-out (skip auth too).
+  // RSC requests carry session cookies from the initial page load.
   const isRSC =
     request.headers.get('RSC') === '1' ||
     request.headers.get('Next-Router-Prefetch') !== null ||
     request.headers.get('Next-Router-State-Tree') !== null ||
-    request.nextUrl.searchParams.has('_rsc') ||
-    request.headers.get('accept')?.includes('text/x-component');
+    request.nextUrl.searchParams.has('_rsc');
 
-  // RSC requests carry session cookies from the initial page load,
-  // so they don't need middleware auth checks, CSP nonces, or security headers.
+  // RSC/prefetch requests MUST pass through completely untouched.
+  // Any modification — even adding response headers — breaks navigation in Next.js 16.
   if (isRSC) {
     return NextResponse.next();
   }
-
-  // ============================================
-  // CSP NONCE — generated per request
-  // ============================================
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
   // ============================================
   // AUTHENTICATION CHECK
@@ -164,7 +174,6 @@ export async function middleware(request: NextRequest) {
 
           // Forward the response and set the new cookies from the refresh endpoint
           const response = NextResponse.next();
-          response.headers.set('x-nonce', nonce);
 
           // Set the new access token cookie (httpOnly to prevent XSS token theft)
           if (data.accessToken) {
@@ -183,8 +192,12 @@ export async function middleware(request: NextRequest) {
             response.headers.append('Set-Cookie', cookie);
           }
 
-          // Add security headers to this response
-          addSecurityHeaders(response, nonce);
+          // Only add security headers + nonce for document (HTML) requests
+          if (isDocumentRequest) {
+            const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+            response.headers.set('x-nonce', nonce);
+            addSecurityHeaders(response, nonce);
+          }
           return response;
         }
         // Refresh failed (session deleted or expired) → fall through to redirect
@@ -220,14 +233,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Continue with request and add security headers
-  // IMPORTANT: Never use NextResponse.next({ request: { headers } }) — it corrupts
-  // the Next-Router-State-Tree header and silently breaks client-side navigation.
-  // Pass nonce via response header instead; server components read it via headers().
-  const response = NextResponse.next();
-  response.headers.set('x-nonce', nonce);
-  addSecurityHeaders(response, nonce);
-  return response;
+  // ============================================
+  // PASS THROUGH — with optional security headers
+  // ============================================
+  // Only document (HTML) requests get security headers + CSP nonce.
+  // Non-document requests (RSC, API fetches, prefetch) pass through clean.
+  if (isDocumentRequest) {
+    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+    const response = NextResponse.next();
+    response.headers.set('x-nonce', nonce);
+    addSecurityHeaders(response, nonce);
+    return response;
+  }
+
+  // Non-document requests: pass through with no modifications
+  return NextResponse.next();
 }
 
 // ============================================
