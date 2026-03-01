@@ -10,7 +10,7 @@
  * - Navigation: Network-first with offline fallback page
  */
 
-const CACHE_VERSION = 'yaadbooks-v3';
+const CACHE_VERSION = 'yaadbooks-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
