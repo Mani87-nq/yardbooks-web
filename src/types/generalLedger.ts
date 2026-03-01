@@ -9,9 +9,9 @@ export interface JournalEntry {
   companyId?: string;
   entryNumber: string;
   journalNumber?: string;
-  date: Date;
-  entryDate?: Date;
-  postDate?: Date;
+  date: string;
+  entryDate?: string;
+  postDate?: string;
   description: string;
   reference?: string;
   sourceModule?: JournalSourceModule;
@@ -25,12 +25,12 @@ export interface JournalEntry {
   reversalOf?: string;
   reversedBy?: string;
   createdBy?: string;
-  createdAt: Date;
+  createdAt: string;
   approvedBy?: string;
-  approvedAt?: Date;
+  approvedAt?: string;
   postedBy?: string;
-  postedAt?: Date;
-  updatedAt?: Date;
+  postedAt?: string;
+  updatedAt?: string;
   tags?: string[];
   notes?: string;
 }
@@ -64,7 +64,7 @@ export interface JournalLine {
   taxCode?: string;
   taxAmount?: number;
   isReconciled: boolean;
-  reconciledAt?: Date;
+  reconciledAt?: string;
   bankTransactionId?: string;
 }
 
@@ -103,17 +103,17 @@ export interface AccountingPeriod {
   periodNumber: number;
   fiscalYear: number;
   periodType: 'monthly' | 'quarterly' | 'yearly';
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate: string;
   status: PeriodStatus;
-  lockedAt?: Date;
+  lockedAt?: string;
   lockedBy?: string;
   lockedReason?: string;
-  closedAt?: Date;
+  closedAt?: string;
   closedBy?: string;
   retainedEarningsPosted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type PeriodStatus =
@@ -155,10 +155,10 @@ export interface GLAccount {
   balance?: number;
   ytdDebits?: number;
   ytdCredits?: number;
-  lastActivityDate?: Date;
+  lastActivityDate?: string;
   description?: string;
-  createdAt: Date;
-  updatedAt?: Date;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export type GLAccountType =
@@ -192,7 +192,7 @@ export interface AccountBalance {
   closingDebit: number;
   closingCredit: number;
   closingBalance: number;
-  lastUpdated: Date;
+  lastUpdated: string;
 }
 
 // ============================================
@@ -201,13 +201,13 @@ export interface AccountBalance {
 
 export interface TrialBalance {
   companyId: string;
-  asOfDate: Date;
+  asOfDate: string;
   periodId?: string;
   accounts: TrialBalanceAccount[];
   totalDebits: number;
   totalCredits: number;
   isBalanced: boolean;
-  generatedAt: Date;
+  generatedAt: string;
 }
 
 export interface TrialBalanceAccount {
@@ -228,8 +228,8 @@ export interface TrialBalanceAccount {
 
 export interface IncomeStatement {
   companyId: string;
-  periodStart: Date;
-  periodEnd: Date;
+  periodStart: string;
+  periodEnd: string;
   revenue: IncomeStatementSection;
   costOfGoodsSold: IncomeStatementSection;
   grossProfit: number;
@@ -240,7 +240,7 @@ export interface IncomeStatement {
   profitBeforeTax: number;
   incomeTaxExpense: number;
   netProfit: number;
-  generatedAt: Date;
+  generatedAt: string;
 }
 
 export interface IncomeStatementSection {
@@ -259,8 +259,8 @@ export interface IncomeStatementItem {
 
 export interface StatementOfFinancialPosition {
   companyId: string;
-  asOfDate: Date;
-  comparativeDate?: Date;
+  asOfDate: string;
+  comparativeDate?: string;
   currentAssets: BalanceSheetSection;
   nonCurrentAssets: BalanceSheetSection;
   totalAssets: number;
@@ -271,7 +271,7 @@ export interface StatementOfFinancialPosition {
   totalEquity: number;
   totalLiabilitiesAndEquity: number;
   isBalanced: boolean;
-  generatedAt: Date;
+  generatedAt: string;
 }
 
 export interface BalanceSheetSection {

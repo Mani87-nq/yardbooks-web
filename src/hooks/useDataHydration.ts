@@ -113,7 +113,7 @@ export function useDataHydration() {
           role: appRole,
           activeCompanyId: meData.user.activeCompanyId ?? undefined,
           avatarUrl: meData.user.avatarUrl ?? undefined,
-          createdAt: new Date(meData.user.createdAt),
+          createdAt: meData.user.createdAt,
         });
 
         // Store the real RBAC role for permission checks (usePermissions hook)

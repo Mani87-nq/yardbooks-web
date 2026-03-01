@@ -32,8 +32,8 @@ export interface Notification {
   actionLabel?: string;
   relatedId?: string;
   relatedType?: 'invoice' | 'expense' | 'customer' | 'product' | 'employee' | 'po';
-  createdAt: string | Date;
-  readAt?: string | Date | null;
+  createdAt: string;
+  readAt?: string | null;
 }
 
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {

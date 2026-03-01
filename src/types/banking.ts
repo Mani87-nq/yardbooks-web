@@ -12,9 +12,9 @@ export interface BankAccount {
   availableBalance: number;
   linkedGLAccountCode?: string;
   isActive: boolean;
-  lastSyncedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  lastSyncedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type BankAccountType =
@@ -28,29 +28,29 @@ export type BankAccountType =
 export interface BankTransaction {
   id: string;
   bankAccountId: string;
-  transactionDate: Date;
-  postDate: Date;
+  transactionDate: string;
+  postDate: string;
   description: string;
   reference?: string;
   amount: number;
   balance?: number;
   category?: string;
   isReconciled: boolean;
-  reconciledAt?: Date;
+  reconciledAt?: string;
   reconciledBy?: string;
   matchedDocumentType?: 'invoice' | 'expense' | 'payment' | 'journal';
   matchedDocumentId?: string;
   journalEntryId?: string;
   importBatchId?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BankReconciliation {
   id: string;
   bankAccountId: string;
-  periodStart: Date;
-  periodEnd: Date;
+  periodStart: string;
+  periodEnd: string;
   openingBalance: number;
   closingBalance: number;
   statementBalance: number;
@@ -59,10 +59,10 @@ export interface BankReconciliation {
   status: ReconciliationStatus;
   reconciledTransactionIds: string[];
   adjustments: ReconciliationAdjustment[];
-  completedAt?: Date;
+  completedAt?: string;
   completedBy?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type ReconciliationStatus =
@@ -84,7 +84,7 @@ export interface ImportBatch {
   fileName: string;
   fileType: 'csv' | 'ofx' | 'qfx';
   transactionCount: number;
-  importedAt: Date;
+  importedAt: string;
   importedBy: string;
   status: 'pending' | 'completed' | 'failed';
   errorMessage?: string;

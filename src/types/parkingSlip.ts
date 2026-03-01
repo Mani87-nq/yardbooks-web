@@ -16,8 +16,8 @@ export interface ParkingSlip {
   lotName?: string;
   spotNumber?: string;
   status: ParkingSlipStatus;
-  entryTime: Date;
-  exitTime?: Date;
+  entryTime: string;
+  exitTime?: string;
   durationMinutes?: number;
   hourlyRate: number;
   totalAmount?: number;
@@ -25,8 +25,8 @@ export interface ParkingSlip {
   paymentMethod?: 'cash' | 'card' | 'mobile';
   notes?: string;
   createdBy?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const PARKING_STATUS_LABELS: Record<ParkingSlipStatus, string> = {
