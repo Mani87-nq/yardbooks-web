@@ -120,7 +120,7 @@ export default function LoginContent() {
       lastName: data.user.lastName,
       activeCompanyId: data.user.activeCompanyId ?? undefined,
       role: appRole as 'admin' | 'user' | 'staff',
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     });
 
     setAuthenticated(true);
@@ -137,8 +137,8 @@ export default function LoginContent() {
       address: '',
       parish: '',
       industry: '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }));
     setCompanies(loginCompanies);
 

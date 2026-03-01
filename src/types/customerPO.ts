@@ -1,4 +1,8 @@
 // YaadBooks Web - Customer Purchase Order Types
+//
+// NOTE: All date fields are typed as `string` (ISO 8601 format) because
+// API responses serialize dates via NextResponse.json(). Use `new Date(field)`
+// when you need Date arithmetic in a component.
 
 import type { Address } from './index';
 
@@ -43,8 +47,8 @@ export interface CustomerPurchaseOrder {
   poNumber: string;
   internalReference?: string;
   status: CustomerPOStatus;
-  orderDate: Date;
-  requestedDeliveryDate?: Date;
+  orderDate: string;
+  requestedDeliveryDate?: string;
   customerReference?: string;
   shippingAddress?: Address;
   items: CustomerPOItem[];
@@ -54,8 +58,8 @@ export interface CustomerPurchaseOrder {
   notes?: string;
   internalNotes?: string;
   createdBy?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const CUSTOMER_PO_STATUS_LABELS: Record<CustomerPOStatus, string> = {

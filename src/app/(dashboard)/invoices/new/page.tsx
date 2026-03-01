@@ -98,8 +98,8 @@ export default function NewInvoicePage() {
         phone: created.phone || undefined,
         trnNumber: created.trnNumber || undefined,
         balance: 0,
-        createdAt: new Date(created.createdAt),
-        updatedAt: new Date(created.updatedAt || created.createdAt),
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt || created.createdAt,
       });
 
       // Auto-select the newly created customer

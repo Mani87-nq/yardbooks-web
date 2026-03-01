@@ -207,7 +207,7 @@ export default function QuotationsPage() {
 
   const handleSend = async (quote: Quotation) => {
     try {
-      await api.put(`/api/v1/quotations/${quote.id}`, { status: 'sent', sentAt: new Date() });
+      await api.put(`/api/v1/quotations/${quote.id}`, { status: 'sent', sentAt: new Date().toISOString() });
       fetchQuotations();
     } catch (err: any) {
       alert(err.message || 'Failed to send quotation');
@@ -216,7 +216,7 @@ export default function QuotationsPage() {
 
   const handleAccept = async (quote: Quotation) => {
     try {
-      await api.put(`/api/v1/quotations/${quote.id}`, { status: 'accepted', acceptedAt: new Date() });
+      await api.put(`/api/v1/quotations/${quote.id}`, { status: 'accepted', acceptedAt: new Date().toISOString() });
       fetchQuotations();
     } catch (err: any) {
       alert(err.message || 'Failed to accept quotation');

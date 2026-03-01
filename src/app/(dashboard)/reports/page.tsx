@@ -133,7 +133,7 @@ export default function ReportsPage() {
   const { invoices, expenses, customers, products, glAccounts, activeCompany } = useAppStore();
   const { orders } = usePosStore();
 
-  const filterByDateRange = <T extends { date?: Date; createdAt?: Date }>(items: T[]): T[] => {
+  const filterByDateRange = <T extends { date?: string | Date; createdAt?: string | Date }>(items: T[]): T[] => {
     const start = new Date(dateRange.start);
     const end = new Date(dateRange.end);
     end.setHours(23, 59, 59, 999);

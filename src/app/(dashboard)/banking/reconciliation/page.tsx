@@ -163,7 +163,7 @@ export default function BankReconciliationPage() {
       );
       // Also update Zustand store for instant UI feedback
       txnIds.forEach((txnId) => {
-        updateBankTransaction(txnId, { isReconciled: true, reconciledAt: new Date() });
+        updateBankTransaction(txnId, { isReconciled: true, reconciledAt: new Date().toISOString() });
       });
       setIsCompleted(true);
     } catch (err: unknown) {

@@ -1,4 +1,9 @@
 // YaadBooks Web - Core Type Definitions
+//
+// NOTE: All date fields are typed as `string` (ISO 8601 format) because
+// API responses serialize dates via NextResponse.json(). The Zustand store
+// and React components always receive ISO strings, never Date objects.
+// Use `new Date(field)` when you need Date arithmetic in a component.
 
 // ============================================
 // USER & AUTHENTICATION
@@ -14,8 +19,8 @@ export interface User {
   biometricEnabled?: boolean;
   activeCompanyId?: string;
   avatarUrl?: string;
-  createdAt: Date;
-  updatedAt?: Date;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // ============================================
@@ -50,11 +55,11 @@ export interface Company {
   subscriptionStatus?: SubscriptionStatusType;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
-  subscriptionStartDate?: Date | string;
-  subscriptionEndDate?: Date | string;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
   onboardingCompleted?: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface InvoiceSettings {
@@ -145,8 +150,8 @@ export interface Customer {
   trnNumber?: string;
   notes?: string;
   balance: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============================================
@@ -177,8 +182,8 @@ export interface Product {
   imageUri?: string;
   barcode?: string;
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type ProductUnit =
@@ -220,13 +225,13 @@ export interface Invoice {
   amountPaid: number;
   balance: number;
   status: InvoiceStatus;
-  dueDate: Date;
-  issueDate: Date;
+  dueDate: string;
+  issueDate: string;
   notes?: string;
   terms?: string;
-  paidDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  paidDate?: string;
+  createdAt: string;
+  updatedAt: string;
   customerPOId?: string;
   customerPONumber?: string;
 }
@@ -280,16 +285,16 @@ export interface Quotation {
   discountType?: 'fixed' | 'percentage';
   total: number;
   status: QuotationStatus;
-  validUntil: Date;
-  issueDate?: Date;
-  sentAt?: Date;
-  acceptedAt?: Date;
+  validUntil: string;
+  issueDate?: string;
+  sentAt?: string;
+  acceptedAt?: string;
   notes?: string;
   terms?: string;
   convertedToInvoice?: boolean;
   convertedToInvoiceId?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type QuotationStatus =
@@ -313,15 +318,15 @@ export interface Expense {
   amount: number;
   gctAmount: number;
   gctClaimable: boolean;
-  date: Date;
+  date: string;
   paymentMethod: PaymentMethod;
   receiptUri?: string;
   reference?: string;
   notes?: string;
   isRecurring: boolean;
   recurringSchedule?: RecurringSchedule;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type ExpenseCategory =
@@ -355,9 +360,9 @@ export type PaymentMethod =
 
 export interface RecurringSchedule {
   frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
-  startDate: Date;
-  endDate?: Date;
-  nextDueDate: Date;
+  startDate: string;
+  endDate?: string;
+  nextDueDate: string;
 }
 
 // ============================================
@@ -370,8 +375,8 @@ export interface Payment {
   paymentMethod: PaymentMethod;
   reference?: string;
   notes?: string;
-  date: Date;
-  createdAt: Date;
+  date: string;
+  createdAt: string;
 }
 
 // ============================================
@@ -388,9 +393,9 @@ export interface Employee {
   address?: Address;
   trnNumber: string;
   nisNumber: string;
-  dateOfBirth: Date;
-  hireDate: Date;
-  terminationDate?: Date;
+  dateOfBirth: string;
+  hireDate: string;
+  terminationDate?: string;
   department?: string;
   position: string;
   employmentType: 'full_time' | 'part_time' | 'contract';
@@ -399,24 +404,24 @@ export interface Employee {
   bankName?: string;
   bankAccountNumber?: string;
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PayrollRun {
   id: string;
   companyId: string; // Required for multi-company support
-  periodStart: Date;
-  periodEnd: Date;
-  payDate: Date;
+  periodStart: string;
+  periodEnd: string;
+  payDate: string;
   status: 'draft' | 'approved' | 'paid';
   entries: PayrollEntry[];
   totalGross: number;
   totalDeductions: number;
   totalNet: number;
   totalEmployerContributions: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PayrollEntry {
@@ -448,8 +453,8 @@ export interface PayrollEntry {
 // REPORTS
 // ============================================
 export interface ProfitLossReport {
-  periodStart: Date;
-  periodEnd: Date;
+  periodStart: string;
+  periodEnd: string;
   income: {
     sales: number;
     otherIncome: number;
@@ -464,7 +469,7 @@ export interface ProfitLossReport {
 }
 
 export interface BalanceSheet {
-  asOfDate: Date;
+  asOfDate: string;
   assets: {
     cash: number;
     accountsReceivable: number;
@@ -480,8 +485,8 @@ export interface BalanceSheet {
 }
 
 export interface GCTReport {
-  periodStart: Date;
-  periodEnd: Date;
+  periodStart: string;
+  periodEnd: string;
   outputGCT: number;
   inputGCT: number;
   netGCT: number;
@@ -489,8 +494,8 @@ export interface GCTReport {
 }
 
 export interface CashFlowReport {
-  periodStart: Date;
-  periodEnd: Date;
+  periodStart: string;
+  periodEnd: string;
   openingBalance: number;
   closingBalance: number;
   inflows: {
@@ -519,7 +524,7 @@ export interface Account {
   parentId?: string;
   balance: number;
   isSystem: boolean;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export type AccountType =
@@ -540,7 +545,7 @@ export interface AIQuery {
   intent: AIIntent;
   entities: Record<string, unknown>;
   response: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export type AIIntent =

@@ -1,4 +1,8 @@
 // YaadBooks Web - Stock Count Type Definitions
+//
+// NOTE: All date fields are typed as `string` (ISO 8601 format) because
+// API responses serialize dates via NextResponse.json(). Use `new Date(field)`
+// when you need Date arithmetic in a component.
 
 export interface StockCount {
   id: string;
@@ -10,20 +14,20 @@ export interface StockCount {
   warehouseId?: string;
   warehouseName?: string;
   categoryIds?: string[];
-  scheduledDate: Date;
-  startedAt?: Date;
-  completedAt?: Date;
+  scheduledDate: string;
+  startedAt?: string;
+  completedAt?: string;
   countedBy?: string;
   approvedBy?: string;
-  approvedAt?: Date;
+  approvedAt?: string;
   items: StockCountItem[];
   totalItems: number;
   itemsCounted: number;
   itemsWithVariance: number;
   totalVarianceValue: number;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type StockCountType =
@@ -53,7 +57,7 @@ export interface StockCountItem {
   variance?: number;
   varianceValue?: number;
   varianceReason?: string;
-  countedAt?: Date;
+  countedAt?: string;
   countedBy?: string;
   location?: string;
   notes?: string;
@@ -76,7 +80,7 @@ export interface StockCountReport {
   stockCountId: string;
   countNumber: string;
   countName: string;
-  countDate: Date;
+  countDate: string;
   warehouseName?: string;
   totalItems: number;
   itemsCounted: number;
@@ -88,5 +92,5 @@ export interface StockCountReport {
   netVarianceValue: number;
   accuracyRate: number;
   items: StockCountVariance[];
-  generatedAt: Date;
+  generatedAt: string;
 }

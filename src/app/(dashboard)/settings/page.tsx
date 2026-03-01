@@ -2840,7 +2840,7 @@ export default function SettingsPage() {
         website: companyForm.website || undefined,
         industry: companyForm.industry || undefined,
       });
-      setActiveCompany({ ...activeCompany, ...(updated as any), updatedAt: new Date() });
+      setActiveCompany({ ...activeCompany, ...(updated as any), updatedAt: new Date().toISOString() });
       // Sync company TRN/GCT to tax (POS) settings
       if (companyForm.trnNumber) {
         updatePosSettings({ businessTRN: companyForm.trnNumber });
@@ -2940,7 +2940,7 @@ export default function SettingsPage() {
           termsAndConditions: invoiceSettings.termsAndConditions,
           notes: invoiceSettings.notes,
         },
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       });
       alert('Invoice settings saved!');
     } catch (err) {

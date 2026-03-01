@@ -37,10 +37,10 @@ interface CreditNote {
   reason: string;
   notes: string;
   status: CreditNoteStatus;
-  createdAt: Date;
-  approvedAt?: Date;
-  appliedAt?: Date;
-  voidedAt?: Date;
+  createdAt: string;
+  approvedAt?: string;
+  appliedAt?: string;
+  voidedAt?: string;
 }
 
 // ============================================
@@ -207,7 +207,7 @@ export default function CreditNotesPage() {
       fetchCreditNotes();
       if (selectedCreditNote?.id === id) {
         setSelectedCreditNote((prev) =>
-          prev ? { ...prev, status: 'approved', approvedAt: new Date() } : prev
+          prev ? { ...prev, status: 'approved', approvedAt: new Date().toISOString() } : prev
         );
       }
     } catch (err: any) {
@@ -221,7 +221,7 @@ export default function CreditNotesPage() {
       fetchCreditNotes();
       if (selectedCreditNote?.id === id) {
         setSelectedCreditNote((prev) =>
-          prev ? { ...prev, status: 'applied', appliedAt: new Date() } : prev
+          prev ? { ...prev, status: 'applied', appliedAt: new Date().toISOString() } : prev
         );
       }
     } catch (err: any) {
@@ -235,7 +235,7 @@ export default function CreditNotesPage() {
       fetchCreditNotes();
       if (selectedCreditNote?.id === id) {
         setSelectedCreditNote((prev) =>
-          prev ? { ...prev, status: 'void', voidedAt: new Date() } : prev
+          prev ? { ...prev, status: 'void', voidedAt: new Date().toISOString() } : prev
         );
       }
     } catch (err: any) {

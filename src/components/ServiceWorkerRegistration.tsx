@@ -29,7 +29,7 @@ export function ServiceWorkerRegistration() {
           priority: 'LOW',
           isRead: false,
           isArchived: false,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
         });
       }
 
@@ -48,7 +48,7 @@ export function ServiceWorkerRegistration() {
             priority: 'LOW',
             isRead: false,
             isArchived: false,
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(),
           });
         }
       }

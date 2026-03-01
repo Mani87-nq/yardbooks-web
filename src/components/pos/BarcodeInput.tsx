@@ -52,7 +52,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or enter barcode...',
 interface ScannerStatusProps {
   isScanning: boolean;
   lastScan: string | null;
-  lastScanTime: Date | null;
+  lastScanTime: string | null;
 }
 
 /**

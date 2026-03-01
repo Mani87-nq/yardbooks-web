@@ -50,7 +50,7 @@ export default function CashFlowPage() {
   // Filter helpers
   // -----------------------------------------------------------------------
 
-  const filterByDateRange = <T extends { date?: Date; createdAt?: Date }>(
+  const filterByDateRange = <T extends { date?: string | Date; createdAt?: string | Date }>(
     items: T[],
   ): T[] => {
     const start = new Date(dateRange.start);

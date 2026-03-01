@@ -23,7 +23,7 @@ import {
 // ============================================
 
 interface StatementLine {
-  date: Date;
+  date: string;
   type: 'Invoice' | 'Payment' | 'Credit Note';
   reference: string;
   description: string;
@@ -124,7 +124,7 @@ export default function CustomerStatementsPage() {
       if (invDate >= startDate && invDate <= endDate) {
         // Invoice line (debit)
         lines.push({
-          date: new Date(inv.issueDate),
+          date: inv.issueDate,
           type: 'Invoice',
           reference: inv.invoiceNumber,
           description: `Invoice ${inv.invoiceNumber}${inv.items.length > 0 ? ` - ${inv.items.length} item${inv.items.length > 1 ? 's' : ''}` : ''}`,
@@ -135,13 +135,12 @@ export default function CustomerStatementsPage() {
 
         // Payment line (credit) - if any payment has been made
         if (inv.amountPaid > 0) {
-          const paymentDate = inv.paidDate
-            ? new Date(inv.paidDate)
-            : new Date(inv.issueDate);
+          const paymentDateStr = inv.paidDate || inv.issueDate;
+          const paymentDate = new Date(paymentDateStr);
           // Only include payment if it falls in the date range
           if (paymentDate >= startDate && paymentDate <= endDate) {
             lines.push({
-              date: paymentDate,
+              date: paymentDateStr,
               type: 'Payment',
               reference: `PMT-${inv.invoiceNumber}`,
               description: `Payment received for ${inv.invoiceNumber}`,

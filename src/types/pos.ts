@@ -1,5 +1,9 @@
 // Yaad Books Web - Point of Sale Type Definitions
 // Jamaica-first POS system with JAM-DEX, GCT compliance
+//
+// NOTE: All date fields are typed as `string` (ISO 8601 format) because
+// API responses serialize dates via NextResponse.json(). Use `new Date(field)`
+// when you need Date arithmetic in a component.
 
 // ============================================
 // PAYMENT TYPES
@@ -37,16 +41,16 @@ export interface PosPayment {
   authorizationCode?: string;
   status: PaymentStatus;
   statusMessage?: string;
-  processedAt?: Date;
+  processedAt?: string;
   amountTendered?: number;
   changeGiven?: number;
   qrCodeData?: string;
   pollUrl?: string;
-  expiresAt?: Date;
+  expiresAt?: string;
   processorResponse?: string;
   metadata?: Record<string, unknown>;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============================================
@@ -129,11 +133,11 @@ export interface PosOrder {
   receiptEmail?: string;
   receiptSms?: string;
   isOfflineOrder: boolean;
-  syncedAt?: Date;
+  syncedAt?: string;
   syncError?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt?: Date;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
   createdBy: string;
   notes?: string;
 }
@@ -159,7 +163,7 @@ export interface CashMovement {
   orderId?: string;
   reason?: string;
   performedBy: string;
-  performedAt: Date;
+  performedAt: string;
 }
 
 export type PosSessionStatus = 'open' | 'suspended' | 'closed';
@@ -171,8 +175,8 @@ export interface PosSession {
   cashierName: string;
   cashierId?: string;
   cashierEmployeeNumber?: string;
-  openedAt: Date;
-  closedAt?: Date;
+  openedAt: string;
+  closedAt?: string;
   openingCash: number;
   cashMovements: CashMovement[];
   expectedCash: number;
@@ -190,8 +194,8 @@ export interface PosSession {
   }[];
   status: PosSessionStatus;
   closingNotes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============================================
@@ -218,7 +222,7 @@ export interface PosTerminal {
   location?: string;
   isActive: boolean;
   isOnline: boolean;
-  lastSeen?: Date;
+  lastSeen?: string;
   defaultWarehouseId?: string;
   defaultPaymentMethods: PaymentMethodType[];
   allowNegativeInventory: boolean;
@@ -229,8 +233,8 @@ export interface PosTerminal {
   cashDrawer?: CashDrawerConfig;
   barcodeScanner: boolean;
   currentSessionId?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============================================
@@ -271,7 +275,7 @@ export interface PosSettings {
   lynkMerchantId?: string;
   wipayMerchantId?: string;
   wipayApiKey?: string;
-  updatedAt: Date;
+  updatedAt: string;
 
   // Receipt printer settings
   receiptHeader?: string;
@@ -299,11 +303,11 @@ export interface PosSettings {
 export interface ZReport {
   id: string;
   reportNumber: string;
-  date: Date;
+  date: string;
   terminalId: string;
   terminalName: string;
-  periodStart: Date;
-  periodEnd: Date;
+  periodStart: string;
+  periodEnd: string;
   totalTransactions: number;
   completedTransactions: number;
   voidedTransactions: number;
@@ -334,7 +338,7 @@ export interface ZReport {
     itemCount: number;
     total: number;
   }[];
-  generatedAt: Date;
+  generatedAt: string;
   generatedBy: string;
 }
 
@@ -432,7 +436,7 @@ export interface SupervisorApproval {
   approved: boolean;
   supervisorId: string;
   supervisorName: string;
-  approvedAt: Date;
+  approvedAt: string;
   action: 'return' | 'void' | 'discount' | 'price_override';
   reason?: string;
 }
@@ -453,8 +457,8 @@ export interface PosReturn {
   returnReason: ReturnReasonType;
   notes?: string;
   processedBy: string;
-  createdAt: Date;
-  completedAt?: Date;
+  createdAt: string;
+  completedAt?: string;
 }
 
 // ============================================

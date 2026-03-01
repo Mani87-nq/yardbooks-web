@@ -292,7 +292,7 @@ export default function SignupContent() {
         firstName: data.user.firstName,
         lastName: data.user.lastName,
         role: 'admin',
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       });
 
       // Set active company
@@ -307,8 +307,8 @@ export default function SignupContent() {
           address: '',
           parish: formData.parish,
           industry: formData.industry,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         });
       }
 

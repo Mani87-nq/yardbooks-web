@@ -173,7 +173,7 @@ export default function ProfilePage() {
         lastName: trimmedLast,
         email: trimmedEmail,
         phone: trimmedPhone,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       };
 
       updateAppUser(updates);

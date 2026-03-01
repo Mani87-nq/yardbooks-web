@@ -1,5 +1,9 @@
 // YaadBooks Web - Fixed Asset Register Type Definitions
 // Supports dual tracking: Book Depreciation (IFRS) + Tax Capital Allowances (Jamaica)
+//
+// NOTE: All date fields are typed as `string` (ISO 8601 format) because
+// API responses serialize dates via NextResponse.json(). Use `new Date(field)`
+// when you need Date arithmetic in a component.
 
 // ============================================
 // FIXED ASSET CORE
@@ -13,7 +17,7 @@ export interface FixedAsset {
   name?: string;
   assetNumber?: string;
   category?: string;
-  purchaseDate?: Date;
+  purchaseDate?: string;
   purchaseCost?: number;
   salvageValue?: number;
   usefulLife?: number;
@@ -33,12 +37,12 @@ export interface FixedAsset {
   departmentName?: string;
   assignedTo?: string;
   assignedToName?: string;
-  acquisitionDate?: Date;
+  acquisitionDate?: string;
   acquisitionMethod?: AssetAcquisitionMethod;
   supplierId?: string;
   supplierName?: string;
   invoiceNumber?: string;
-  invoiceDate?: Date;
+  invoiceDate?: string;
   purchaseOrderNumber?: string;
   acquisitionCost?: number;
   currency?: 'JMD' | 'USD';
@@ -52,7 +56,7 @@ export interface FixedAsset {
   bookDepreciationMethod?: DepreciationMethod;
   bookUsefulLifeMonths?: number;
   bookResidualValue?: number;
-  bookDepreciationStartDate?: Date;
+  bookDepreciationStartDate?: string;
   bookAccumulatedDepreciation?: number;
   bookNetBookValue?: number;
   taxCapitalAllowanceClass?: string;
@@ -67,15 +71,15 @@ export interface FixedAsset {
   isFullyDepreciated?: boolean;
   isFullyAllowed?: boolean;
   disposalId?: string;
-  disposalDate?: Date;
+  disposalDate?: string;
   disposalMethod?: AssetDisposalMethod;
   disposalProceeds?: number;
   insuredValue?: number;
   insurancePolicyNumber?: string;
-  insuranceExpiry?: Date;
-  warrantyExpiry?: Date;
+  insuranceExpiry?: string;
+  warrantyExpiry?: string;
   warrantyProvider?: string;
-  lastPhysicalVerificationDate?: Date;
+  lastPhysicalVerificationDate?: string;
   physicalVerificationNotes?: string;
   hasInvoice?: boolean;
   hasContract?: boolean;
@@ -88,9 +92,9 @@ export interface FixedAsset {
   depreciationExpenseGLAccountCode?: string;
   notes?: string;
   createdBy?: string;
-  createdAt: Date;
+  createdAt: string;
   updatedBy?: string;
-  updatedAt?: Date;
+  updatedAt?: string;
 }
 
 export type AssetStatus =
@@ -154,8 +158,8 @@ export interface AssetCategory {
   isSystemCategory: boolean;
   requiresSerialNumber: boolean;
   requiresInsurance: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============================================
@@ -168,8 +172,8 @@ export interface FixedAssetDepreciationEntry {
   assetId: string;
   fiscalYear: number;
   periodNumber: number;
-  periodStartDate: Date;
-  periodEndDate: Date;
+  periodStartDate: string;
+  periodEndDate: string;
   bookDepreciationAmount: number;
   bookOpeningNBV: number;
   bookClosingNBV: number;
@@ -180,8 +184,8 @@ export interface FixedAssetDepreciationEntry {
   status: DepreciationEntryStatus;
   isPosted: boolean;
   journalEntryId?: string;
-  createdAt: Date;
-  postedAt?: Date;
+  createdAt: string;
+  postedAt?: string;
   postedBy?: string;
 }
 
@@ -199,7 +203,7 @@ export interface DepreciationRun {
   companyId: string;
   fiscalYear: number;
   periodNumber: number;
-  periodEndDate: Date;
+  periodEndDate: string;
   assetCategoryIds?: string[];
   assetIds?: string[];
   assetsProcessed: number;
@@ -208,10 +212,10 @@ export interface DepreciationRun {
   status: DepreciationRunStatus;
   isPosted: boolean;
   journalEntryId?: string;
-  postedAt?: Date;
+  postedAt?: string;
   postedBy?: string;
   createdBy: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export type DepreciationRunStatus =
@@ -228,7 +232,7 @@ export interface FixedAssetDisposal {
   id: string;
   companyId: string;
   assetId: string;
-  disposalDate: Date;
+  disposalDate: string;
   disposalMethod: AssetDisposalMethod;
   disposalReason?: string;
   proceedsAmount: number;
@@ -256,11 +260,11 @@ export interface FixedAssetDisposal {
   hasTitleTransfer: boolean;
   attachmentIds?: string[];
   createdBy: string;
-  createdAt: Date;
+  createdAt: string;
   approvedBy?: string;
-  approvedAt?: Date;
+  approvedAt?: string;
   postedBy?: string;
-  postedAt?: Date;
+  postedAt?: string;
 }
 
 export type DisposalStatus =
@@ -287,7 +291,7 @@ export interface CapitalAllowanceSchedule {
   totalBalancingAllowances: number;
   totalClosingWDV: number;
   netCapitalAllowanceClaim: number;
-  generatedAt: Date;
+  generatedAt: string;
 }
 
 export interface CapitalAllowanceClassSummary {

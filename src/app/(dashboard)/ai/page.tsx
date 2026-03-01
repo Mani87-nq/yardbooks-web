@@ -40,7 +40,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
+  timestamp: string;
   toolsUsed?: ToolUsed[];
   apiKeySource?: 'user' | 'system';
   images?: ImageAttachment[];
@@ -233,7 +233,7 @@ export default function AIAssistantPage() {
       id: Date.now().toString(),
       role: 'user',
       content: messageText || '(image attached)',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       images: pendingImages.length > 0 ? [...pendingImages] : undefined,
     };
 
@@ -267,7 +267,7 @@ export default function AIAssistantPage() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: res.response,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         toolsUsed: res.toolsUsed,
         apiKeySource: res.apiKeySource as 'user' | 'system' | undefined,
       };
@@ -278,7 +278,7 @@ export default function AIAssistantPage() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again. If this persists, check your AI API key in Settings > Integrations.',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {

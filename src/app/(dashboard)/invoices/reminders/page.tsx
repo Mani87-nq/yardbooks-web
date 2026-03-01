@@ -29,14 +29,14 @@ import {
 
 interface ReminderHistoryEntry {
   invoiceId: string;
-  sentAt: Date;
+  sentAt: string;
   method: 'email' | 'sms';
   status: 'delivered' | 'failed' | 'pending';
 }
 
 interface ActivityLogEntry {
   id: string;
-  timestamp: Date;
+  timestamp: string;
   action: string;
   invoiceNumber: string;
   customerName: string;
@@ -146,7 +146,7 @@ export default function PaymentRemindersPage() {
         history[inv.id] = [
           {
             invoiceId: inv.id,
-            sentAt: sentDate,
+            sentAt: sentDate.toISOString(),
             method: 'email',
             status: 'delivered',
           },
@@ -157,7 +157,7 @@ export default function PaymentRemindersPage() {
           olderDate.setDate(olderDate.getDate() - daysAgo - 14);
           history[inv.id].push({
             invoiceId: inv.id,
-            sentAt: olderDate,
+            sentAt: olderDate.toISOString(),
             method: 'email',
             status: 'delivered',
           });
@@ -184,7 +184,7 @@ export default function PaymentRemindersPage() {
       logDate.setDate(logDate.getDate() - daysAgo);
       log.push({
         id: `log-${index}`,
-        timestamp: logDate,
+        timestamp: logDate.toISOString(),
         action: actions[index % actions.length],
         invoiceNumber: inv.invoiceNumber,
         customerName: customer?.name || 'Unknown Customer',
@@ -197,7 +197,7 @@ export default function PaymentRemindersPage() {
     systemDate.setDate(systemDate.getDate() - 1);
     log.push({
       id: 'log-system-1',
-      timestamp: systemDate,
+      timestamp: systemDate.toISOString(),
       action: 'Auto-reminder schedule updated',
       invoiceNumber: '-',
       customerName: 'System',
@@ -211,7 +211,7 @@ export default function PaymentRemindersPage() {
   const totalOverdueAmount = overdueInvoices.reduce((sum, inv) => sum + Number(inv.balance || 0), 0);
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const remindersSentThisMonth = activityLog.filter(
-    (entry) => entry.timestamp >= startOfMonth && entry.status === 'success'
+    (entry) => new Date(entry.timestamp) >= startOfMonth && entry.status === 'success'
   ).length;
 
   // Get last reminder info for an invoice
@@ -246,7 +246,7 @@ export default function PaymentRemindersPage() {
 
       const newLogEntry: ActivityLogEntry = {
         id: `log-${Date.now()}`,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         action: 'Payment reminder sent',
         invoiceNumber: inv?.invoiceNumber || 'Unknown',
         customerName: customer?.name || 'Unknown Customer',
@@ -257,7 +257,7 @@ export default function PaymentRemindersPage() {
     } catch (err: any) {
       const newLogEntry: ActivityLogEntry = {
         id: `log-${Date.now()}`,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         action: 'Reminder email failed',
         invoiceNumber: inv?.invoiceNumber || 'Unknown',
         customerName: customer?.name || 'Unknown Customer',
@@ -678,9 +678,9 @@ export default function PaymentRemindersPage() {
 // Local helper (not exported from utils, kept local)
 // --------------------------------------------------
 
-function formatRelativeTimestamp(date: Date): string {
+function formatRelativeTimestamp(date: string | Date): string {
   const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const diff = now.getTime() - new Date(date).getTime();
   const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));

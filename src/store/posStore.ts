@@ -159,7 +159,7 @@ const DEFAULT_SETTINGS: PosSettings = {
   autoDeductInventory: true,
   autoPostToGL: true,
   defaultToWalkIn: true,
-  updatedAt: new Date(),
+  updatedAt: new Date().toISOString(),
 };
 
 const EMPTY_CART: PosCart = {
@@ -263,7 +263,7 @@ export const usePosStore = create<PosState>()(
         const orderDiscountAmount = d2(dOrderDiscount);
         const total = d2(dTotal);
 
-        const now = new Date();
+        const now = new Date().toISOString();
         const order: PosOrder = {
           id: uuidv4(),
           orderNumber: generateOrderNumber(),
@@ -309,7 +309,7 @@ export const usePosStore = create<PosState>()(
       updateOrder: (id, updates) => {
         set((state) => ({
           orders: state.orders.map((o) =>
-            o.id === id ? { ...o, ...updates, updatedAt: new Date() } : o
+            o.id === id ? { ...o, ...updates, updatedAt: new Date().toISOString() } : o
           ),
         }));
       },
@@ -318,7 +318,7 @@ export const usePosStore = create<PosState>()(
         set((state) => ({
           orders: state.orders.map((o) =>
             o.id === id
-              ? { ...o, status: 'voided' as PosOrderStatus, voidReason: reason, updatedAt: new Date() }
+              ? { ...o, status: 'voided' as PosOrderStatus, voidReason: reason, updatedAt: new Date().toISOString() }
               : o
           ),
         }));
@@ -334,8 +334,8 @@ export const usePosStore = create<PosState>()(
               ? {
                   ...o,
                   status: 'completed' as PosOrderStatus,
-                  completedAt: new Date(),
-                  updatedAt: new Date(),
+                  completedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
                 }
               : o
           ),
@@ -347,7 +347,7 @@ export const usePosStore = create<PosState>()(
             set((state) => ({
               sessions: state.sessions.map((s) =>
                 s.id === order.sessionId
-                  ? { ...s, orderIds: [...s.orderIds, id], updatedAt: new Date() }
+                  ? { ...s, orderIds: [...s.orderIds, id], updatedAt: new Date().toISOString() }
                   : s
               ),
             }));
@@ -359,7 +359,7 @@ export const usePosStore = create<PosState>()(
         set((state) => ({
           orders: state.orders.map((o) =>
             o.id === id
-              ? { ...o, status: 'held' as PosOrderStatus, heldReason: reason, updatedAt: new Date() }
+              ? { ...o, status: 'held' as PosOrderStatus, heldReason: reason, updatedAt: new Date().toISOString() }
               : o
           ),
         }));
@@ -396,7 +396,7 @@ export const usePosStore = create<PosState>()(
         set((state) => ({
           orders: state.orders.map((o) =>
             o.id === id
-              ? { ...o, status: 'draft' as PosOrderStatus, heldReason: undefined, updatedAt: new Date() }
+              ? { ...o, status: 'draft' as PosOrderStatus, heldReason: undefined, updatedAt: new Date().toISOString() }
               : o
           ),
         }));
@@ -485,7 +485,7 @@ export const usePosStore = create<PosState>()(
 
       // Payment Actions
       addPayment: (data) => {
-        const now = new Date();
+        const now = new Date().toISOString();
         const payment: PosPayment = {
           id: uuidv4(),
           orderId: data.orderId,
@@ -522,7 +522,7 @@ export const usePosStore = create<PosState>()(
                     amountPaid,
                     amountDue,
                     changeGiven,
-                    updatedAt: new Date(),
+                    updatedAt: new Date().toISOString(),
                   }
                 : o
             ),
@@ -537,7 +537,7 @@ export const usePosStore = create<PosState>()(
           orders: state.orders.map((order) => ({
             ...order,
             payments: order.payments.map((p) =>
-              p.id === paymentId ? { ...p, ...updates, updatedAt: new Date() } : p
+              p.id === paymentId ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
             ),
           })),
         }));
@@ -556,7 +556,7 @@ export const usePosStore = create<PosState>()(
         set((state) => ({
           orders: state.orders.map((o) =>
             o.id === orderId
-              ? { ...o, payments: newPayments, amountPaid, amountDue, updatedAt: new Date() }
+              ? { ...o, payments: newPayments, amountPaid, amountDue, updatedAt: new Date().toISOString() }
               : o
           ),
         }));
@@ -566,7 +566,7 @@ export const usePosStore = create<PosState>()(
         const order = get().getOrder(orderId);
         if (!order) return;
 
-        const now = new Date();
+        const now = new Date().toISOString();
         const newPayments = order.payments.map((p) =>
           p.id === paymentId
             ? { ...p, status: 'completed' as PaymentStatus, reference, processedAt: now, updatedAt: now }
@@ -593,7 +593,7 @@ export const usePosStore = create<PosState>()(
 
       // Session Actions
       openSession: (data) => {
-        const now = new Date();
+        const now = new Date().toISOString();
         const session: PosSession = {
           id: uuidv4(),
           terminalId: data.terminalId,
@@ -646,7 +646,7 @@ export const usePosStore = create<PosState>()(
         const session = get().getSession(data.sessionId);
         if (!session) return;
 
-        const now = new Date();
+        const now = new Date().toISOString();
         const variance = d2(new Decimal(data.closingCash).minus(session.expectedCash));
 
         const closingMovement: CashMovement = {
@@ -723,7 +723,7 @@ export const usePosStore = create<PosState>()(
         set((state) => ({
           sessions: state.sessions.map((s) =>
             s.id === sessionId
-              ? { ...s, status: 'suspended' as PosSessionStatus, updatedAt: new Date() }
+              ? { ...s, status: 'suspended' as PosSessionStatus, updatedAt: new Date().toISOString() }
               : s
           ),
         }));
@@ -733,7 +733,7 @@ export const usePosStore = create<PosState>()(
         set((state) => ({
           sessions: state.sessions.map((s) =>
             s.id === sessionId
-              ? { ...s, status: 'open' as PosSessionStatus, updatedAt: new Date() }
+              ? { ...s, status: 'open' as PosSessionStatus, updatedAt: new Date().toISOString() }
               : s
           ),
           currentSessionId: sessionId,
@@ -760,7 +760,7 @@ export const usePosStore = create<PosState>()(
           orderId,
           reason,
           performedBy: session.cashierName,
-          performedAt: new Date(),
+          performedAt: new Date().toISOString(),
         };
 
         let expected = new Decimal(session.expectedCash);
@@ -782,7 +782,7 @@ export const usePosStore = create<PosState>()(
                   ...s,
                   cashMovements: [...s.cashMovements, movement],
                   expectedCash,
-                  updatedAt: new Date(),
+                  updatedAt: new Date().toISOString(),
                 }
               : s
           ),
@@ -791,7 +791,7 @@ export const usePosStore = create<PosState>()(
 
       // Terminal Actions
       addTerminal: (terminalData) => {
-        const now = new Date();
+        const now = new Date().toISOString();
         const terminal: PosTerminal = {
           ...terminalData,
           id: uuidv4(),
@@ -809,7 +809,7 @@ export const usePosStore = create<PosState>()(
       updateTerminal: (id, updates) => {
         set((state) => ({
           terminals: state.terminals.map((t) =>
-            t.id === id ? { ...t, ...updates, updatedAt: new Date() } : t
+            t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
           ),
         }));
       },
@@ -821,7 +821,7 @@ export const usePosStore = create<PosState>()(
       // Settings Actions
       updateSettings: (updates) => {
         set((state) => ({
-          settings: { ...state.settings, ...updates, updatedAt: new Date() },
+          settings: { ...state.settings, ...updates, updatedAt: new Date().toISOString() },
         }));
       },
 
@@ -873,8 +873,9 @@ export const usePosStore = create<PosState>()(
           .filter((m) => m.type === 'payout' || m.type === 'drop')
           .reduce((sum, m) => sum.plus(new Decimal(m.amount).abs()), new Decimal(0)));
 
-        const now = new Date();
-        const reportNumber = `Z-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${get().zReports.length + 1}`;
+        const nowDate = new Date();
+        const now = nowDate.toISOString();
+        const reportNumber = `Z-${nowDate.getFullYear()}${(nowDate.getMonth() + 1).toString().padStart(2, '0')}${nowDate.getDate().toString().padStart(2, '0')}-${get().zReports.length + 1}`;
 
         const zReport: ZReport = {
           id: uuidv4(),
@@ -924,8 +925,9 @@ export const usePosStore = create<PosState>()(
         const order = get().orders.find((o) => o.id === orderId);
         if (!order) return null;
 
-        const now = new Date();
-        const returnNumber = `RTN-${now.getFullYear()}-${(get().returns.length + 1).toString().padStart(4, '0')}`;
+        const nowDate = new Date();
+        const now = nowDate.toISOString();
+        const returnNumber = `RTN-${nowDate.getFullYear()}-${(get().returns.length + 1).toString().padStart(4, '0')}`;
 
         // Build return items and calculate total
         let totalRefundDec = new Decimal(0);

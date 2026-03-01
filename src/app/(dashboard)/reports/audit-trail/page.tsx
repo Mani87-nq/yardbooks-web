@@ -56,7 +56,7 @@ interface AuditChange {
 
 interface AuditEntry {
   id: string;
-  timestamp: Date;
+  timestamp: string;
   userId: string;
   userName: string;
   userEmail: string;
@@ -236,7 +236,7 @@ function mapApiEntry(raw: AuditLogApiEntry, currentUser: { id: string; firstName
 
   return {
     id: raw.id,
-    timestamp: new Date(raw.createdAt),
+    timestamp: raw.createdAt,
     userId: raw.userId ?? 'unknown',
     userName: isCurrentUser
       ? `${currentUser.firstName} ${currentUser.lastName}`
@@ -258,8 +258,8 @@ function mapApiEntry(raw: AuditLogApiEntry, currentUser: { id: string; firstName
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatTimestamp(date: Date): string {
-  return date.toLocaleString('en-JM', {
+function formatTimestamp(date: string | Date): string {
+  return new Date(date).toLocaleString('en-JM', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -269,24 +269,24 @@ function formatTimestamp(date: Date): string {
   });
 }
 
-function formatShortDate(date: Date): string {
-  return date.toLocaleDateString('en-JM', {
+function formatShortDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString('en-JM', {
     day: '2-digit',
     month: 'short',
   });
 }
 
-function formatTimeOnly(date: Date): string {
-  return date.toLocaleTimeString('en-JM', {
+function formatTimeOnly(date: string | Date): string {
+  return new Date(date).toLocaleTimeString('en-JM', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
   });
 }
 
-function getRelativeTime(date: Date): string {
+function getRelativeTime(date: string | Date): string {
   const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const diff = now.getTime() - new Date(date).getTime();
   const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -383,7 +383,8 @@ export default function AuditTrailPage() {
 
     return allEntries.filter((entry) => {
       // Date range
-      if (entry.timestamp < startDate || entry.timestamp > endDate) return false;
+      const entryDate = new Date(entry.timestamp);
+      if (entryDate < startDate || entryDate > endDate) return false;
 
       // User filter
       if (selectedUser !== 'all' && entry.userId !== selectedUser) return false;
@@ -421,7 +422,7 @@ export default function AuditTrailPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayEntries = allEntries.filter((e) => e.timestamp >= today);
+    const todayEntries = allEntries.filter((e) => new Date(e.timestamp) >= today);
 
     // Most active user
     const userCounts = new Map<string, number>();
@@ -496,7 +497,7 @@ export default function AuditTrailPage() {
   const groupedByDate = useMemo(() => {
     const groups = new Map<string, AuditEntry[]>();
     for (const entry of filteredEntries) {
-      const dateKey = entry.timestamp.toISOString().split('T')[0];
+      const dateKey = new Date(entry.timestamp).toISOString().split('T')[0];
       const list = groups.get(dateKey) ?? [];
       list.push(entry);
       groups.set(dateKey, list);
