@@ -73,21 +73,22 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ============================================
-  // SKIP RSC / PREFETCH REQUESTS
+  // RSC / PREFETCH DETECTION
   // ============================================
   // Next.js App Router sends internal RSC requests for client-side navigation.
-  // These carry a `Next-Router-State-Tree` header with URL-encoded state.
-  // Passing modified request headers via NextResponse.next({ request: { headers } })
-  // corrupts this header, causing "router state header could not be parsed" errors
-  // and breaking ALL client-side navigation (Link clicks, router.push).
-  // RSC requests already carry session cookies from the initial page load,
-  // so they don't need middleware auth checks, CSP nonces, or security headers.
-  if (
+  // These MUST NOT have their request headers modified — passing modified headers
+  // via NextResponse.next({ request: { headers } }) corrupts the
+  // Next-Router-State-Tree header and silently breaks all client navigation.
+  const isRSC =
     request.headers.get('RSC') === '1' ||
     request.headers.get('Next-Router-Prefetch') !== null ||
     request.headers.get('Next-Router-State-Tree') !== null ||
-    request.nextUrl.searchParams.has('_rsc')
-  ) {
+    request.nextUrl.searchParams.has('_rsc') ||
+    request.headers.get('accept')?.includes('text/x-component');
+
+  // RSC requests carry session cookies from the initial page load,
+  // so they don't need middleware auth checks, CSP nonces, or security headers.
+  if (isRSC) {
     return NextResponse.next();
   }
 
@@ -95,8 +96,6 @@ export async function middleware(request: NextRequest) {
   // CSP NONCE — generated per request
   // ============================================
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
 
   // ============================================
   // AUTHENTICATION CHECK
@@ -164,7 +163,8 @@ export async function middleware(request: NextRequest) {
           isAuthenticated = true;
 
           // Forward the response and set the new cookies from the refresh endpoint
-          const response = NextResponse.next({ request: { headers: requestHeaders } });
+          const response = NextResponse.next();
+          response.headers.set('x-nonce', nonce);
 
           // Set the new access token cookie (httpOnly to prevent XSS token theft)
           if (data.accessToken) {
@@ -221,7 +221,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Continue with request and add security headers
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  // IMPORTANT: Never use NextResponse.next({ request: { headers } }) — it corrupts
+  // the Next-Router-State-Tree header and silently breaks client-side navigation.
+  // Pass nonce via response header instead; server components read it via headers().
+  const response = NextResponse.next();
+  response.headers.set('x-nonce', nonce);
   addSecurityHeaders(response, nonce);
   return response;
 }
