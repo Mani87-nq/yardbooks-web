@@ -47,6 +47,7 @@ export function initModulePermissions(): void {
   if (initialized) return;
 
   const allModules = moduleRegistry.getAllModules();
+  console.log(`[ModulePermissions] Initialising with ${allModules.length} modules: [${allModules.map(m => m.id).join(', ')}]`);
 
   for (const manifest of allModules) {
     const roleMap = new Map<Role, Set<string>>();
@@ -74,9 +75,11 @@ export function initModulePermissions(): void {
     }
 
     modulePermissionMap.set(manifest.id, roleMap);
+    console.log(`[ModulePermissions]   ${manifest.id}: ${manifest.permissions.length} perms, ${roleMap.size} roles`);
   }
 
   initialized = true;
+  console.log(`[ModulePermissions] Initialisation complete. Modules in map: [${Array.from(modulePermissionMap.keys()).join(', ')}]`);
 }
 
 // ============================================
@@ -102,13 +105,30 @@ export function checkModulePermission(
   moduleId: string,
   permission: string
 ): boolean {
+  // OWNER and ADMIN roles have unrestricted access to all module features.
+  // This also acts as a safety net in case the permission map fails to
+  // initialise correctly in certain serverless environments.
+  if (role === 'OWNER' || role === 'ADMIN') return true;
+
   // Ensure the permission map has been built
   if (!initialized) {
-    initModulePermissions();
+    try {
+      initModulePermissions();
+    } catch (err) {
+      console.error('[ModulePermissions] initModulePermissions() threw:', err);
+      return false;
+    }
   }
 
   const roleMap = modulePermissionMap.get(moduleId);
-  if (!roleMap) return false;
+  if (!roleMap) {
+    console.error(
+      `[ModulePermissions] No role map for module "${moduleId}". ` +
+      `Available modules: [${Array.from(modulePermissionMap.keys()).join(', ')}]. ` +
+      `Registry modules: [${moduleRegistry.getAllModuleIds().join(', ')}]`
+    );
+    return false;
+  }
 
   const perms = roleMap.get(role);
   return perms?.has(permission) ?? false;
