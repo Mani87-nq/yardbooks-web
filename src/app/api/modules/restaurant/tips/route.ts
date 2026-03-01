@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         table: {
           select: {
             number: true,
-            name: true,
+            section: true,
           },
         },
       },
@@ -114,8 +114,8 @@ export async function GET(request: NextRequest) {
         serverId: session.serverId,
         amount: Number(session.tipAmount),
         orderTotal: Number(session.total),
-        tableNumber: session.table?.number || 0,
-        tableName: session.table?.name || null,
+        tableNumber: session.table?.number || '0',
+        tableName: session.table?.section ? `Table ${session.table.number} (${session.table.section})` : `Table ${session.table?.number || '?'}`,
         date: session.closedAt?.toISOString() || null,
         guestCount: session.guestCount,
       };
