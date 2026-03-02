@@ -503,8 +503,11 @@ export default function POSPage() {
       setLastReceiptData(receiptData);
       setShowReceiptModal(true);
 
-      // Trigger cash drawer for cash payments
-      if (paymentMethod === 'cash') {
+      // Trigger cash drawer for cash payments (only if enabled in settings)
+      const ps = posSettings as Record<string, unknown> | undefined;
+      const drawerEnabled = (ps?.cashDrawerOpenOnPayment as boolean) ?? false;
+      const drawerType = (ps?.cashDrawerTriggerType as string) ?? 'none';
+      if (paymentMethod === 'cash' && drawerEnabled && drawerType === 'printer_trigger') {
         triggerCashDrawer();
       }
 

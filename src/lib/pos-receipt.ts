@@ -332,11 +332,6 @@ export function generateReceiptHTML(data: ReceiptData): string {
         <span style="font-size:9px;color:#999;">Powered by YaadBooks</span>
       </div>
 
-      <script>
-        window.onload = function() {
-          setTimeout(function() { window.print(); }, 200);
-        };
-      </script>
     </body>
     </html>
   `;
@@ -361,6 +356,10 @@ export function printReceipt(data: ReceiptData, copies: number = 1): void {
     }
     printWindow.document.write(singleHtml);
     printWindow.document.close();
+    // Trigger print from parent context after DOM renders
+    setTimeout(() => {
+      try { printWindow.print(); } catch { /* window may have been closed */ }
+    }, 400);
     return;
   }
 
@@ -394,11 +393,6 @@ export function printReceipt(data: ReceiptData, copies: number = 1): void {
     <head>${headContent}</head>
     <body>
       ${copiesArray.join('\n')}
-      <script>
-        window.onload = function() {
-          setTimeout(function() { window.print(); }, 200);
-        };
-      </script>
     </body>
     </html>
   `;
@@ -410,6 +404,10 @@ export function printReceipt(data: ReceiptData, copies: number = 1): void {
   }
   printWindow.document.write(multiHtml);
   printWindow.document.close();
+  // Trigger print from parent context after DOM renders
+  setTimeout(() => {
+    try { printWindow.print(); } catch { /* window may have been closed */ }
+  }, 400);
 }
 
 // ── Helper: Build ReceiptData from API order ──────────────────────

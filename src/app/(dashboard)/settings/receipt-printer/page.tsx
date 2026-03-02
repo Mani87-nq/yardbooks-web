@@ -179,10 +179,10 @@ export default function ReceiptPrinterSettingsPage() {
         receiptAskBeforePrint: (settingsData as any).receiptAskBeforePrint ?? true,
         receiptAutoPrint: (settingsData as any).receiptAutoPrint ?? false,
 
-        // Cash drawer
-        cashDrawerOpenOnPayment: (settingsData as any).cashDrawerOpenOnPayment ?? true,
+        // Cash drawer (default off — most users don't have physical cash drawers)
+        cashDrawerOpenOnPayment: (settingsData as any).cashDrawerOpenOnPayment ?? false,
         cashDrawerOpenOnSessionStart: (settingsData as any).cashDrawerOpenOnSessionStart ?? false,
-        cashDrawerTriggerType: (settingsData as any).cashDrawerTriggerType ?? 'printer_trigger',
+        cashDrawerTriggerType: (settingsData as any).cashDrawerTriggerType ?? 'none',
       });
     }
   }, [settingsData]);
