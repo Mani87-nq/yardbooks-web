@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-// import { ThemeProvider } from 'next-themes';
+import { ThemeProvider } from 'next-themes';
+// ServiceWorkerRegistration temporarily disabled — registers dozens of times
+// per page load due to module chunking, triggering excessive update checks.
 // import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
-// import { PostHogProvider } from "@/components/PostHogProvider";
+import { PostHogProvider } from "@/components/PostHogProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -87,7 +89,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <PostHogProvider>
+            {children}
+          </PostHogProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -183,37 +183,43 @@ export function useDataHydration() {
         // Await modules fetch (fire-and-forget if it fails - sidebar just won't show module items)
         await modulesFetchPromise.catch(() => {});
 
-        // Populate the store in a single batch
-        const state = store.getState();
-        state.setCustomers(customersRes.data);
-        state.setProducts(productsRes.data);
-        state.setInvoices(invoicesRes.data);
-        state.setExpenses(expensesRes.data);
-        state.setNotifications(notificationsRes.data);
-        state.setQuotations(quotationsRes.data);
-        state.setEmployees(employeesRes.data);
-        state.setPayrollRuns(payrollRes.data || []);
-        state.setGLAccounts(glAccountsRes.data);
-        state.setBankAccounts(bankAccountsRes.data);
-        state.setFixedAssets(fixedAssetsRes.data);
-        state.setJournalEntries(journalEntriesRes.data);
-        state.setBankTransactions(bankTransactionsRes.data);
-
-        // Apply user display preferences (currency, theme, dateFormat, etc.)
+        // ── Populate the store in ONE atomic setState call ──────────
+        // Previously we called 13+ individual setters (setCustomers,
+        // setProducts, etc.), each triggering Zustand subscribers and
+        // queueing React re-renders. This flooded the React 19 scheduler
+        // with micro-tasks. A single setState merges everything at once
+        // and triggers subscribers only once.
+        const settingsUpdate: Record<string, unknown> = {};
         if (userSettingsRes) {
-          const prefs: Record<string, unknown> = {};
-          if (userSettingsRes.currency) prefs.currency = userSettingsRes.currency;
-          if (userSettingsRes.theme) prefs.theme = userSettingsRes.theme;
-          if (userSettingsRes.language) prefs.language = userSettingsRes.language;
-          if (userSettingsRes.dateFormat) prefs.dateFormat = userSettingsRes.dateFormat;
-          if (typeof userSettingsRes.compactMode === 'boolean') prefs.compactMode = userSettingsRes.compactMode;
-          if (Object.keys(prefs).length > 0) {
-            state.updateSettings(prefs as any);
-          }
+          if (userSettingsRes.currency) settingsUpdate.currency = userSettingsRes.currency;
+          if (userSettingsRes.theme) settingsUpdate.theme = userSettingsRes.theme;
+          if (userSettingsRes.language) settingsUpdate.language = userSettingsRes.language;
+          if (userSettingsRes.dateFormat) settingsUpdate.dateFormat = userSettingsRes.dateFormat;
+          if (typeof userSettingsRes.compactMode === 'boolean') settingsUpdate.compactMode = userSettingsRes.compactMode;
         }
 
-        // Mark hydration complete
-        store.setState({ hydrated: true });
+        store.setState((prev) => ({
+          ...prev,
+          customers: customersRes.data,
+          products: productsRes.data,
+          invoices: invoicesRes.data,
+          expenses: expensesRes.data,
+          notifications: notificationsRes.data,
+          quotations: quotationsRes.data,
+          employees: employeesRes.data,
+          payrollRuns: payrollRes.data || [],
+          glAccounts: glAccountsRes.data,
+          bankAccounts: bankAccountsRes.data,
+          fixedAssets: fixedAssetsRes.data,
+          journalEntries: journalEntriesRes.data,
+          bankTransactions: bankTransactionsRes.data,
+          // User settings
+          ...(Object.keys(settingsUpdate).length > 0
+            ? { settings: { ...prev.settings, ...settingsUpdate } }
+            : {}),
+          // Mark hydration complete
+          hydrated: true,
+        }));
         setIsLoading(false);
       } catch (err: unknown) {
         console.error('[useDataHydration] Hydration failed:', err);
