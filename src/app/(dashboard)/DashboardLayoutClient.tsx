@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * TEMPORARY: Stripped-down layout for debugging hydration mismatch.
- * The original file has loading/error guards, TourProvider,
- * useDataHydration, and onboarding enforcement.
+ * Binary-search step 1: Add DashboardLayout (sidebar + header) back.
+ * Still NO useDataHydration, TourProvider, loading/error guards, or
+ * onboarding enforcement — those are the suspects for stuck scheduler lanes.
  */
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { QueryProvider } from '@/providers/QueryProvider';
 
 export function DashboardLayoutClient({
@@ -12,5 +13,9 @@ export function DashboardLayoutClient({
 }: {
   children: React.ReactNode;
 }) {
-  return <QueryProvider>{children}</QueryProvider>;
+  return (
+    <QueryProvider>
+      <DashboardLayout>{children}</DashboardLayout>
+    </QueryProvider>
+  );
 }
