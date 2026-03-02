@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/store/appStore';
 import { useDashboardStats, useRecentInvoices, useLowStockProducts } from '@/hooks/api/useDashboard';
@@ -162,8 +162,21 @@ export default function DashboardPage() {
   const recentInvoices = useRecentInvoices(5);
   const lowStockProducts = useLowStockProducts();
 
-  const greeting = useMemo(() => getGreeting(), []);
-  const formattedDate = useMemo(() => getFormattedDate(), []);
+  // ── Hydration-safe time-dependent values ────────────────────────
+  // CRITICAL: useMemo(() => getGreeting(), []) runs during render.
+  // Server time (UTC) ≠ Client time (Jamaica) → React error #418
+  // (hydration mismatch). This fires 12+ times per page load and
+  // creates transition work on React 19's scheduler that expires,
+  // permanently blocking ALL client-side navigation.
+  //
+  // Fix: render a static placeholder on both server AND client first
+  // render, then update to the real value in useEffect (client-only).
+  const [greeting, setGreeting] = useState('Welcome');
+  const [formattedDate, setFormattedDate] = useState('');
+  useEffect(() => {
+    setGreeting(getGreeting());
+    setFormattedDate(getFormattedDate());
+  }, []);
   const firstName = user?.firstName || 'there';
 
   return (
@@ -180,9 +193,9 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <CalendarDaysIcon className="w-4 h-4 text-emerald-200" />
-                <p className="text-emerald-100 text-sm font-medium">{formattedDate}</p>
+                <p className="text-emerald-100 text-sm font-medium" suppressHydrationWarning>{formattedDate}</p>
               </div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight">
+              <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight" suppressHydrationWarning>
                 {greeting}, {firstName}
               </h1>
               <p className="text-emerald-100 mt-2 text-base">
@@ -395,7 +408,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{invoice.invoiceNumber}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate" suppressHydrationWarning>
                             {invoice.customer?.name || 'Unknown'} &middot; {formatRelativeTime(invoice.issueDate)}
                           </p>
                         </div>
